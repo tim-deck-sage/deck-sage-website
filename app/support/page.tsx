@@ -46,6 +46,30 @@ export default function SupportPage() {
           </section>
 
           <section>
+            <h3>Account-deletion help</h3>
+            <p>
+              When possible, use the secure in-app deletion process described
+              on the{" "}
+              <a href="/delete-account/">
+                Delete your Deck Sage account page
+              </a>
+              .
+            </p>
+            <p>
+              If you cannot access the app, email{" "}
+              <a href="mailto:support@deck-sage.com">
+                support@deck-sage.com
+              </a>
+              . Support must verify account ownership before processing
+              deletion. Contacting Support does not itself complete deletion.
+            </p>
+            <p>
+              Do not send passwords, authentication tokens, one-time codes, or
+              other sensitive credentials.
+            </p>
+          </section>
+
+          <section>
             <h3>Bug Reports</h3>
             <p>
               If you&apos;ve discovered a bug or unexpected behavior, we&apos;d

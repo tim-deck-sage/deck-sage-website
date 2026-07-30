@@ -186,6 +186,7 @@ a {
 
 .page-content {
   display: flex;
+  min-width: 0;
   width: min(100%, var(--max-width));
   margin: 0 auto;
   flex-direction: column;
@@ -196,10 +197,12 @@ a {
 
 .legal-content {
   width: min(100%, 760px);
+  min-width: 0;
   text-align: left;
 }
 
-.legal-content h2 {
+.legal-content h1,
+.legal-content > h2 {
   margin: 0 0 40px;
   color: var(--foreground);
   font-family: Georgia, "Times New Roman", Times, serif;
@@ -208,12 +211,14 @@ a {
   letter-spacing: 1px;
   line-height: 1.1;
   text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .legal-content section {
   margin-top: 40px;
 }
 
+.legal-content section h2,
 .legal-content h3 {
   margin: 0 0 14px;
   color: var(--foreground);
@@ -221,6 +226,7 @@ a {
   font-size: clamp(1.35rem, 2vw, 1.75rem);
   font-weight: 700;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .legal-content p,
@@ -249,6 +255,45 @@ a {
   color: var(--foreground);
   text-decoration: underline;
   text-underline-offset: 4px;
+  overflow-wrap: anywhere;
+}
+
+.legal-content a:focus-visible,
+.site-footer a:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--foreground);
+  outline-offset: 4px;
+}
+
+.legal-content code {
+  padding: 0.1em 0.35em;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.95em;
+}
+
+.settings-path {
+  padding: 16px 18px;
+  overflow-wrap: anywhere;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.legal-callout {
+  margin-top: 18px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--muted);
+  border-radius: 8px;
+}
+
+.legal-callout-danger {
+  border-left-color: #d97777;
 }
 
 .effective-date {
