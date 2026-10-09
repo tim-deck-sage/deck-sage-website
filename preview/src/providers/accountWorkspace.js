@@ -13,6 +13,8 @@ export function createAccountWorkspace(guest,backend,{delay=700,uuid=()=>crypto.
  const lockedIn=storage=>{try{return storage?.getItem(lockKey)==='1';}catch{return false;}};
  let logoutLocked=lockedIn(lockStorage)||lockedIn(recoveryStorage);
  const rememberLock=value=>{logoutLocked=value;for(const storage of [lockStorage,recoveryStorage])try{value?storage?.setItem(lockKey,'1'):storage?.removeItem(lockKey);}catch{}};
+ // Auth callbacks may advance epochs during enrollment; logout cancellation is separate.
+ let cancellationGeneration=0;
  let epoch=0,timer,unsubscribe,writing=false,operation=null,blocked=false;
  let snapshot={epoch:0,mode:'guest',state:guest.load(),user:null,revision:0,dirty:false,status:'Saved in this browser',error:'',conflict:null,recovery:false,profile:null};
  if(logoutLocked)snapshot={...snapshot,mode:'locked',state:baseState(),status:'Sign out incomplete',logoutLocked:true};
@@ -61,22 +63,24 @@ export function createAccountWorkspace(guest,backend,{delay=700,uuid=()=>crypto.
  }
  const api={
   getSnapshot:()=>snapshot,subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},
-  start(){if(!backend)return()=>{};unsubscribe=backend.subscribe((event,session)=>{void transition(event,session);});const storageEvent=event=>{if(event.key===lockKey&&event.newValue==='1'){logoutLocked=true;++epoch;clear();emit({epoch,logoutLocked:true,mode:'locked',state:baseState(),user:null,profile:null,dirty:false,recovery:false,conflict:null,status:'Sign out incomplete',error:''});}};globalThis.addEventListener?.('storage',storageEvent);void backend.user().then(user=>{if(epoch===0&&!logoutLocked)void transition('INITIAL_SESSION',user?{user}:null);}).catch(e=>{if(epoch===0)emit({mode:'locked',state:baseState(),error:e.message,status:'Session check failed'});});return()=>{++epoch;clear();unsubscribe?.();globalThis.removeEventListener?.('storage',storageEvent);};},
+  start(){if(!backend)return()=>{};unsubscribe=backend.subscribe((event,session)=>{void transition(event,session);});const storageEvent=event=>{if(event.key===lockKey&&event.newValue==='1'){logoutLocked=true;++cancellationGeneration;++epoch;clear();emit({epoch,logoutLocked:true,mode:'locked',state:baseState(),user:null,profile:null,dirty:false,recovery:false,conflict:null,status:'Sign out incomplete',error:''});}};globalThis.addEventListener?.('storage',storageEvent);void backend.user().then(user=>{if(epoch===0&&!logoutLocked)void transition('INITIAL_SESSION',user?{user}:null);}).catch(e=>{if(epoch===0)emit({mode:'locked',state:baseState(),error:e.message,status:'Session check failed'});});return()=>{++cancellationGeneration;++epoch;clear();unsubscribe?.();globalThis.removeEventListener?.('storage',storageEvent);};},
   edit(value,expectedEpoch=epoch){if(expectedEpoch!==epoch)return;if(!['guest','account'].includes(snapshot.mode))throw Error('Finish account setup before editing your collection.');const state=validateState(typeof value==='function'?value(snapshot.state):value);if(snapshot.mode==='guest'){try{guest.save(state);emit({state,error:'',status:'Saved in this browser'});}catch{emit({state,error:'Browser storage is full. Export a backup before leaving.',status:'Guest save failed'});}}else{emit({state,dirty:true,status:'Changes waiting to sync'});schedule();}},
-  retry:async()=>{if(logoutLocked)throw Error('Finish sign out or choose explicit sign in.');if(snapshot.mode==='account'){blocked=false;return sync();}const user=await backend.user();return transition('RETRY',user?{user}:null);},
+  retry:async()=>{if(logoutLocked)throw Error('Finish sign out before creating a browser account.');if(snapshot.mode==='account'){blocked=false;return sync();}const user=await backend.user();return transition('RETRY',user?{user}:null);},
   async createUsername(username,terms,privacy){
    if(!backend)throw Error('Username service is not connected.');
+   if(logoutLocked)throw Error('Finish sign out before creating a browser account.');
+   const cancellation=cancellationGeneration;
    const user=await backend.openBrowserSession(username,terms,privacy);
+   if(cancellation!==cancellationGeneration||logoutLocked)return;
    if(!user?.id)throw Error('Browser session could not be created.');
    const current=epoch;
    try{await backend.onboard(username,terms,privacy,user.id);}
    catch(e){if(!rejectChangedAccount(e,current)&&current===epoch)emit({error:e.message});throw e;}
-   if(current!==epoch)return;
-   rememberLock(false);emit({logoutLocked:false});
+   if(current!==epoch||cancellation!==cancellationGeneration||logoutLocked)return;
    return transition('USERNAME_CLAIMED',{user});
   },
   async onboard(username,terms,privacy){if(snapshot.mode!=='onboarding'||!snapshot.user)throw Error('ONBOARDING_REQUIRED');const current=epoch,user=snapshot.user;try{await backend.onboard(username,terms,privacy,user.id);if(current===epoch)return transition('ONBOARDED',{user});}catch(e){rejectChangedAccount(e,current);throw e;}},
-  async logout(){rememberLock(true);++epoch;clear();rememberRecovery(null);emit({epoch,logoutLocked:true,mode:'locked',state:baseState(),user:null,profile:null,dirty:false,conflict:null,recovery:false,status:'Signing out…',error:''});const current=epoch;try{await backend.signOut();if(current!==epoch)return;rememberLock(false);emit({logoutLocked:false});await transition('SIGNED_OUT',null);}catch(e){if(current===epoch)emit({status:'Sign out failed',error:'Your account is hidden. Retry sign out to finish. '+e.message});throw e;}},
+  async logout(){++cancellationGeneration;rememberLock(true);++epoch;clear();rememberRecovery(null);emit({epoch,logoutLocked:true,mode:'locked',state:baseState(),user:null,profile:null,dirty:false,conflict:null,recovery:false,status:'Signing out…',error:''});const current=epoch;try{await backend.signOut();if(current!==epoch)return;rememberLock(false);emit({logoutLocked:false});await transition('SIGNED_OUT',null);}catch(e){if(current===epoch)emit({status:'Sign out failed',error:'Your account is hidden. Retry sign out to finish. '+e.message});throw e;}},
   async importGuest(){if(snapshot.mode!=='account'||snapshot.dirty||writing)throw Error('Sync your account changes before importing.');const current=epoch,userId=snapshot.user.id;blocked=true;emit({mode:'importing',status:'Importing browser collection…'});try{const saved=await backend.importGuest(guest.load(),snapshot.revision,userId);if(current!==epoch)return;blocked=false;base=validateState(saved.state);emit({mode:'account',state:copy(base),revision:saved.revision,status:'Browser collection imported',error:''});}catch(e){if(!rejectChangedAccount(e,current)&&current===epoch){blocked=false;emit({mode:'account',error:e.message,status:'Import paused'});}throw e;}},
   resolveConflict(keepLocal){if(!snapshot.conflict)throw Error('Retry loading the conflicting version first.');base=validateState(snapshot.conflict.state);operation=null;blocked=false;emit({state:keepLocal?snapshot.state:copy(base),revision:snapshot.conflict.revision,dirty:keepLocal,conflict:null,error:'',status:keepLocal?'Changes waiting to sync':'Loaded account version'});if(keepLocal)schedule();},
   exportGuest:()=>copy(guest.load()),sync,
