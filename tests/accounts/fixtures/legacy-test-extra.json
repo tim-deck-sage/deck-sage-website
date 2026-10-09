@@ -1,0 +1,19 @@
+{
+  "views": [
+    {
+      "relname": "store_public_profiles",
+      "relkind": "v",
+      "reloptions": null,
+      "anon_select": true,
+      "authenticated_select": true,
+      "definition": " SELECT id,\n    name,\n    slug,\n    description,\n    logo_url,\n    website_url,\n    phone,\n    address_line1,\n    address_line2,\n    city,\n    region,\n    postal_code,\n    country,\n    timezone,\n    created_at,\n    updated_at\n   FROM stores\n  WHERE is_public AND is_active;"
+    }
+  ],
+  "otherSchemaPolicies": [],
+  "enums": [
+    {
+      "typname": "app_role",
+      "labels": "{Player,StoreOwner,Admin,SuperAdmin}"
+    }
+  ]
+}

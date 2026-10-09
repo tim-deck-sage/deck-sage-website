@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start",
     "postbuild": "node preview/tools/build-accounts.cjs && node preview/tools/assemble.cjs",
-    "test:accounts": "node tests/accounts/usernames-sql.cjs && node tests/accounts/usernames-browser.cjs",
-    "test:accounts:browser": "node tests/accounts/usernames-browser.cjs"
+    "test:accounts": "node tests/accounts/usernames-sql.cjs && node tests/accounts/usernames-browser.cjs && node tests/accounts/usernames-cancellation.cjs && node tests/accounts/usernames-auth-http-race.cjs && node tests/accounts/legacy-hardening.cjs",
+    "test:accounts:browser": "node tests/accounts/usernames-browser.cjs && node tests/accounts/usernames-cancellation.cjs && node tests/accounts/usernames-auth-http-race.cjs",
+    "test:accounts:hardening": "node tests/accounts/legacy-hardening.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3",
