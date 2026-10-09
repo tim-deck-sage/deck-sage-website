@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "postbuild": "node preview/tools/build.cjs && node preview/tools/assemble.cjs"
   },
   "dependencies": {
     "next": "latest",

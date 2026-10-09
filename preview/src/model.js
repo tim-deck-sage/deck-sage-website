@@ -1,0 +1,45 @@
+export const STORAGE_KEY='deck-sage-web-v1';
+export const LAND_NAMES=['Plains','Island','Swamp','Mountain','Forest','Wastes'];
+export const emptyLands=()=>Object.fromEntries(LAND_NAMES.map(n=>[n,0]));
+export const uid=()=>crypto.randomUUID();
+export const positive=n=>Math.max(1,Math.min(9999,Math.floor(Number(n)||1)));
+export const countDeck=d=>(d.commanderCard?1:0)+d.cards.reduce((n,c)=>n+positive(c.quantity),0)+Object.values(d.basicLands).reduce((a,b)=>a+b,0);
+export const expandCards=d=>d.cards.flatMap(c=>Array.from({length:Math.min(positive(c.quantity),200)},()=>c));
+export function baseState(){return {version:1,profile:{name:'Planeswalker',username:'',avatar:1,role:'Player',bio:''},decks:[],bulk:[],favorites:[],contacts:[],stores:[],notifications:[],settings:{theme:'forest',motion:true,images:true,notificationInbox:true}};}
+export function compactCard(card){const {raw,...rest}=card;return rest;}
+export function addInventory(inventory,card,quantity=1,variant='Normal'){
+ const key=card.oracleId||card.id||card.name;
+ const index=inventory.findIndex(c=>(c.oracleId||c.id||c.name)===key&&(c.cardVariant||'Normal')===variant);
+ if(index>=0)return inventory.map((c,i)=>i===index?{...c,quantity:positive(c.quantity)+positive(quantity)}:c);
+ return [...inventory,{...compactCard(card),quantity:positive(quantity),cardVariant:variant}];
+}
+export function transferBulk(state,index,deckId,quantity){
+ const owned=state.bulk[index];const deck=state.decks.find(d=>d.id===deckId);
+ if(!owned||!deck)throw Error('Choose a valid card and deck.');
+ if(deck.isDraft)throw Error('Candidate drafts contain planned cards. Move copies into an inventory deck instead.');
+ const amount=positive(quantity);if(amount>positive(owned.quantity))throw Error('You do not own that many copies in bulk.');
+ const remaining=positive(owned.quantity)-amount;
+ return {...state,bulk:state.bulk.flatMap((c,i)=>i!==index?[c]:remaining?[{...c,quantity:remaining}]:[]),decks:state.decks.map(d=>d.id===deckId?{...d,cards:addInventory(d.cards,owned,amount,owned.cardVariant)}:d)};
+}
+export function priceOf(card){const p=card.prices||{};const foil=card.cardVariant==='Foil';const raw=foil?p.usd_foil:p.usd;if(raw===null||raw===undefined||raw==='')return null;const n=Number(raw);return Number.isFinite(n)?n:null;}
+export function inventoryValue(cards){let total=0,priced=0,unpriced=0;for(const card of cards){const price=priceOf(card),q=positive(card.quantity);if(price===null)unpriced+=q;else{priced+=q;total+=price*q;}}return {total,priced,unpriced};}
+export function ownedCards(state){return [...state.bulk,...state.decks.filter(d=>!d.isDraft).flatMap(d=>[...d.cards,...(d.commanderCard?[{...d.commanderCard,quantity:1}]:[])])];}
+export function validateState(input){
+ if(!input||input.version!==1||!Array.isArray(input.decks)||!Array.isArray(input.bulk))throw Error('Choose a Deck Sage Web V1 backup.');
+ if(input.decks.length>1000||input.bulk.length>100000)throw Error('Backup exceeds local workspace limits.');
+ const output=baseState();
+ const card=c=>{if(!c||typeof c.name!=='string'||!c.name.trim())throw Error('Backup includes a card without a name.');return {...compactCard(c),name:c.name.slice(0,200),quantity:positive(c.quantity),cardVariant:['Normal','Foil','Full Art'].includes(c.cardVariant)?c.cardVariant:'Normal',colorIdentity:Array.isArray(c.colorIdentity)?c.colorIdentity.filter(v=>'WUBRG'.includes(v)):[]};};
+ output.decks=input.decks.map(d=>{if(!d||typeof d.name!=='string'||!Array.isArray(d.cards))throw Error('Backup contains an invalid deck.');return {...d,id:typeof d.id==='string'?d.id:uid(),name:d.name.slice(0,200),cards:d.cards.map(card),commanderCard:d.commanderCard?card(d.commanderCard):null,basicLands:Object.fromEntries(LAND_NAMES.map(n=>[n,Math.max(0,Math.min(9999,Math.floor(Number(d.basicLands?.[n])||0)))]))};});
+ output.bulk=input.bulk.map(card);
+ output.profile={...output.profile,...(input.profile||{})};output.profile.avatar=Math.max(1,Math.min(19,Number(output.profile.avatar)||1));
+ for(const key of ['favorites','contacts','stores','notifications'])if(Array.isArray(input[key]))output[key]=input[key];
+ output.settings={...output.settings,...(input.settings||{})};return output;
+}
+export function loadState(){try{const saved=localStorage.getItem(STORAGE_KEY);return saved?validateState(JSON.parse(saved)):baseState();}catch{return baseState();}}
+export function parseDecklist(text){
+ const rows=[];for(const line of text.split(/\r?\n/)){
+  const trimmed=line.trim();if(!trimmed||trimmed.startsWith('#')||trimmed.startsWith('//'))continue;
+  const m=trimmed.match(/^(\d+)\s*x?\s+(.+)$/i);let name=(m?m[2]:trimmed).replace(/\s+\([A-Z0-9]{2,6}\)\s*\d*$/i,'').trim();
+  if(name)rows.push({name,quantity:positive(m?m[1]:1)});
+ }if(rows.length>500)throw Error('Import up to 500 lines at a time.');return rows;
+}
