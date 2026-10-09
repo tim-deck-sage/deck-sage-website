@@ -24,11 +24,11 @@ let recoverRequested=false,signupRequested=false,passwordUpdated=false;
   else if(url.pathname.startsWith('/rest/v1/ds_')){
    assert.ok(user);const row=rows.get(user.id);const name=url.pathname.split('/').at(-1),value=name==='ds_profiles'?row.profile:name==='ds_consents'?row.consent:row.workspace;response=value?[value]:[];
   }else if(url.pathname==='/rest/v1/rpc/ds_finish_onboarding'){
-   assert.ok(user);assert.equal(data.p_terms,true);assert.equal(data.p_privacy,true);assert.equal(data.p_version,'web-2026-10-09-v1');rows.set(user.id,{profile:{username:data.p_username},consent:{policy_version:data.p_version,accepted_at:new Date().toISOString()},workspace:{revision:0,state:baseState()}});response=null;
+   assert.ok(user);assert.equal(data.p_expected_user,user.id);assert.equal(data.p_terms,true);assert.equal(data.p_privacy,true);assert.equal(data.p_version,'web-2026-10-09-v1');rows.set(user.id,{profile:{username:data.p_username},consent:{policy_version:data.p_version,accepted_at:new Date().toISOString()},workspace:{revision:0,state:baseState()}});response=null;
   }else if(url.pathname==='/rest/v1/rpc/ds_import_guest'){
-   const row=rows.get(user.id);if(!row.imported){assert.equal(row.workspace.revision,0);row.workspace={revision:1,state:data.p_state};row.imported=true;}response=row.workspace;
+   assert.equal(data.p_expected_user,user.id);const row=rows.get(user.id);if(!row.imported){assert.equal(row.workspace.revision,0);row.workspace={revision:1,state:data.p_state};row.imported=true;}response=row.workspace;
   }else if(url.pathname==='/rest/v1/rpc/ds_save_workspace'){
-   const row=rows.get(user.id);if(data.p_revision!==row.workspace.revision){status=400;response={message:'REVISION_CONFLICT',code:'P0001'};}else{row.workspace={revision:row.workspace.revision+1,state:data.p_state};response=row.workspace;}
+   assert.equal(data.p_expected_user,user.id);const row=rows.get(user.id);if(data.p_revision!==row.workspace.revision){status=400;response={message:'REVISION_CONFLICT',code:'P0001'};}else{row.workspace={revision:row.workspace.revision+1,state:data.p_state};response=row.workspace;}
   }else{report.unhandled.push(req.url());return route.abort();}
   await route.fulfill({status,contentType:'application/json',body:JSON.stringify(response),headers:{'Access-Control-Allow-Origin':'*'}});
  });

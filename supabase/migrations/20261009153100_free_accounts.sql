@@ -70,10 +70,11 @@ grant select on public.ds_profiles,public.ds_consents,public.ds_workspaces to au
 
 -- Privileged mutations live in a non-exposed schema. Each derives its owner from
 -- auth.uid(), checks confirmed non-anonymous identity, and accepts no owner argument.
-create function ds_private.require_user() returns uuid
+create function ds_private.require_user(p_expected_user uuid) returns uuid
 language plpgsql security definer set search_path='' as $$
 declare owner uuid:=auth.uid();
 begin
+ if owner is distinct from p_expected_user then raise exception 'ACCOUNT_CHANGED' using errcode='42501'; end if;
  if owner is null or not exists(select 1 from auth.users where id=owner and email_confirmed_at is not null and coalesce(is_anonymous,false)=false) then
   raise exception 'AUTHENTICATED_CONFIRMED_USER_REQUIRED' using errcode='42501';
  end if;
@@ -86,9 +87,9 @@ begin
   raise exception 'CURRENT_CONSENT_REQUIRED' using errcode='42501';
  end if;
 end $$;
-create function ds_private.finish_onboarding(p_username text,p_version text,p_terms boolean,p_privacy boolean) returns void
+create function ds_private.finish_onboarding(p_expected_user uuid,p_username text,p_version text,p_terms boolean,p_privacy boolean) returns void
 language plpgsql security definer set search_path='' as $$
-declare owner uuid:=ds_private.require_user(); existing text;
+declare owner uuid:=ds_private.require_user(p_expected_user); existing text;
 begin
  if p_terms is distinct from true or p_privacy is distinct from true or not exists(select 1 from public.ds_policy_versions where version=p_version and active) then raise exception 'CURRENT_CONSENT_REQUIRED'; end if;
  if p_username is null or p_username !~ '^[a-z0-9_]{3,24}$' then raise exception 'INVALID_USERNAME'; end if;
@@ -100,9 +101,9 @@ begin
  insert into public.ds_consents(user_id,policy_version,terms_accepted,privacy_acknowledged) values(owner,p_version,true,true) on conflict do nothing;
  insert into public.ds_workspaces(user_id,state) values(owner,'{"version":1,"profile":{"name":"Planeswalker","username":"","avatar":1,"role":"Player","bio":""},"decks":[],"bulk":[],"favorites":[],"contacts":[],"stores":[],"notifications":[],"settings":{"theme":"forest","motion":true,"images":true,"notificationInbox":true}}'::jsonb) on conflict do nothing;
 end $$;
-create function ds_private.save_workspace(p_state jsonb,p_revision bigint,p_operation uuid) returns jsonb
+create function ds_private.save_workspace(p_expected_user uuid,p_state jsonb,p_revision bigint,p_operation uuid) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare owner uuid:=ds_private.require_user(); current_row public.ds_workspaces; receipt ds_private.operations; result jsonb;
+declare owner uuid:=ds_private.require_user(p_expected_user); current_row public.ds_workspaces; receipt ds_private.operations; result jsonb;
 begin
  perform ds_private.require_consent(owner);
  if p_operation is null then raise exception 'OPERATION_REQUIRED'; end if;
@@ -121,9 +122,9 @@ begin
  delete from ds_private.operations where user_id=owner and operation not in(select operation from ds_private.operations where user_id=owner order by result_revision desc limit 100);
  return result;
 end $$;
-create function ds_private.import_guest(p_state jsonb,p_revision bigint) returns jsonb
+create function ds_private.import_guest(p_expected_user uuid,p_state jsonb,p_revision bigint) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare owner uuid:=ds_private.require_user(); current_row public.ds_workspaces; v_fingerprint text:=encode(sha256(convert_to(p_state::text,'UTF8')),'hex'); result jsonb;
+declare owner uuid:=ds_private.require_user(p_expected_user); current_row public.ds_workspaces; v_fingerprint text:=encode(sha256(convert_to(p_state::text,'UTF8')),'hex'); result jsonb;
 begin
  perform ds_private.require_consent(owner);
  select * into current_row from public.ds_workspaces where user_id=owner for update;
@@ -139,21 +140,21 @@ begin
 end $$;
 create function ds_private.is_administrator() returns boolean
 language plpgsql security definer set search_path='' as $$
-declare owner uuid:=ds_private.require_user();
+declare owner uuid:=ds_private.require_user(auth.uid());
 begin
  return exists(select 1 from ds_private.account_roles where user_id=owner and role='administrator');
 end $$;
 -- Public wrappers are invokers. No SECURITY DEFINER API in an exposed schema.
-create function public.ds_finish_onboarding(p_username text,p_version text,p_terms boolean,p_privacy boolean) returns void
-language sql security invoker set search_path='' as $$ select ds_private.finish_onboarding(p_username,p_version,p_terms,p_privacy); $$;
-create function public.ds_save_workspace(p_state jsonb,p_revision bigint,p_operation uuid) returns jsonb
-language sql security invoker set search_path='' as $$ select ds_private.save_workspace(p_state,p_revision,p_operation); $$;
-create function public.ds_import_guest(p_state jsonb,p_revision bigint) returns jsonb
-language sql security invoker set search_path='' as $$ select ds_private.import_guest(p_state,p_revision); $$;
+create function public.ds_finish_onboarding(p_expected_user uuid,p_username text,p_version text,p_terms boolean,p_privacy boolean) returns void
+language sql security invoker set search_path='' as $$ select ds_private.finish_onboarding(p_expected_user,p_username,p_version,p_terms,p_privacy); $$;
+create function public.ds_save_workspace(p_expected_user uuid,p_state jsonb,p_revision bigint,p_operation uuid) returns jsonb
+language sql security invoker set search_path='' as $$ select ds_private.save_workspace(p_expected_user,p_state,p_revision,p_operation); $$;
+create function public.ds_import_guest(p_expected_user uuid,p_state jsonb,p_revision bigint) returns jsonb
+language sql security invoker set search_path='' as $$ select ds_private.import_guest(p_expected_user,p_state,p_revision); $$;
 create function public.ds_is_administrator() returns boolean
 language sql security invoker set search_path='' as $$ select ds_private.is_administrator(); $$;
 revoke execute on all functions in schema ds_private from public,anon,authenticated;
-grant execute on function ds_private.finish_onboarding(text,text,boolean,boolean),ds_private.save_workspace(jsonb,bigint,uuid),ds_private.import_guest(jsonb,bigint),ds_private.is_administrator() to authenticated;
-revoke execute on function public.ds_finish_onboarding(text,text,boolean,boolean),public.ds_save_workspace(jsonb,bigint,uuid),public.ds_import_guest(jsonb,bigint),public.ds_is_administrator() from public,anon,authenticated;
-grant execute on function public.ds_finish_onboarding(text,text,boolean,boolean),public.ds_save_workspace(jsonb,bigint,uuid),public.ds_import_guest(jsonb,bigint),public.ds_is_administrator() to authenticated;
+grant execute on function ds_private.finish_onboarding(uuid,text,text,boolean,boolean),ds_private.save_workspace(uuid,jsonb,bigint,uuid),ds_private.import_guest(uuid,jsonb,bigint),ds_private.is_administrator() to authenticated;
+revoke execute on function public.ds_finish_onboarding(uuid,text,text,boolean,boolean),public.ds_save_workspace(uuid,jsonb,bigint,uuid),public.ds_import_guest(uuid,jsonb,bigint),public.ds_is_administrator() from public,anon,authenticated;
+grant execute on function public.ds_finish_onboarding(uuid,text,text,boolean,boolean),public.ds_save_workspace(uuid,jsonb,bigint,uuid),public.ds_import_guest(uuid,jsonb,bigint),public.ds_is_administrator() to authenticated;
 commit;

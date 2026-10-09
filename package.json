@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "postbuild": "node preview/tools/build-accounts.cjs && node preview/tools/assemble.cjs",
-    "test:accounts": "node tests/accounts/sql.cjs && node tests/accounts/controller.cjs"
+    "test:accounts": "node tests/accounts/sql.cjs && node tests/accounts/controller.cjs && node tests/accounts/hosted-script.cjs",
+    "test:accounts:browser": "node tests/accounts/browser.cjs && node tests/accounts/adversarial.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3",

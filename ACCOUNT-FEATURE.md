@@ -1,5 +1,11 @@
 # Free account feature — local candidate
 
+The initial local candidate was rejected by independent security review. See
+`SECURITY-FIXES.md` for the identity/logout/recovery fixes and current evidence;
+the earlier 67-check matrix below is historical and superseded by that review.
+Test connection is now authorized subject to independent recheck. Remote
+application/publication has still not occurred; see `TEST-CONNECTION.md`.
+
 Base: published `39098efa25ddaa358a76e5608d758e182031129f`.
 Branch: `feature/free-accounts`. No hosted schema, settings, credentials, admin grant,
 push, or deployment was performed for this feature.
