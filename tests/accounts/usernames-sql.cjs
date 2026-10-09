@@ -1,0 +1,27 @@
+const {PGlite}=require('@electric-sql/pglite'),fs=require('fs'),assert=require('assert');
+const A='11111111-1111-4111-8111-111111111111',B='22222222-2222-4222-8222-222222222222',C='33333333-3333-4333-8333-333333333333';let checks=0;
+const pass=s=>{checks++;console.log('PASS '+s)};
+(async()=>{
+ const db=new PGlite();await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email_confirmed_at timestamptz,is_anonymous boolean);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;insert into auth.users values('${A}',null,true),('${B}',null,true),('${C}',null,false);`);
+ for(const name of ['20261009153100_free_accounts.sql','20261009225229_username_browser_accounts.sql'])await db.exec(fs.readFileSync('supabase/migrations/'+name,'utf8'));
+ const as=async id=>db.exec(`reset role;set role authenticated;select set_config('request.jwt.claim.sub','${id||''}',false)`);
+ const claim=(id,name,terms=true,privacy=true)=>db.query('select ds_finish_onboarding($1,$2,$3,$4,$5)',[id,name,'web-2026-10-09-v1',terms,privacy]);
+ await as(A);await assert.rejects(()=>claim(A,'alpha',false),/CURRENT_CONSENT/);assert.equal((await db.query('select * from ds_profiles')).rows.length,0);pass('policy gating leaves no partial claim');
+ await assert.rejects(()=>claim(A,' TMOORE '),/USERNAME_RESERVED/);await assert.rejects(()=>db.query('select * from ds_private.reserved_usernames'));pass('tmoore reserved privately; no self claim');
+ await claim(A,' Alpha_User ');assert.equal((await db.query('select username from ds_profiles')).rows[0].username,'alpha_user');pass('server trims and lowercases username for anonymous UUID');
+ await assert.rejects(()=>claim(A,'other'),/USERNAME_IS_PERMANENT/);pass('owned username cannot be changed');
+ await as(B);await assert.rejects(()=>claim(B,'ALPHA_USER'),/USERNAME_TAKEN/);assert.equal((await db.query('select * from ds_workspaces')).rows.length,0);pass('case variant cannot reclaim existing username or workspace');
+ await assert.rejects(()=>claim(A,'alpha_user'),/ACCOUNT_CHANGED/);await assert.rejects(()=>db.query('select ds_save_workspace($1,$2,0,$3)',[A,{version:1,decks:[],bulk:[]},'44444444-4444-4444-8444-444444444444']),/ACCOUNT_CHANGED/);pass('claim/save expected UUID mismatch rejected');
+ await claim(B,'beta_user');assert.equal((await db.query('select * from ds_workspaces where user_id=$1',[A])).rows.length,0);pass('anonymous B cannot see A profile/collection');
+ await as(A);const state={version:1,decks:[],bulk:[{name:'Sol Ring',quantity:2}]};await db.query('select ds_import_guest($1,$2,0)',[A,state]);await db.query('select ds_import_guest($1,$2,0)',[A,state]);assert.equal((await db.query('select state from ds_workspaces')).rows[0].state.bulk[0].quantity,2);pass('explicit repeat-safe guest import');
+ await as(null);assert.equal((await db.query('select * from ds_workspaces')).rows.length,0);await assert.rejects(()=>claim(null,'alpha_user'),/AUTHENTICATED_USER_REQUIRED/);pass('cleared session/no UUID has no collection or username reclaim');
+ await as(C);await assert.rejects(()=>claim(C,'unverified'),/AUTHENTICATED_USER_REQUIRED/);pass('unconfirmed non-anonymous user still rejected');
+ await as(A);assert.equal((await db.query('select ds_is_administrator() as value')).rows[0].value,false);await assert.rejects(()=>db.query("insert into ds_private.account_roles values($1,'administrator',now())",[A]));pass('username never grants admin');
+ await db.exec(`reset role;update ds_private.reserved_usernames set claimant_user_id='${B}' where username='tmoore'`);await as(A);await assert.rejects(()=>claim(A,'tmoore'),/USERNAME_RESERVED/);pass('privileged reservation authorizes only designated UUID');
+ // Two requests issued concurrently, serialized by embedded PG. Real multi-connection hosted race remains pending.
+ await db.exec(`reset role;delete from ds_workspaces;delete from ds_consents;delete from ds_profiles`);
+ let queue=Promise.resolve();function queued(id){const task=queue.then(async()=>{await as(id);return claim(id,' Race_Name ')});queue=task.catch(()=>{});return task;}
+ const race=await Promise.allSettled([queued(A),queued(B)]);assert.equal(race.filter(r=>r.status==='fulfilled').length,1);assert.match(race.find(r=>r.status==='rejected').reason.message,/USERNAME_TAKEN/);await db.exec('reset role');assert.equal((await db.query("select count(*)::int as count from ds_profiles where username='race_name'")).rows[0].count,1);pass('concurrently issued normalized claims yield one unique-index winner (embedded serialized execution)');
+ await db.exec('begin;set local role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,true)",[B]);await claim(B,'rollback_user');await db.exec('rollback');assert.equal((await db.query("select * from ds_profiles where username='rollback_user'")).rows.length,0);pass('transaction rollback leaves no fixture username');
+ await db.close();console.log(checks+' embedded SQL checks passed; hosted migration/race not run.');
+})().catch(e=>{console.error(e.message);process.exitCode=1});

@@ -8,7 +8,7 @@ const url=process.env.DECK_SAGE_SUPABASE_URL||'',key=process.env.DECK_SAGE_SUPAB
 if(!!url!==!!key)throw Error('Supply both public account settings or neither.');
 // Only the authorized integration test target can be enabled by this candidate.
 if(url&&(url!=='https://mihmykgxbneuhlcxolzm.supabase.co'||!key.startsWith('sb_publishable_')))throw Error('This feature candidate accepts only the authorized integration test project and a publishable key.');
-fs.writeFileSync(path.join(root,'public/account-config.js'),'window.DECK_SAGE_ACCOUNTS='+JSON.stringify(url?{url,publishableKey:key}:null)+';');
+fs.writeFileSync(path.join(root,'public/account-config.js'),'window.DECK_SAGE_ACCOUNTS='+JSON.stringify(url?{url,publishableKey:key,usernameOnlyReady:process.env.DECK_SAGE_USERNAME_ONLY_READY==='true'}:null)+';');
 let html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
 html=html.replace(/connect-src 'self'(?: https:\/\/mihmykgxbneuhlcxolzm\.supabase\.co)?;/,"connect-src 'self'"+(url?' '+url:'')+';');
 fs.writeFileSync(path.join(root,'public/index.html'),html);
