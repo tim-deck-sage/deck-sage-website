@@ -12,3 +12,8 @@ preview/evidence/
 preview/tests/*.png
 preview/tests/*.json
 preview/release/
+
+tests/**/*.png
+tests/**/*-report.json
+supabase/.temp/
+tests/**/*-backup.json

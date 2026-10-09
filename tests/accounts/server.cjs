@@ -1,0 +1,5 @@
+const http=require('http'),fs=require('fs'),path=require('path');
+const root=path.resolve(__dirname,'../../out');
+const types={'.html':'text/html; charset=utf-8','.js':'application/javascript','.css':'text/css','.json':'application/json','.gz':'application/octet-stream','.png':'image/png','.svg':'image/svg+xml','.webp':'image/webp','.mp3':'audio/mpeg'};
+const server=http.createServer((req,res)=>{try{let relative=decodeURIComponent(new URL(req.url,'http://localhost').pathname);if(relative.endsWith('/'))relative+='index.html';const file=path.resolve(root,'.'+relative);if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);res.end();return;}res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','Content-Length':fs.statSync(file).size});fs.createReadStream(file,{highWaterMark:65536}).pipe(res);}catch{res.writeHead(400);res.end();}});
+server.listen(4182,'127.0.0.1',()=>console.log('Isolated account candidate: http://127.0.0.1:4182'));
