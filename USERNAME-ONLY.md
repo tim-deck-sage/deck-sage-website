@@ -1,5 +1,27 @@
 # Username-only browser accounts: review candidate
 
+## Current test integration status — 2026-10-09 23:43 UTC
+
+Tim approved test legacy hardening; independent re-review passed exact HEAD `551cd936862ca7453894de98c8a9f76d3d601faa`. Exact reviewed hardening SHA256 `1D546461B0C6A4BD54DCC43EFEFD87D91225D81657AF84F465A14F86687B25A4` applied successfully first to `mihmykgxbneuhlcxolzm`, hosted history `20261009233850_legacy_anonymous_hardening`. Exact reviewed username SHA256 `17738493A951248957F2E9E8C710DAADA9686D198D8E1F83B9418518CEB9194B` applied successfully second, history `20261009233855_username_browser_accounts`. Migration files are unchanged. The held-state notes below describe earlier review stages.
+
+Eleven real hosted integration checks passed: actual anonymous SDK sessions; policy rejection with no partial writes; reserved `tmoore`; owner save/idempotent retry; cross-owner profile/consent/card denial; mismatched expected-owner UUID rejection for save/import/claim; revision conflict; fixed legacy wallet RPC and profile directory denial; no admin; true simultaneous independent-client normalized username claims; repeat-safe explicit import. Concurrent requests began in the same millisecond and produced exactly one complete winner plus one `USERNAME_TAKEN` loser with zero partial profile/consent/workspace rows. No old unfixed function was exploited remotely.
+
+Four new retained fixture Auth UUIDs:
+- `1fa741ae-ab42-4f2f-a737-849387529d40` — `codex_a_mv1lz8kn`, synthetic collection, revision 1.
+- `5d9927db-7773-4a04-a630-7a684ea5d509` — `codex_b_mv1lz8kn`, synthetic imported collection, revision 1.
+- `672be773-54f3-4633-932a-e926f04d5617` — `codex_r_mv1lz8kn`, race winner, empty workspace revision 0.
+- `c7482795-09f0-4053-b87d-9de264b26718` — race loser, no profile/consent/workspace.
+All are anonymous, with zero private admin roles and zero legacy token wallets. Previous Auth-only fixture `eed28953-43d2-42d6-9311-c27e85b7b6f9` remains. No permanent deletion was authorized. Access/refresh tokens were confined to process memory and not exported. Safe results live in ignored `tests/accounts/username-hosted-integration-report.json`; the opt-in test source is `usernames-hosted-integration.cjs`. Each rerun creates more persistent fixtures and requires authorization.
+
+The reviewed readiness flag is now enabled for the test-only local build. Open `http://127.0.0.1:4183/#/settings`; server PID 28620 binds only 127.0.0.1. Core Edge tab `665255970` is left open. Verified one username input, zero email/password inputs, unchecked policy boxes and browser-loss warning. Existing port 4182/PID 25452 is unchanged. Saved test callbacks were verified read-only: `https://deck-sage.com/?accountCallback=1` and `http://127.0.0.1:4182/?accountCallback=1`; Site URL remains `http://localhost:3000`. Anonymous Auth does not use these callbacks; no 4183 callback change was needed.
+
+`tmoore` remains privately reserved with null claimant; no admin roles exist. Smallest Tim step: in this test preview, enter `tmoore`, personally affirm the policies and click Claim username, then tell the parent it is done. A reserved-name message is expected initially. Verify Tim's live browser UUID through the authenticated native `/auth/v1/user` response (never guess from a username or an arbitrary supplied UUID), assign only the private reservation to that verified UUID under the authorized provisioning scope, and retry the claim in the same browser. Do not clear browser data. This is a test-project/origin identity; it will not automatically transfer to a future website origin.
+
+Post-change advisor totals: private RLS/no-policy INFO 4 (intentional client deny); owner-rights store view ERROR 1 (existing view with the reviewed explicit anonymous filter); mutable search path WARN 1; anon/authenticated definer grants WARN 38/74 (preserved grants); anonymous-policy WARN 65 (advisor checks authenticated roles and does not interpret the private restrictive guard); leaked password protection WARN 1 (legacy email provider unchanged). This is not a clean-advisor claim. [View remediation](https://supabase.com/docs/guides/database/database-linter?lint=0010_security_definer_view), [anonymous-policy advisor](https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins).
+
+Public rollout remains gated by CAPTCHA/abuse controls, broader permanent-user legacy authorization review and explicit deployment approval. No Development/Production changes, push or deployment occurred. No additional app security changes were introduced.
+
+
 This candidate is isolated on `feature/username-only`, based on `d0cd3c4f29a6c860c3710ac8664362d99adb4d39`. Prior email/password candidate and local preview remain separate.
 
 ## Ownership and claims
