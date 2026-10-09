@@ -1,5 +1,10 @@
 # Independent-review fixes — awaiting recheck
 
+Historical fix record. The parent subsequently approved exact commit `5d565d8`
+after independent recheck, and the test-only migration has been applied.
+See `HOSTED-CONNECTION.md` for current hosted results; real signup/recovery and
+authenticated transport tests remain unrun, with no real/admin account created.
+
 The independent review of `8fabc5b8e53fb45eea7e9147cd80f23433add962` found three
 release blockers. That candidate must not be applied/deployed. These local fixes
 are pending the parent's independent security recheck. No hosted migration,

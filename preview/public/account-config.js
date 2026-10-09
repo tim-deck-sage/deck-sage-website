@@ -1,1 +1,1 @@
-window.DECK_SAGE_ACCOUNTS=null;
+window.DECK_SAGE_ACCOUNTS={"url":"https://mihmykgxbneuhlcxolzm.supabase.co","publishableKey":"sb_publishable_1hELHRe2Zw2LHxNATIgqzQ_ky_La8_S"};

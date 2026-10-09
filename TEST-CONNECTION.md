@@ -1,5 +1,9 @@
 # Authorized test connection — preparation
 
+Historical preparation record. The approved migration and callbacks have now
+been applied to the test project; see `HOSTED-CONNECTION.md` for current verified
+state and the remaining secure email/Auth handoff. No real Auth tests have run.
+
 Tim approved connecting the account feature to test Supabase. Target only:
 `mihmykgxbneuhlcxolzm` (Deck Sage DB Integration Test).
 Migration application is waiting for the independent security review through the
