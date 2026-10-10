@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
           <h1>Privacy Policy</h1>
           <p className="effective-date">
             <strong>Last updated</strong>
-            <span>July 30, 2026</span>
+            <span>October 10, 2026</span>
           </p>
 
           <section>
@@ -45,6 +45,23 @@ export default function PrivacyPolicyPage() {
                 features
               </li>
             </ul>
+          </section>
+
+          <section>
+            <h2>Website shared username storage</h2>
+            <p>
+              On the public website, a shared username is the only key to its
+              website collection. Anyone who knows or guesses that username can
+              view, change, or delete the decks and bulk stored under it. The
+              website does not use an email address, password, recovery code,
+              or private account ownership for this feature.
+            </p>
+            <p>
+              Website shared username collections are stored centrally through
+              Supabase so the same collection can open in another browser or
+              device after the username is entered. They remain separate from
+              authenticated mobile-app accounts and private app records.
+            </p>
           </section>
 
           <section>

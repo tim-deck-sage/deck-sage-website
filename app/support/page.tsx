@@ -46,6 +46,17 @@ export default function SupportPage() {
           </section>
 
           <section>
+            <h3>Website shared usernames</h3>
+            <p>
+              The public website uses a username alone to open a shared deck
+              and bulk collection. There is no email, password, or recovery
+              code, and anyone who knows or guesses the username can access and
+              change that collection. Enter the same username on another device
+              to reopen it, and export a backup before important changes.
+            </p>
+          </section>
+
+          <section>
             <h3>Account-deletion help</h3>
             <p>
               When possible, use the secure in-app deletion process described

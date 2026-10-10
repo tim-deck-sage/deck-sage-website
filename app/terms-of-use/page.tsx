@@ -35,6 +35,13 @@ export default function TermsOfUsePage() {
               You are responsible for maintaining the security of your account
               credentials.
             </p>
+            <p>
+              The public website also offers shared username collections. A
+              username is the only access key for that website collection, and
+              anyone who knows or guesses it can view, change, or delete its
+              decks and bulk. Do not use a shared username for information you
+              expect to remain private.
+            </p>
           </section>
 
           <section>

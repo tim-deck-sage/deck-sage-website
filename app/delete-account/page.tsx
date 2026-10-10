@@ -19,8 +19,20 @@ export default function DeleteAccountPage() {
           <h1>Delete your Deck Sage account</h1>
           <p className="effective-date">
             <strong>Last updated</strong>
-            <span>July 30, 2026</span>
+            <span>October 10, 2026</span>
           </p>
+
+          <section>
+            <h2>Website shared username collections</h2>
+            <p>
+              A public-website shared username is not an authenticated Deck Sage
+              account. It has no email, password, recovery code, or private
+              owner. Anyone who knows or guesses the username can open the
+              collection and remove its decks or bulk cards. The authenticated
+              account-deletion process below applies to Deck Sage app accounts
+              and does not verify ownership of a website shared username.
+            </p>
+          </section>
 
           <section>
             <h2>Delete your account in the Deck Sage app</h2>
