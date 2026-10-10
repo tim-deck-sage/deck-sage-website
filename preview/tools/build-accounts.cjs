@@ -4,13 +4,19 @@ const aliases={
  [path.join(root,'source/app/utils/mtgCardApi.ts')]:path.join(root,'src/adapters/mtgCardApi.ts'),
  [path.join(root,'source/app/utils/data/offlineCardResolver.ts')]:path.join(root,'src/adapters/offlineCardResolver.ts'),
 };
+const configFile=path.join(root,'public/account-config.js');
 const url=process.env.DECK_SAGE_SUPABASE_URL||'',key=process.env.DECK_SAGE_SUPABASE_PUBLISHABLE_KEY||'';
 if(!!url!==!!key)throw Error('Supply both public account settings or neither.');
 // Only the authorized integration test target can be enabled by this candidate.
 if(url&&(url!=='https://mihmykgxbneuhlcxolzm.supabase.co'||!key.startsWith('sb_publishable_')))throw Error('This feature candidate accepts only the authorized integration test project and a publishable key.');
-fs.writeFileSync(path.join(root,'public/account-config.js'),'window.DECK_SAGE_ACCOUNTS='+JSON.stringify(url?{url,publishableKey:key,usernameOnlyReady:process.env.DECK_SAGE_USERNAME_ONLY_READY==='true'}:null)+';');
+let config=url?{url,publishableKey:key,usernameOnlyReady:process.env.DECK_SAGE_USERNAME_ONLY_READY==='true'}:null;
+if(!config&&fs.existsSync(configFile)){
+ const match=fs.readFileSync(configFile,'utf8').match(/^window\.DECK_SAGE_ACCOUNTS=(.+);\s*$/);
+ if(match)try{const existing=JSON.parse(match[1]);if(existing?.url==='https://mihmykgxbneuhlcxolzm.supabase.co'&&existing?.publishableKey?.startsWith('sb_publishable_'))config={url:existing.url,publishableKey:existing.publishableKey,usernameOnlyReady:existing.usernameOnlyReady===true};}catch{}
+}
+fs.writeFileSync(configFile,'window.DECK_SAGE_ACCOUNTS='+JSON.stringify(config)+';');
 let html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
-html=html.replace(/connect-src 'self'(?: https:\/\/mihmykgxbneuhlcxolzm\.supabase\.co)?;/,"connect-src 'self'"+(url?' '+url:'')+';');
+html=html.replace(/connect-src 'self'(?: https:\/\/mihmykgxbneuhlcxolzm\.supabase\.co)?;/,"connect-src 'self'"+(config?' '+config.url:'')+';');
 fs.writeFileSync(path.join(root,'public/index.html'),html);
 esbuild.build({entryPoints:[path.join(root,'src/app.jsx')],bundle:true,minify:true,legalComments:'eof',platform:'browser',format:'iife',target:'es2020',outfile:path.join(root,'public/app.js'),define:{'process.env.NODE_ENV':'"production"'},plugins:[{name:'original-adapters',setup(build){
  build.onResolve({filter:/.*/},args=>{if(!args.path.startsWith('.'))return;let file=path.resolve(args.resolveDir,args.path);for(const candidate of [file,file+'.ts'])if(aliases[candidate])return {path:aliases[candidate]};});
