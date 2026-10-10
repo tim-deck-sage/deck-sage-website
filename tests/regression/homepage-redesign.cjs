@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
+const sharp = require('sharp');
 
 const runtime = process.env.DECK_SAGE_TEST_NODE_MODULES || 'C:/Users/timmo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';
 const { chromium } = require(path.join(runtime, 'playwright'));
@@ -21,12 +22,50 @@ function pass(name) {
   console.log('PASS', name);
 }
 
+async function alphaBounds(file, threshold = 16) {
+  const raw = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let minX = raw.info.width;
+  let minY = raw.info.height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < raw.info.height; y += 1) {
+    for (let x = 0; x < raw.info.width; x += 1) {
+      if (raw.data[(y * raw.info.width + x) * 4 + 3] > threshold) {
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+  }
+  return { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1, bottom: maxY };
+}
+
 async function openHome(page) {
   await page.goto(`${baseUrl}/#/home`);
   await page.getByRole('heading', { name: /Welcome back/ }).waitFor();
 }
 
 async function run() {
+  const buttonRoot = path.resolve(__dirname, '../../preview/public/home/buttons');
+  const alphaGroups = [
+    { files: ['my-decks.webp', 'my-bulk.webp', 'sage-tools.webp'], expected: [1280, 478] },
+    { files: ['commander-lore.webp', 'theme-songs.webp', 'collection-value.webp', 'latest-news.webp'], expected: [1280, 390] }
+  ];
+  for (const group of alphaGroups) {
+    const measurements = [];
+    for (const name of group.files) {
+      const file = path.join(buttonRoot, name);
+      const metadata = await sharp(file).metadata();
+      assert.deepEqual([metadata.width, metadata.height], group.expected);
+      measurements.push(await alphaBounds(file));
+    }
+    assert(Math.max(...measurements.map((item) => item.height)) - Math.min(...measurements.map((item) => item.height)) <= 2);
+    assert(Math.max(...measurements.map((item) => item.y)) - Math.min(...measurements.map((item) => item.y)) <= 1);
+    assert(Math.max(...measurements.map((item) => item.bottom)) - Math.min(...measurements.map((item) => item.bottom)) <= 1);
+  }
+  pass('Alpha-bounded artwork has equal visible height and baseline within each button row');
+
   const browser = await chromium.launch({ headless: true, channel: 'msedge' });
   try {
     const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -40,6 +79,18 @@ async function run() {
     assert.equal(await page.locator('.home-secondary-grid .home-feature').count(), 4);
     assert.equal(await page.locator('.home-page img[src*="cards.scryfall"]').count(), 0);
     pass('Homepage renders only the seven supplied semantic feature links in a 3 + 4 layout');
+
+    const geometry = await page.locator('.home-feature').evaluateAll((elements) => elements.map((element) => {
+      const image = element.querySelector('img').getBoundingClientRect();
+      const link = element.getBoundingClientRect();
+      return { imageHeight: image.height, top: link.top, bottom: link.bottom };
+    }));
+    for (const group of [geometry.slice(0, 3), geometry.slice(3)]) {
+      assert(Math.max(...group.map((item) => item.imageHeight)) - Math.min(...group.map((item) => item.imageHeight)) < 1);
+      assert(Math.max(...group.map((item) => item.top)) - Math.min(...group.map((item) => item.top)) < 1);
+      assert(Math.max(...group.map((item) => item.bottom)) - Math.min(...group.map((item) => item.bottom)) < 1);
+    }
+    pass('Desktop top and bottom button rows render with equal heights and aligned baselines');
 
     for (const [route, label] of expectedFeatures) {
       const link = page.getByRole('link', { name: new RegExp(`^${label}\\.`) });
