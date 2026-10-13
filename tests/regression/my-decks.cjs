@@ -48,17 +48,19 @@ async function run() {
     assert.equal(await page.locator('.decks-app-header strong').textContent(), 'Unlimited Deck Slots');
     const introBackground = await page.locator('.decks-intro').evaluate((element) => getComputedStyle(element).backgroundImage);
     assert.match(introBackground, /edgar-intro\.png/);
-    assert.equal(await page.getByRole('button', { name: 'Create your first deck', exact: true }).count(), 1);
+    assert.equal(await page.getByRole('button', { name: '+ New Deck', exact: true }).count(), 1);
+    const createBackground = await page.locator('.decks-new-button').evaluate((element) => getComputedStyle(element).backgroundImage);
+    assert.equal(createBackground, 'none');
     pass('Empty My Decks state is immersive, sidebar-free, and offers one clear create action');
 
-    await page.getByRole('button', { name: 'Create your first deck', exact: true }).click();
+    await page.getByRole('button', { name: '+ New Deck', exact: true }).click();
     await page.getByRole('textbox', { name: 'Deck name', exact: true }).fill('Cancelled draft');
-    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
     assert.equal(await page.getByRole('dialog').count(), 0);
     assert.equal((await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '{"decks":[]}').decks.length, storageKey)), 0);
     pass('Create-deck cancellation leaves the isolated workspace unchanged');
 
-    await page.getByRole('button', { name: 'Create your first deck', exact: true }).click();
+    await page.getByRole('button', { name: '+ New Deck', exact: true }).click();
     await page.getByRole('textbox', { name: 'Deck name', exact: true }).fill('Core Pair');
     await page.getByRole('button', { name: 'Create deck', exact: true }).click();
     await page.getByRole('alert').getByText('Choose at least one commander.', { exact: true }).waitFor();
@@ -153,8 +155,8 @@ async function run() {
     assert(await phone.locator('.decks-library').isVisible());
     assert(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     await phone.waitForTimeout(2500);
-    await phone.getByRole('button', { name: 'Create your first deck', exact: true }).click();
-    await phone.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await phone.getByRole('button', { name: '+ New Deck', exact: true }).click();
+    await phone.getByRole('button', { name: 'Close dialog', exact: true }).click();
     await phone.screenshot({ path: path.join(__dirname, 'my-decks-mobile.png'), fullPage: true });
     pass('Mobile My Decks layout and modal cancel work without horizontal overflow');
     await mobile.close();

@@ -132,7 +132,7 @@ html[data-motion=false] .home-feature{animation:none!important;transition:none!i
 .deck-delete-button{position:absolute;z-index:6;right:12px;bottom:12px;top:auto;min-height:34px;display:flex;align-items:center;justify-content:center;padding:0 13px;border:1px solid #ffdddd2e;border-radius:999px;background:#501010d6;color:#fff1f1;font-size:12px;font-weight:900;box-shadow:none}
 .deck-delete-button:hover,.deck-delete-button:focus-visible{background:#751b1be8;border-color:#ffdcdc59;color:#fff}
 .decks-create-dock{position:fixed;z-index:30;left:50%;bottom:18px;width:min(560px,calc(100% - 32px));transform:translateX(-50%);filter:drop-shadow(0 7px 12px #0009)}
-.decks-new-button{width:100%;min-height:64px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 20px;border:1px solid #d4af376b;border-radius:8px;background:linear-gradient(#0002,#0002),url('/decks/button-primary.png') center/100% 100% no-repeat,#7a2020;color:#fff8e9;font-size:20px;font-weight:900;text-shadow:0 2px 7px #000}
+.decks-new-button{width:100%;min-height:64px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 20px;border:1px solid #d4af376b;border-radius:8px;background:#7a2020e0;color:#fff8e9;font-size:20px;font-weight:900;text-shadow:0 2px 7px #000;box-shadow:0 8px 14px #0008}
 .decks-new-button:hover,.decks-new-button:focus-visible{filter:brightness(1.08)}
 .decks-empty{min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:20px 18px 50px;text-align:center}
 .decks-empty-card{width:156px;height:218px;display:flex;align-items:center;justify-content:center;margin-bottom:22px;border:1px solid #f8ead233;border-radius:18px;background:#fff8e90a;box-shadow:0 0 18px #f0dfc133}
@@ -183,27 +183,31 @@ html[data-motion=false] .home-feature{animation:none!important;transition:none!i
 .deck-create-modal .command-zone-patterns button{min-height:38px;flex:1;padding:0 8px;border:1px solid #f8ead21f;border-radius:12px;background:#fff8e90f;color:#fff8e9;font-size:12px;font-weight:900}
 .deck-create-modal .form-actions{position:fixed;z-index:2;left:0;right:0;bottom:0;justify-content:center;margin:0;padding:16px;border-color:#f8ead214;background:#030303f5}
 .deck-create-modal .form-actions .button{min-height:58px;border-radius:16px;font-size:18px;font-weight:900}
-.deck-create-modal .form-actions .button:not(.outline){min-width:min(520px,65vw);border-color:#f0dfc1;background:#f0dfc1;color:#080604}
+.deck-create-modal .form-actions .button:not(.outline){width:min(520px,calc(100% - 32px));border-color:#d4af376b;border-radius:8px;background:#7a2020e0;color:#fff8e9;text-transform:capitalize;text-shadow:0 2px 7px #000;box-shadow:0 8px 14px #0008}
 .deck-create-modal .form-actions .button.outline{border-color:#f8ead22e;color:#fff8e9}
+.deck-create-modal .form-actions .button.outline,.deck-create-modal .form-actions svg{display:none}
+.deck-create-form>label{font-size:0}
+.deck-create-form>label input{font-size:16px}
 .deck-create-modal .error{color:#ffb0a6}
 
 .delete-deck-modal-backdrop{background:#000000d6}
 .modal.delete-deck-modal{width:min(560px,100%);padding:20px;border:1px solid #d4af3742;border-radius:8px;background:#080a0feb;color:#fff8e9;box-shadow:0 10px 18px #0007}
-.delete-deck-modal>header{margin-bottom:18px;justify-content:center}
-.delete-deck-modal>header h2{color:#fff8e9;font:900 24px/1.2 "Segoe UI",Arial,sans-serif;text-align:center}
-.delete-deck-modal>header .icon-button{position:absolute;right:20px;color:#fff8e9}
-.delete-deck-modal>p{color:#b9afa0;line-height:1.55}
+.delete-deck-modal>header{margin-bottom:12px;justify-content:center}
+.delete-deck-modal>header h2{color:#fff8e9;font:0/1.2 "Segoe UI",Arial,sans-serif;text-align:center}
+.delete-deck-modal>header h2:after{content:'Delete Deck?';font-size:24px;font-weight:900}
+.delete-deck-modal>header .icon-button,.delete-deck-modal>p,.delete-deck-summary{display:none}
 .delete-deck-summary{border-color:#f8ead224;background:#fff8e90a}
 .delete-deck-summary strong{color:#fff8e9;font-family:"Segoe UI",Arial,sans-serif;font-weight:900}
 .delete-deck-summary small{color:#b9afa0}
 .delete-deck-sigil{color:#f0dfc1}
-.delete-deck-options{gap:12px;margin-top:18px}
-.delete-deck-options>button{min-height:66px;padding:14px 18px;border:1px solid #d4af375c;border-radius:8px;background-position:center;background-size:100% 100%;color:#fff;text-shadow:0 2px 6px #000}
-.delete-deck-options>button.move-bulk{background-image:linear-gradient(#00000028,#00000028),url('/decks/button-primary.png')}
+.delete-deck-options{gap:12px;margin-top:0}
+.delete-deck-options>button{min-height:58px;display:flex;align-items:center;justify-content:center;padding:12px 18px;border:1px solid #d4af375c;border-radius:8px;background-position:center;background-size:100% 100%;color:#fff;font-size:0;text-align:center;text-shadow:0 2px 6px #000}
+.delete-deck-options>button.move-bulk{background:#7a2020e0}
 .delete-deck-options>button.danger{border-color:#d4af375c;background-image:linear-gradient(#00000024,#00000024),url('/decks/button-danger.png');color:#fff}
 .delete-deck-options>button.delete-only{background-image:linear-gradient(#00000028,#00000028),url('/decks/button-secondary.png')}
 .delete-deck-options>button:hover,.delete-deck-options>button:focus-visible{outline:2px solid #f0dfc1;outline-offset:2px;filter:brightness(1.08)}
-.delete-deck-options small{opacity:.9}
+.delete-deck-options>button svg,.delete-deck-options small{display:none}
+.delete-deck-options>button strong{font-size:15px;font-weight:900}
 .delete-deck-cancel{display:block;margin:20px auto 0;padding:8px 18px;border:0;background:transparent;color:#d7d7d7;font-size:15px;font-weight:700}
 
 @media(max-width:1050px){.decks-showcase-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
