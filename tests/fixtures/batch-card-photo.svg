@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="960" viewBox="0 0 720 960">
+  <rect width="720" height="960" fill="#20382f"/>
+  <rect x="80" y="55" width="560" height="850" rx="34" fill="#efe4c2" stroke="#b99650" stroke-width="12"/>
+  <rect x="108" y="92" width="504" height="535" rx="20" fill="#355949"/>
+  <circle cx="360" cy="350" r="150" fill="#d7bd74" opacity=".72"/>
+  <path d="M360 175 505 350 360 525 215 350Z" fill="none" stroke="#f6edcf" stroke-width="18"/>
+  <text x="360" y="705" text-anchor="middle" fill="#274638" font-family="Georgia,serif" font-size="48">Fixture Card</text>
+  <text x="360" y="765" text-anchor="middle" fill="#65735e" font-family="Arial,sans-serif" font-size="26">Batch upload QA</text>
+</svg>
