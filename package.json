@@ -10,6 +10,7 @@
     "preview:homepage": "node preview/tools/serve.cjs --port 4184",
     "test:homepage": "node tests/regression/homepage-redesign.cjs",
     "test:decks": "node tests/regression/commander-display-art.cjs && node tests/regression/my-decks.cjs",
+    "test:songs": "node tests/regression/commander-theme-player.cjs && node tests/regression/songs.cjs",
     "test:accounts": "node tests/accounts/shared-sql.cjs && node tests/accounts/shared-controller.cjs && node tests/accounts/legacy-hardening.cjs",
     "test:accounts:browser": "node tests/accounts/shared-controller.cjs",
     "test:accounts:hosted": "node tests/accounts/shared-hosted.cjs",
