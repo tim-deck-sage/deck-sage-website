@@ -44,7 +44,10 @@ async function run() {
     await openDecks(page);
 
     assert.equal(await page.locator('.sidebar').evaluate((element) => getComputedStyle(element).display), 'none');
-    assert(await page.locator('.decks-empty img[src="/decks/empty-decks.webp"]').isVisible());
+    assert(await page.locator('.decks-empty-card').isVisible());
+    assert.equal(await page.locator('.decks-app-header strong').textContent(), 'Unlimited Deck Slots');
+    const introBackground = await page.locator('.decks-intro').evaluate((element) => getComputedStyle(element).backgroundImage);
+    assert.match(introBackground, /edgar-intro\.png/);
     assert.equal(await page.getByRole('button', { name: 'Create your first deck', exact: true }).count(), 1);
     pass('Empty My Decks state is immersive, sidebar-free, and offers one clear create action');
 
@@ -60,7 +63,7 @@ async function run() {
     await page.getByRole('button', { name: 'Create deck', exact: true }).click();
     await page.getByRole('alert').getByText('Choose at least one commander.', { exact: true }).waitFor();
     await pick(page, 'Choose your commander', 'Krenko, Mob Boss');
-    await page.getByRole('button', { name: 'Partner', exact: true }).click();
+    await page.locator('.command-zone-patterns').getByRole('button', { name: 'Partner', exact: true }).click();
     await pick(page, 'Choose commander 2', 'Rograkh, Son of Rohgahh');
     await page.getByRole('button', { name: 'Create deck', exact: true }).dblclick();
     await page.getByRole('heading', { name: 'Core Pair', exact: true }).waitFor();
@@ -96,16 +99,15 @@ async function run() {
     assert.equal(cardCss.filter, 'none');
     assert.equal(cardCss.transform, 'none');
     assert.equal(cardCss.clipPath, 'none');
+    await page.waitForTimeout(2500);
     await page.screenshot({ path: path.join(__dirname, 'my-decks-desktop.png'), fullPage: true });
     pass('Active decks sort alphabetically before archived decks and card references remain uncropped');
 
-    await page.getByRole('textbox', { name: 'Search your decks', exact: true }).fill('Rograkh');
-    assert.deepEqual(await page.locator('.deck-showcase h3').allTextContents(), ['Core Pair']);
     await page.getByRole('button', { name: 'Open Core Pair', exact: true }).click();
     await page.getByRole('heading', { name: 'Core Pair', exact: true }).waitFor();
     await page.getByRole('button', { name: /All decks/ }).click();
     await page.getByRole('heading', { name: 'My Decks', exact: true }).waitFor();
-    pass('Commander search and deck-detail navigation work from the redesigned collection');
+    pass('Deck-detail navigation and return to the collection work');
 
     await page.getByRole('button', { name: 'Delete Core Pair', exact: true }).click();
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
@@ -124,6 +126,18 @@ async function run() {
     assert.equal(state.bulk.find((card) => card.name === 'Goblin Instigator').quantity, 2);
     pass('Delete-forever removes the selected deck without duplicating bulk inventory');
 
+    await page.getByRole('button', { name: 'Delete Ancient Archive', exact: true }).click();
+    await page.getByRole('button', { name: /^Delete Deck Only/ }).evaluate((button) => {
+      button.click(); button.click();
+    });
+    state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
+    assert.equal(state.decks.some((deck) => deck.name === 'Ancient Archive'), false);
+    assert.equal(state.retainedDeckRecords.length, 1);
+    assert.equal(state.retainedDeckRecords[0].name, 'Ancient Archive');
+    assert.equal(state.retainedDeckRecords[0].commanderCard.name, 'Avacyn, Angel of Hope');
+    assert.deepEqual(state.retainedDeckRecords[0].basicLands, original.basicLands);
+    pass('Delete-deck-only hides the deck while retaining its complete synchronized record');
+
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     pass('Desktop My Decks layout has no horizontal overflow');
 
@@ -138,7 +152,8 @@ async function run() {
     await openDecks(phone);
     assert(await phone.locator('.decks-library').isVisible());
     assert(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-    await phone.getByRole('button', { name: 'New deck', exact: true }).click();
+    await phone.waitForTimeout(2500);
+    await phone.getByRole('button', { name: 'Create your first deck', exact: true }).click();
     await phone.getByRole('button', { name: 'Cancel', exact: true }).click();
     await phone.screenshot({ path: path.join(__dirname, 'my-decks-mobile.png'), fullPage: true });
     pass('Mobile My Decks layout and modal cancel work without horizontal overflow');

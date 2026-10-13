@@ -92,4 +92,123 @@ html[data-motion=false] .home-feature{animation:none!important;transition:none!i
 @media(max-width:760px){.workspace:has(.decks-page)>footer{padding-inline:18px}.decks-page{background-attachment:scroll;background-size:auto 100vh}.decks-hero{width:100%;min-height:275px;padding:37px 20px 26px;display:block}.decks-hero h1{font-size:54px;letter-spacing:-1.8px}.decks-hero p{font-size:14px;line-height:1.55}.decks-hero-seal{display:none}.decks-stats{width:calc(100% - 22px);grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px}.decks-stats>div{min-height:68px;padding:12px 10px;border-right:0;border-bottom:1px solid #a58a4e55}.decks-stats>div:nth-child(odd){border-right:1px solid #a58a4e55}.decks-stats>div:nth-last-child(-n+2){border-bottom:0}.decks-stats strong{font-size:21px}.decks-stats span{font-size:9px}.decks-library{width:calc(100% - 14px);padding:27px 10px 42px;border-radius:17px 17px 0 0}.decks-library-heading{display:block;padding:0 6px}.decks-library-heading h2{font-size:39px}.decks-search{width:100%;margin-top:19px}.decks-showcase-grid{grid-template-columns:1fr;gap:15px}.deck-showcase-art{height:205px}.deck-showcase-art .card-thumb{height:168px}.deck-showcase-copy{min-height:184px;padding:21px}.deck-showcase-copy h3{font-size:28px}.decks-empty{display:block;min-height:0;padding:5px 5px 35px;text-align:center}.decks-empty img{max-width:430px;margin:0 auto 28px}.decks-empty p{font-size:14px}.commander-role{grid-template-columns:1fr}.command-zone{padding:12px}.commander-slot{padding:13px}.command-zone-patterns>span{width:100%;margin-bottom:3px}.delete-deck-options>button{align-items:flex-start}.deck-create-form .form-grid{grid-template-columns:1fr}}
 @media(max-width:390px){.decks-page .home-header-icon{display:none}.decks-hero h1{font-size:49px}.decks-stats>div{gap:8px}.decks-stats strong{font-size:19px}.deck-commanders{padding-right:52px}.deck-showcase-copy{padding-inline:18px}}
 @media(prefers-reduced-motion:reduce){.deck-showcase{transition:none}.deck-showcase:hover,.deck-showcase:focus-within{transform:none}}html[data-motion=false] .deck-showcase{transition:none}html[data-motion=false] .deck-showcase:hover,html[data-motion=false] .deck-showcase:focus-within{transform:none}
+
+/* My Decks mirrors the current mobile collection screen while expanding its card grid for web. */
+.sidebar:has(~ .workspace .decks-page){display:none}
+.workspace:has(.decks-page){margin-left:0;min-width:0;background:#030303}
+.workspace:has(.decks-page)>.topbar,.workspace:has(.decks-page)>.preview-banner{display:none}
+.workspace:has(.decks-page)>main{max-width:none;padding:0;overflow:visible}
+.workspace:has(.decks-page)>footer{width:100%;margin:0;padding:26px clamp(18px,4vw,60px) 112px;background:#030303;color:#8e8578;border-color:#f8ead20f}
+.workspace:has(.decks-page)>footer a{color:#b9afa0}
+.decks-page{position:relative;min-height:100vh;overflow:clip;background:#030303;color:#fff8e9;font-family:"Segoe UI",Arial,sans-serif;isolation:isolate}
+.decks-page:before{display:none}
+.decks-content{width:min(1480px,100%);margin:0 auto;padding:12px clamp(14px,3vw,34px) 128px}
+.decks-topbar{min-height:44px;margin-bottom:16px;display:flex;align-items:center}
+.decks-home-button{min-height:38px;display:inline-flex;align-items:center;gap:6px;padding:0 11px;border:1px solid #ffffff1a;border-radius:999px;background:#00000047;color:#fff8e9;font-weight:800;font-size:14px}
+.decks-home-button:hover,.decks-home-button:focus-visible{background:#fff8e90f;border-color:#fff8e940}
+.decks-app-header{margin:0 0 18px}
+.decks-app-header h1{margin:0;color:#fff8e9;font:900 clamp(38px,5vw,56px)/1 "Segoe UI",Arial,sans-serif;letter-spacing:0}
+.decks-app-header p{margin:3px 0 10px;color:#b9afa0;font-size:14px;line-height:1.3;font-weight:800}
+.decks-app-header strong{display:block;color:#f0dfc1;font-size:13px;font-weight:900}
+.decks-library{width:100%;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.decks-showcase-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(16px,2.2vw,28px)}
+.deck-showcase{position:relative;min-width:0;margin:0;background:transparent;border:0;border-radius:18px;overflow:visible;box-shadow:none;transition:transform .18s ease}
+.deck-showcase:hover,.deck-showcase:focus-within{transform:translateY(-3px);border-color:transparent;box-shadow:none}
+.deck-showcase.is-archived{filter:none;opacity:1}
+.deck-showcase-open{display:block;width:100%;padding:0;border:0;border-radius:18px;background:transparent;color:inherit;text-align:left}
+.deck-showcase-open:focus-visible{outline:3px solid #f0dfc1;outline-offset:4px}
+.deck-showcase-art{position:relative;width:100%;height:auto;aspect-ratio:.716;display:block;padding:0;overflow:hidden;border:1px solid #f8ead238;border-radius:18px;background:#050505;box-shadow:0 0 18px #f0dfc12e}
+.deck-showcase-art .card-thumb{position:absolute;inset:0;z-index:1;width:100%;height:100%;max-width:none;min-height:0;object-fit:contain!important;border-radius:0!important;box-shadow:none;filter:none;transform:none;clip-path:none}
+.deck-showcase-placeholder{position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;background:#101010;color:#f0dfc1;border:0}
+.deck-showcase-placeholder>span{width:118px;height:166px;display:flex;align-items:center;justify-content:center;border:1px solid #f8ead23d;border-radius:14px;background:#fff8e90a;font-size:46px;font-weight:900}
+.deck-card-shade{position:absolute;inset:0;z-index:2;background:#0000000a;pointer-events:none}
+.deck-card-gradient{position:absolute;z-index:3;left:0;right:0;bottom:0;height:25%;background:linear-gradient(180deg,#0000,#00000061 42%,#000000de 100%);pointer-events:none}
+.deck-archived-badge{position:absolute;z-index:5;top:12px;right:12px;left:auto;min-height:30px;display:flex;align-items:center;padding:0 12px;border:1px solid #facc1566;border-radius:999px;background:#facc152e;color:#facc15;font-size:12px;font-weight:900;letter-spacing:0;text-transform:none}
+.deck-showcase-copy{position:absolute;z-index:4;left:14px;right:14px;bottom:10px;display:block;min-height:0;padding:0;background:transparent;pointer-events:none}
+.deck-showcase-copy h3{margin:0 0 3px;padding-right:0;color:#fff8e9;font:900 21px/1.15 "Segoe UI",Arial,sans-serif;text-shadow:0 2px 7px #000}
+.deck-showcase-meta{min-height:28px;display:flex;align-items:center;gap:10px;padding-right:76px}
+.deck-commanders{display:block;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0;color:#f0dfc1;font-size:12px;line-height:16px;font-weight:800;letter-spacing:0;text-transform:none;text-shadow:0 2px 7px #000}
+.deck-count-badge{min-height:26px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px;border:1px solid #f8ead22e;border-radius:999px;background:#0000009e;color:#fff8e9;font-size:12px;font-weight:900;white-space:nowrap}
+.deck-delete-button{position:absolute;z-index:6;right:12px;bottom:12px;top:auto;min-height:34px;display:flex;align-items:center;justify-content:center;padding:0 13px;border:1px solid #ffdddd2e;border-radius:999px;background:#501010d6;color:#fff1f1;font-size:12px;font-weight:900;box-shadow:none}
+.deck-delete-button:hover,.deck-delete-button:focus-visible{background:#751b1be8;border-color:#ffdcdc59;color:#fff}
+.decks-create-dock{position:fixed;z-index:30;left:50%;bottom:18px;width:min(560px,calc(100% - 32px));transform:translateX(-50%);filter:drop-shadow(0 7px 12px #0009)}
+.decks-new-button{width:100%;min-height:64px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 20px;border:1px solid #d4af376b;border-radius:8px;background:linear-gradient(#0002,#0002),url('/decks/button-primary.png') center/100% 100% no-repeat,#7a2020;color:#fff8e9;font-size:20px;font-weight:900;text-shadow:0 2px 7px #000}
+.decks-new-button:hover,.decks-new-button:focus-visible{filter:brightness(1.08)}
+.decks-empty{min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:20px 18px 50px;text-align:center}
+.decks-empty-card{width:156px;height:218px;display:flex;align-items:center;justify-content:center;margin-bottom:22px;border:1px solid #f8ead233;border-radius:18px;background:#fff8e90a;box-shadow:0 0 18px #f0dfc133}
+.decks-empty-card>span{width:118px;height:170px;display:flex;align-items:center;justify-content:center;border:1px solid #f8ead229;border-radius:14px;color:#f0dfc1;font-size:28px;font-weight:900}
+.decks-empty h2{margin:0;color:#fff8e9;font:900 28px/1.2 "Segoe UI",Arial,sans-serif}
+.decks-empty p{max-width:520px;margin:8px 0 18px;color:#aaa095;font:800 14px/20px "Segoe UI",Arial,sans-serif}
+.decks-empty .decks-new-button{max-width:520px}
+.decks-intro{position:fixed;inset:0;z-index:300;display:flex;align-items:flex-end;justify-content:center;background:linear-gradient(#0000006b,#0000006b),url('/decks/edgar-intro.png') center/cover no-repeat;pointer-events:none;animation:decks-intro-fade 2.45s ease-out both}
+.decks-intro>div{display:flex;flex-direction:column;align-items:center;padding:0 24px 72px;text-align:center}
+.decks-intro strong{color:#fff8e9;font-size:44px;line-height:1.1;font-weight:900;text-shadow:0 3px 14px #000}
+.decks-intro span{margin-top:8px;color:#f4d6d6;font-size:16px;font-weight:800;text-shadow:0 2px 10px #000}
+@keyframes decks-intro-fade{0%,61%{opacity:1}100%{opacity:0}}
+
+.deck-create-modal-backdrop{align-items:stretch;padding:0;background:#030303;backdrop-filter:none}
+.modal.deck-create-modal{width:100%;max-width:none;max-height:none;min-height:100vh;margin:0;padding:16px clamp(16px,5vw,64px) 116px;border:0;border-radius:0;background:#030303;color:#fff8e9;box-shadow:none}
+.deck-create-modal>header,.deck-create-modal>form,.deck-create-modal>.danger-zone{width:min(860px,100%);margin-left:auto;margin-right:auto}
+.deck-create-modal>header{min-height:42px;margin-bottom:18px;flex-direction:row-reverse;justify-content:flex-end}
+.deck-create-modal>header h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.deck-create-modal>header .icon-button{width:auto;min-width:88px;min-height:42px;padding:0 16px;border:1px solid #f8ead22e;border-radius:12px;background:#fff8e90f;color:#fff8e9}
+.deck-create-modal>header .icon-button:after{content:'Close';margin-left:7px;font-size:14px;font-weight:900}
+.deck-create-form{padding:16px;border:1px solid #f8ead224;border-radius:20px;background:#fff8e90b}
+.deck-create-form .deck-create-intro{margin:0 0 18px;padding:0;border:0}
+.deck-create-form .deck-create-intro .eyebrow{margin:0;color:#9bd65b;font-size:12px;font-weight:900;letter-spacing:0}
+.deck-create-form .deck-create-intro h3{margin:4px 0 0;color:#fff8e9;font:900 34px/1.15 "Segoe UI",Arial,sans-serif}
+.deck-create-form .deck-create-intro p{margin:4px 0 0;color:#aaa095;font-size:14px;line-height:20px;font-weight:800}
+.deck-create-modal label{color:#f0dfc1;font-size:13px;font-weight:900}
+.deck-create-modal input,.deck-create-modal select{min-height:48px;margin-top:7px;border:1px solid #f8ead229;border-radius:12px;background:#00000073;color:#fff8e9;font-size:16px;font-weight:800;box-shadow:none}
+.deck-create-modal input::placeholder{color:#8f8a7f}
+.deck-create-modal .command-zone{margin:6px 0 0;padding:0;border:0;background:transparent}
+.deck-create-modal .command-zone legend{width:100%;display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;padding:0;color:#fff8e9;font:900 18px/1.2 "Segoe UI",Arial,sans-serif}
+.deck-create-modal .command-zone legend button{min-height:34px;padding:0 12px;border:1px solid #9bd65b4d;border-radius:999px;background:#9bd65b24;color:#d8f6b8;font-size:13px;font-weight:900}
+.deck-create-modal .commander-slot{margin:0 0 12px;padding:12px;border:1px solid #f8ead21f;border-radius:16px;background:#00000047}
+.deck-create-modal .commander-slot-heading{margin-bottom:8px;color:#f0dfc1}
+.deck-create-modal .commander-slot-heading strong{font:900 13px/1.3 "Segoe UI",Arial,sans-serif;text-transform:uppercase}
+.deck-create-modal .commander-slot-heading .danger{color:#ffb0a6;font-size:12px;font-weight:900}
+.deck-create-modal .picker label{margin-bottom:12px}
+.deck-create-modal .picker-results{border:1px solid #f8ead224;border-radius:12px;background:#11110f;overflow:hidden}
+.deck-create-modal .picker-results button{color:#fff8e9;border-color:#f8ead21a;background:#0000}
+.deck-create-modal .picker-results button:hover,.deck-create-modal .picker-results button:focus-visible{background:#fff8e90d}
+.deck-create-modal .picker-results small{color:#aaa095}
+.deck-create-modal .selected-card{margin:0 0 12px;border:1px solid #f8ead21f;border-radius:12px;background:#00000073}
+.deck-create-modal .selected-card strong{color:#fff8e9;font-weight:900}
+.deck-create-modal .selected-card .icon-button{color:#fff8e9}
+.deck-create-modal .commander-role{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:8px;margin:0}
+.deck-create-modal .commander-role button{min-height:32px;padding:0 11px;border:1px solid #f8ead21f;border-radius:999px;background:#fff8e90f;color:#f0dfc1;font-size:12px;font-weight:900}
+.deck-create-modal .commander-role button.active{border-color:#f8ead2eb;background:#f8ead2eb;color:#080604}
+.deck-create-modal .command-zone-patterns{display:flex;gap:8px;margin-top:2px}
+.deck-create-modal .command-zone-patterns button{min-height:38px;flex:1;padding:0 8px;border:1px solid #f8ead21f;border-radius:12px;background:#fff8e90f;color:#fff8e9;font-size:12px;font-weight:900}
+.deck-create-modal .form-actions{position:fixed;z-index:2;left:0;right:0;bottom:0;justify-content:center;margin:0;padding:16px;border-color:#f8ead214;background:#030303f5}
+.deck-create-modal .form-actions .button{min-height:58px;border-radius:16px;font-size:18px;font-weight:900}
+.deck-create-modal .form-actions .button:not(.outline){min-width:min(520px,65vw);border-color:#f0dfc1;background:#f0dfc1;color:#080604}
+.deck-create-modal .form-actions .button.outline{border-color:#f8ead22e;color:#fff8e9}
+.deck-create-modal .error{color:#ffb0a6}
+
+.delete-deck-modal-backdrop{background:#000000d6}
+.modal.delete-deck-modal{width:min(560px,100%);padding:20px;border:1px solid #d4af3742;border-radius:8px;background:#080a0feb;color:#fff8e9;box-shadow:0 10px 18px #0007}
+.delete-deck-modal>header{margin-bottom:18px;justify-content:center}
+.delete-deck-modal>header h2{color:#fff8e9;font:900 24px/1.2 "Segoe UI",Arial,sans-serif;text-align:center}
+.delete-deck-modal>header .icon-button{position:absolute;right:20px;color:#fff8e9}
+.delete-deck-modal>p{color:#b9afa0;line-height:1.55}
+.delete-deck-summary{border-color:#f8ead224;background:#fff8e90a}
+.delete-deck-summary strong{color:#fff8e9;font-family:"Segoe UI",Arial,sans-serif;font-weight:900}
+.delete-deck-summary small{color:#b9afa0}
+.delete-deck-sigil{color:#f0dfc1}
+.delete-deck-options{gap:12px;margin-top:18px}
+.delete-deck-options>button{min-height:66px;padding:14px 18px;border:1px solid #d4af375c;border-radius:8px;background-position:center;background-size:100% 100%;color:#fff;text-shadow:0 2px 6px #000}
+.delete-deck-options>button.move-bulk{background-image:linear-gradient(#00000028,#00000028),url('/decks/button-primary.png')}
+.delete-deck-options>button.danger{border-color:#d4af375c;background-image:linear-gradient(#00000024,#00000024),url('/decks/button-danger.png');color:#fff}
+.delete-deck-options>button.delete-only{background-image:linear-gradient(#00000028,#00000028),url('/decks/button-secondary.png')}
+.delete-deck-options>button:hover,.delete-deck-options>button:focus-visible{outline:2px solid #f0dfc1;outline-offset:2px;filter:brightness(1.08)}
+.delete-deck-options small{opacity:.9}
+.delete-deck-cancel{display:block;margin:20px auto 0;padding:8px 18px;border:0;background:transparent;color:#d7d7d7;font-size:15px;font-weight:700}
+
+@media(max-width:1050px){.decks-showcase-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.workspace:has(.decks-page)>footer{padding-inline:18px}.decks-content{padding-inline:14px}.decks-showcase-grid{grid-template-columns:1fr;gap:18px}.deck-showcase:hover,.deck-showcase:focus-within{transform:none}.decks-app-header h1{font-size:38px}.decks-empty{min-height:430px}.deck-create-modal .form-actions{gap:10px}.deck-create-modal .form-actions .button{font-size:14px}.deck-create-modal .form-actions .button:not(.outline){min-width:0;flex:1}.delete-deck-modal-backdrop{padding:20px}.modal.delete-deck-modal{max-height:92vh}.decks-intro{background-position:center}.decks-intro strong{font-size:44px}}
+@media(max-width:390px){.deck-showcase-copy h3{font-size:20px}.deck-showcase-meta{padding-right:72px}.deck-commanders{font-size:11px}.deck-count-badge{padding-inline:8px}.deck-create-modal .command-zone-patterns{flex-wrap:wrap}.deck-create-modal .command-zone-patterns button{flex-basis:calc(50% - 4px)}}
+@media(prefers-reduced-motion:reduce){.decks-intro{display:none}.deck-showcase{transition:none}}
+html[data-motion=false] .decks-intro{display:none}
 .account-panel form,.account-panel fieldset{min-width:0;max-width:100%}.account-panel fieldset{width:100%;margin-inline:0}.account-panel legend{max-width:100%;white-space:normal}.account-panel .check-label{display:flex;align-items:flex-start;gap:6px}.account-panel .check-label input{flex:0 0 auto;margin-top:2px}.account-panel .check-label span{min-width:0;white-space:normal;overflow-wrap:anywhere}
