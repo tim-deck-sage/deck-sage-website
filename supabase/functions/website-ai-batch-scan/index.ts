@@ -1,4 +1,6 @@
 // @ts-nocheck -- Supabase Edge Functions run on Deno, outside the Next.js type environment.
+import {gatewayAvailability} from './policy.mjs';
+
 const SITE_ORIGIN='https://deck-sage.com';
 const MAX_IMAGE_BYTES=6*1024*1024;
 const MAX_NAMES=40;
@@ -37,7 +39,9 @@ Deno.serve(async(req:Request)=>{
  if(req.method==='OPTIONS')return origin===SITE_ORIGIN?new Response(null,{status:204,headers:corsHeaders}):respond(403,{error:'Origin not allowed.'});
  if(origin!==SITE_ORIGIN)return respond(403,{error:'Origin not allowed.'});
  if(req.method!=='POST')return respond(405,{error:'Use POST.'},{Allow:'POST, OPTIONS'});
- const apiKey=Deno.env.get('OPENAI_API_KEY'),ip=requestIp(req);if(!apiKey)return respond(503,{error:'AI Scan is not configured.'});if(!ip)return respond(400,{error:'The request source could not be verified.'});
+ const apiKey=Deno.env.get('OPENAI_API_KEY'),availability=gatewayAvailability(Deno.env.get('AI_SCAN_ENABLED'),apiKey);
+ if(availability)return respond(availability.status,{error:availability.error});
+ const ip=requestIp(req);if(!ip)return respond(400,{error:'The request source could not be verified.'});
  let quota;try{quota=await consumeQuota(await hashIp(ip,apiKey));}catch{return respond(503,{error:'AI Scan quota checks are unavailable. Try again later.'});}
  if(!quota.allowed)return respond(429,{error:'AI Scan limit reached. Try again later.'},{'Retry-After':String(quota.retry_after_seconds)});
  let form:FormData;try{form=await req.formData();}catch{return respond(400,{error:'Send one JPEG image as multipart form data.'});}

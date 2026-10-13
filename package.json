@@ -11,7 +11,7 @@
     "test:homepage": "node tests/regression/homepage-redesign.cjs",
     "test:decks": "node tests/regression/commander-display-art.cjs && node tests/regression/my-decks.cjs",
     "test:batch-upload": "node tests/regression/batch-upload.cjs",
-    "test:ai-scan": "node tests/regression/ai-scan.cjs",
+    "test:ai-scan": "node tests/regression/ai-scan-gateway.cjs && node tests/regression/ai-scan.cjs",
     "test:songs": "node tests/regression/commander-theme-player.cjs && node tests/regression/songs.cjs",
     "test:accounts": "node tests/accounts/shared-sql.cjs && node tests/accounts/shared-controller.cjs && node tests/accounts/legacy-hardening.cjs",
     "test:accounts:browser": "node tests/accounts/shared-controller.cjs",
