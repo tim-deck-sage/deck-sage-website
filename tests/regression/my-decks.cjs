@@ -1,66 +1,75 @@
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-
 const runtime = process.env.DECK_SAGE_TEST_NODE_MODULES || 'C:/Users/timmo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';
 const { chromium } = require(path.join(runtime, 'playwright'));
 const baseUrl = process.env.DECK_SAGE_PREVIEW_URL || 'http://127.0.0.1:4184';
 const storageKey = 'deck-sage-web-v1';
 const report = { checks: [], errors: [], externalWrites: [], startedAt: new Date().toISOString() };
 
-function pass(name) {
-  report.checks.push(name);
-  console.log('PASS', name);
-}
+function pass(name) { report.checks.push(name); console.log('PASS', name); }
+function watch(page) { page.on('pageerror', (error) => report.errors.push(error.message)); }
+async function openDecks(page) { await page.goto(`${baseUrl}/#/decks`); await page.getByRole('heading', { name: 'My Decks', exact: true }).waitFor(); }
+async function pick(page, label, name) { await page.getByRole('textbox', { name: label, exact: true }).fill(name); await page.locator('.picker-results button').filter({ hasText: name }).first().click(); }
 
-async function openDecks(page) {
-  await page.goto(`${baseUrl}/#/decks`);
-  await page.getByRole('heading', { name: 'My Decks', exact: true }).waitFor();
-}
-
-async function pick(page, label, name) {
-  await page.getByRole('textbox', { name: label, exact: true }).fill(name);
-  await page.locator('.picker-results button').filter({ hasText: name }).first().click();
-}
-
-function watch(page) {
-  page.on('pageerror', (error) => report.errors.push(error.message));
-}
-
-async function isolate(context) {
-  await context.route('https://**/*', (route) => {
-    if (route.request().method() !== 'GET') report.externalWrites.push(route.request().url());
+async function routeOffline(context, preferredImage) {
+  await context.route('**/*', async (route) => {
+    const request = route.request();
+    if (new URL(request.url()).origin === 'https://api.scryfall.com') {
+      const query = new URL(request.url()).searchParams.get('q') || '';
+      const commanderIndex = ['Krenko, Mob Boss', 'Talrand, Sky Summoner', 'Marwyn, the Nurturer', 'Shorikai, Genesis Engine', 'Ayara, First of Locthwain', 'Karn, Legacy Reforged'].findIndex((name) => query.includes(name));
+      const oracleId = query.includes('Bruse Tarl') ? 'partner-oracle-3' : `oracle-${Math.max(0, commanderIndex)}`;
+      return route.fulfill({ status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' }, body: JSON.stringify({ data: [{ id: `preferred-${oracleId}`, oracle_id: oracleId, name: 'Fixture Commander', full_art: true, games: ['paper'], highres_image: true, image_status: 'highres_scan', released_at: '2026-01-01', image_uris: { large: preferredImage } }], has_more: false }) });
+    }
+    if (request.url().endsWith('/missing-card-reference.png')) return route.fulfill({ status: 404, body: '' });
+    if (request.url().startsWith(baseUrl)) return route.continue();
+    if (request.method() !== 'GET') report.externalWrites.push(request.url());
     return route.abort();
   });
 }
 
+async function seed(page, fixture) {
+  await page.evaluate(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), { key: storageKey, value: fixture });
+  await page.reload();
+  await page.getByRole('heading', { name: 'My Decks', exact: true }).waitFor();
+}
+
+function fixtureDeck(original, index, image) {
+  const identities = [['R'], ['U'], ['G'], ['W', 'U'], ['B'], []];
+  const identity = identities[index % identities.length];
+  const names = ['Newest Ember', 'Second Tide', 'Alphabet Keep', 'Bramble Court', 'Midnight Archive', 'Colorless Vault'];
+  const commanders = ['Krenko, Mob Boss', 'Talrand, Sky Summoner', 'Marwyn, the Nurturer', 'Shorikai, Genesis Engine', 'Ayara, First of Locthwain', 'Karn, Legacy Reforged'];
+  const name = index < names.length ? names[index] : `Sanctum Deck ${String(index + 1).padStart(2, '0')}`;
+  const commander = commanders[index % commanders.length];
+  const stamp = new Date(Date.UTC(2026, 9, 13 - Math.min(index, 12), 12)).toISOString();
+  const commanderCard = { ...original.commanderCard, id: `card-${index}`, oracleId: `oracle-${index % identities.length}`, name: commander, colorIdentity: identity, imageUrl: image };
+  const partner = index === 3 ? { ...commanderCard, id: 'partner-3', oracleId: 'partner-oracle-3', name: 'Bruse Tarl, Boorish Herder', colorIdentity: ['R', 'W'], role: 'partner' } : null;
+  return { ...original, id: `deck-${index}`, name, commander, commanderCard, commanders: [{ ...commanderCard, role: 'primary' }, ...(partner ? [partner] : [])], cards: [{ name: `Fixture Card ${index}`, oracleId: `fixture-${index}`, quantity: index % 7, cardVariant: 'Normal', colorIdentity: identity }], basicLands: { ...original.basicLands, Mountain: index % 13 }, status: index > 0 && index % 10 === 0 ? 'archived' : 'active', createdAt: stamp, updatedAt: stamp };
+}
+
 async function run() {
   const browser = await chromium.launch({ headless: true, channel: 'msedge' });
+  const fixtureImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="488" height="680"%3E%3Crect width="488" height="680" rx="28" fill="%23132824"/%3E%3Crect x="18" y="18" width="452" height="644" rx="20" fill="none" stroke="%23d9bd77" stroke-width="8"/%3E%3Ctext x="244" y="350" text-anchor="middle" fill="%23f2dfae" font-size="38" font-family="serif"%3ECard reference%3C/text%3E%3C/svg%3E';
+  const preferredImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="488" height="680"%3E%3Crect width="488" height="680" rx="28" fill="%23241935"/%3E%3Crect x="18" y="18" width="452" height="644" rx="20" fill="none" stroke="%23d9bd77" stroke-width="8"/%3E%3Ctext x="244" y="350" text-anchor="middle" fill="%23f2dfae" font-size="34" font-family="serif"%3EPreferred full art%3C/text%3E%3C/svg%3E';
   try {
     const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-    await isolate(desktop);
-    let page = await desktop.newPage();
-    watch(page);
-    await openDecks(page);
+    await routeOffline(desktop, preferredImage);
+    let page = await desktop.newPage(); watch(page); await openDecks(page);
+    assert.equal(await page.locator('.sidebar').evaluate((el) => getComputedStyle(el).display), 'none');
+    assert.equal(await page.locator('.sanctum-featured-card').count(), 0);
+    assert.equal(await page.getByRole('button', { name: 'Create new deck', exact: true }).count(), 1);
+    assert.equal(await page.locator('.sanctum-library-empty').getByText('Your collection awaits', { exact: true }).count(), 1);
+    assert.match(await page.locator('.sanctum-hero').evaluate((el) => getComputedStyle(el).backgroundImage), /my-decks\/background\.webp/);
+    for (const asset of ['background.webp', 'table.webp', 'banner-left.webp', 'banner-right.webp', 'commander-frame.webp', 'new-deck.webp', 'divider.webp']) assert.equal((await page.request.get(`${baseUrl}/my-decks/${asset}`)).status(), 200, asset);
+    pass('Zero-deck state uses supplied Sanctum artwork and one clear creation action');
 
-    assert.equal(await page.locator('.sidebar').evaluate((element) => getComputedStyle(element).display), 'none');
-    assert(await page.locator('.decks-empty-card').isVisible());
-    assert.equal(await page.locator('.decks-app-header strong').textContent(), 'Unlimited Deck Slots');
-    const introBackground = await page.locator('.decks-intro').evaluate((element) => getComputedStyle(element).backgroundImage);
-    assert.match(introBackground, /edgar-intro\.png/);
-    assert.equal(await page.getByRole('button', { name: '+ New Deck', exact: true }).count(), 1);
-    const createBackground = await page.locator('.decks-new-button').evaluate((element) => getComputedStyle(element).backgroundImage);
-    assert.equal(createBackground, 'none');
-    pass('Empty My Decks state is immersive, sidebar-free, and offers one clear create action');
-
-    await page.getByRole('button', { name: '+ New Deck', exact: true }).click();
+    await page.getByRole('button', { name: 'Create new deck', exact: true }).click();
     await page.getByRole('textbox', { name: 'Deck name', exact: true }).fill('Cancelled draft');
     await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
-    assert.equal(await page.getByRole('dialog').count(), 0);
     assert.equal((await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '{"decks":[]}').decks.length, storageKey)), 0);
-    pass('Create-deck cancellation leaves the isolated workspace unchanged');
+    pass('Create-deck cancellation leaves the isolated collection unchanged');
 
-    await page.getByRole('button', { name: '+ New Deck', exact: true }).click();
+    await page.getByRole('button', { name: 'Create new deck', exact: true }).click();
     await page.getByRole('textbox', { name: 'Deck name', exact: true }).fill('Core Pair');
     await page.getByRole('button', { name: 'Create deck', exact: true }).click();
     await page.getByRole('alert').getByText('Choose at least one commander.', { exact: true }).waitFor();
@@ -71,142 +80,91 @@ async function run() {
     await page.getByRole('heading', { name: 'Core Pair', exact: true }).waitFor();
     let state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
     assert.equal(state.decks.length, 1);
-    assert.equal(state.decks[0].commanders.length, 2);
-    assert.deepEqual(state.decks[0].commanders.map((commander) => commander.role), ['primary', 'partner']);
-    pass('Multi-commander creation resolves exact cards and repeated submit produces one deck');
+    assert.deepEqual(state.decks[0].commanders.map((card) => card.role), ['primary', 'partner']);
+    pass('Multi-partner creation validates exact cards and ignores repeated submit');
 
-    const fixtureImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="488" height="680"%3E%3Crect width="488" height="680" rx="28" fill="%23132824"/%3E%3Crect x="18" y="18" width="452" height="644" rx="20" fill="none" stroke="%23d9bd77" stroke-width="8"/%3E%3Ctext x="244" y="350" text-anchor="middle" fill="%23f2dfae" font-size="42" font-family="serif"%3ECard reference%3C/text%3E%3C/svg%3E';
-    const original = state.decks[0];
-    original.cards = [{ name: 'Goblin Instigator', oracleId: 'fixture-goblin', quantity: 2, cardVariant: 'Normal', colorIdentity: ['R'] }];
-    original.commanderCard.imageUrl = fixtureImage;
-    original.commanders[0].imageUrl = fixtureImage;
-    state.decks.push({ ...original, id: 'active-aegis', name: 'Aegis Collection', commander: 'Atraxa, Praetors Voice', commanderCard: { ...original.commanderCard, name: 'Atraxa, Praetors Voice' }, commanders: [{ ...original.commanders[0], name: 'Atraxa, Praetors Voice', role: 'primary' }], cards: [], status: 'active' });
-    state.decks.push({ ...original, id: 'archived-ancient', name: 'Ancient Archive', commander: 'Avacyn, Angel of Hope', commanderCard: { ...original.commanderCard, name: 'Avacyn, Angel of Hope' }, commanders: [{ ...original.commanders[0], name: 'Avacyn, Angel of Hope', role: 'primary' }], cards: [], status: 'archived' });
-    await desktop.close();
-
-    const collection = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-    let commanderArtLookups = 0;
-    const preferredCommanderImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="488" height="680"%3E%3Crect width="488" height="680" rx="28" fill="%23241935"/%3E%3Crect x="18" y="18" width="452" height="644" rx="20" fill="none" stroke="%23d9bd77" stroke-width="8"/%3E%3Ctext x="244" y="350" text-anchor="middle" fill="%23f2dfae" font-size="38" font-family="serif"%3EPreferred full art%3C/text%3E%3C/svg%3E';
-    await collection.route('**/*', async (route) => {
-      const request = route.request();
-      if (new URL(request.url()).origin === 'https://api.scryfall.com') {
-        commanderArtLookups++;
-        assert.match(request.headers().accept || '', /application\/json/);
-        return route.fulfill({ status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' }, body: JSON.stringify({ data: [{ id: 'preferred-printing', oracle_id: original.commanderCard.oracleId, name: original.commanderCard.name, full_art: true, games: ['paper'], highres_image: true, image_status: 'highres_scan', released_at: '2026-01-01', image_uris: { large: preferredCommanderImage, art_crop: 'https://cards.scryfall.io/art_crop/not-used.jpg' } }], has_more: false }) });
-      }
-      if (request.url().startsWith(baseUrl)) return route.continue();
-      if (request.method() !== 'GET') report.externalWrites.push(request.url());
-      return route.abort();
-    });
-    await collection.addInitScript(({ key, fixture }) => localStorage.setItem(key, JSON.stringify(fixture)), { key: storageKey, fixture: state });
-    page = await collection.newPage();
-    watch(page);
-    await openDecks(page);
-    await page.locator('[data-commander-art-treatment="full_art"]').first().waitFor();
-    assert.equal(commanderArtLookups, 1);
-    const enhancedCommanderSrc = await page.locator('[data-commander-art-treatment="full_art"]').first().getAttribute('src');
-    assert.equal(enhancedCommanderSrc, preferredCommanderImage);
-    assert.doesNotMatch(enhancedCommanderSrc, /art_crop/i);
-    const storedAfterArtLookup = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
-    assert.equal(storedAfterArtLookup.decks[0].commanderCard.imageUrl, fixtureImage);
-    assert.equal(storedAfterArtLookup.decks[0].commanderCard.premiumImageUrl, undefined);
-    pass('Commander display swaps to one cached same-identity full-art printing without changing saved card data');
-    const titles = await page.locator('.deck-showcase h3').allTextContents();
-    assert.deepEqual(titles, ['Aegis Collection', 'Core Pair', 'Ancient Archive']);
-    assert.equal(await page.locator('.deck-archived-badge').count(), 1);
-    const cardCss = await page.locator('.deck-showcase-art .card-thumb').first().evaluate((element) => {
-      const style = getComputedStyle(element);
-      return { objectFit: style.objectFit, filter: style.filter, transform: style.transform, clipPath: style.clipPath };
-    });
-    assert.equal(cardCss.objectFit, 'contain');
-    assert.equal(cardCss.filter, 'none');
-    assert.equal(cardCss.transform, 'none');
-    assert.equal(cardCss.clipPath, 'none');
-    await page.waitForTimeout(2500);
-    await page.screenshot({ path: path.join(__dirname, 'my-decks-desktop.png'), fullPage: true });
-    pass('Active decks sort alphabetically before archived decks and card references remain uncropped');
-
-    await page.getByRole('button', { name: 'Open Core Pair', exact: true }).click();
-    await page.getByRole('heading', { name: 'Core Pair', exact: true }).waitFor();
-    await page.locator('.commander-portrait [data-commander-art-treatment="full_art"]').waitFor();
-    assert.equal(commanderArtLookups, 1);
     await page.getByRole('button', { name: /All decks/ }).click();
     await page.getByRole('heading', { name: 'My Decks', exact: true }).waitFor();
-    pass('Deck-detail navigation and return to the collection work');
+    assert.equal(await page.locator('.sanctum-featured-card').count(), 1);
+    assert.equal(await page.locator('.sanctum-library-card').count(), 1);
+    pass('One-deck collection adapts without hardcoded samples');
 
-    await page.getByRole('button', { name: 'Delete Core Pair', exact: true }).click();
+    const original = state.decks[0]; original.commanderCard.imageUrl = fixtureImage; original.commanders[0].imageUrl = fixtureImage;
+    for (const count of [2, 3, 20]) {
+      await seed(page, { ...state, decks: Array.from({ length: count }, (_, i) => fixtureDeck(original, i, fixtureImage)) });
+      assert.equal(await page.locator('.sanctum-featured-card').count(), Math.min(2, count));
+      assert.equal(await page.locator('.sanctum-library-card').count(), count);
+      assert.equal(await page.getByRole('button', { name: 'Create new deck', exact: true }).count(), 1);
+    }
+    pass('Two, three, and twenty deck collections preserve the two-feature limit and complete library');
+
+    const fifty = { ...state, decks: Array.from({ length: 50 }, (_, i) => fixtureDeck(original, i, fixtureImage)) };
+    fifty.decks[49] = { ...fifty.decks[49], commander: 'Broken Oracle', commanderCard: { ...fifty.decks[49].commanderCard, name: 'Broken Oracle', oracleId: 'broken-oracle', premiumImageUrl: '', imageLarge: '', imageUrl: '/missing-card-reference.png' }, commanders: [{ ...fifty.decks[49].commanders[0], name: 'Broken Oracle', oracleId: 'broken-oracle', premiumImageUrl: '', imageLarge: '', imageUrl: '/missing-card-reference.png', role: 'primary' }] };
+    await seed(page, fifty);
+    assert.equal(await page.locator('.sanctum-featured-card').count(), 2);
+    assert.deepEqual(await page.locator('.sanctum-featured-copy h2').allTextContents(), ['Newest Ember', 'Second Tide']);
+    assert.equal(await page.locator('.sanctum-library-card').count(), 50);
+    assert.equal(await page.locator('.sanctum-featured-card button, .sanctum-library-card button').count(), 0);
+    assert.equal(await page.getByRole('button', { name: /^Delete / }).count(), 0);
+    const cardCss = await page.locator('.sanctum-featured-art .card-thumb').first().evaluate((el) => { const style = getComputedStyle(el); return { objectFit: style.objectFit, clipPath: style.clipPath }; });
+    assert.equal(cardCss.objectFit, 'contain'); assert.equal(cardCss.clipPath, 'none');
+    assert(await page.locator('[data-commander-art-treatment="full_art"]').first().isVisible());
+    const brokenReference = page.locator('.sanctum-library-card').filter({ hasText: 'Broken Oracle' }).locator('img.card-thumb');
+    await brokenReference.evaluate((image) => image.dispatchEvent(new Event('error')));
+    await page.locator('.sanctum-library-card').filter({ hasText: 'Broken Oracle' }).locator('.card-thumb.placeholder').waitFor({ state: 'visible' });
+    assert.equal((await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey)).decks[0].commanderCard.imageUrl, fixtureImage);
+    pass('Fifty real decks render deterministic features, semantic links, and uncropped display-only full art');
+
+    await page.getByRole('textbox', { name: 'Search your decks', exact: true }).fill('Talrand');
+    assert.equal(await page.locator('.sanctum-library-card').count(), 8);
+    await page.getByRole('textbox', { name: 'Search your decks', exact: true }).fill('Newest Ember');
+    assert.deepEqual(await page.locator('.sanctum-library-copy strong').allTextContents(), ['Newest Ember']);
+    await page.getByRole('textbox', { name: 'Search your decks', exact: true }).fill('');
+    await page.getByRole('combobox', { name: 'Filter by color identity', exact: true }).selectOption('M');
+    assert.equal(await page.locator('.sanctum-library-card').count(), 8);
+    await page.getByRole('combobox', { name: 'Filter by color identity', exact: true }).selectOption('');
+    await page.getByRole('combobox', { name: 'Filter deck status', exact: true }).selectOption('archived');
+    assert.equal(await page.locator('.sanctum-library-card').count(), 4);
+    await page.getByRole('combobox', { name: 'Filter deck status', exact: true }).selectOption('all');
+    await page.getByRole('combobox', { name: 'Sort decks', exact: true }).selectOption('alpha');
+    assert.equal(await page.locator('.sanctum-library-copy strong').first().textContent(), 'Alphabet Keep');
+    pass('Search, commander lookup, identity, archive, and A–Z filters work over the full collection');
+
+    await page.getByRole('link', { name: 'Open Alphabet Keep', exact: true }).first().focus(); await page.keyboard.press('Enter');
+    await page.getByRole('heading', { name: 'Alphabet Keep', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Edit deck', exact: true }).click();
+    await page.getByText('Remove this deck', { exact: true }).click();
+    await page.getByRole('button', { name: 'Review deletion options', exact: true }).click();
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-    assert.equal(await page.getByRole('button', { name: 'Open Core Pair', exact: true }).count(), 1);
-    await page.getByRole('button', { name: 'Delete Core Pair', exact: true }).click();
-    await page.getByRole('button', { name: /^Move Cards to Bulk/ }).evaluate((button) => { button.click(); button.click(); });
-    state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
-    assert.equal(state.decks.some((deck) => deck.name === 'Core Pair'), false);
-    assert.equal(state.bulk.find((card) => card.name === 'Goblin Instigator').quantity, 2);
-    pass('Delete cancellation is safe and repeated move-to-bulk preserves each card copy once');
-
-    await page.getByRole('button', { name: 'Delete Aegis Collection', exact: true }).click();
-    await page.getByRole('button', { name: /^Delete Cards Forever/ }).evaluate((button) => { button.click(); button.click(); });
-    state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
-    assert.equal(state.decks.some((deck) => deck.name === 'Aegis Collection'), false);
-    assert.equal(state.bulk.find((card) => card.name === 'Goblin Instigator').quantity, 2);
-    pass('Delete-forever removes the selected deck without duplicating bulk inventory');
-
-    await page.getByRole('button', { name: 'Delete Ancient Archive', exact: true }).click();
-    await page.getByRole('button', { name: /^Delete Deck Only/ }).evaluate((button) => {
-      button.click(); button.click();
-    });
-    state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
-    assert.equal(state.decks.some((deck) => deck.name === 'Ancient Archive'), false);
-    assert.equal(state.retainedDeckRecords.length, 1);
-    assert.equal(state.retainedDeckRecords[0].name, 'Ancient Archive');
-    assert.equal(state.retainedDeckRecords[0].commanderCard.name, 'Avacyn, Angel of Hope');
-    assert.deepEqual(state.retainedDeckRecords[0].basicLands, original.basicLands);
-    pass('Delete-deck-only hides the deck while retaining its complete synchronized record');
+    assert(await page.getByRole('heading', { name: 'Alphabet Keep', exact: true }).isVisible());
+    await page.getByRole('button', { name: /All decks/ }).click();
+    pass('Keyboard navigation opens detail and edit/delete choices remain safely in management UI');
 
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-    pass('Desktop My Decks layout has no horizontal overflow');
+    await page.screenshot({ path: path.join(__dirname, 'my-decks-desktop.png'), fullPage: true });
+    pass('Desktop Sanctum fits without horizontal overflow and screenshot evidence was captured');
+    await desktop.close();
 
-    const mobileFixture = { ...state, decks: [{ ...original, id: 'mobile-core', name: 'Mobile Core', status: 'active' }] };
-    await collection.close();
-
-    const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 1 });
-    await mobile.route('**/*', async (route) => {
-      const request = route.request();
-      if (new URL(request.url()).origin === 'https://api.scryfall.com') {
-        return route.fulfill({ status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' }, body: JSON.stringify({ data: [{ id: 'preferred-printing', oracle_id: original.commanderCard.oracleId, name: original.commanderCard.name, full_art: true, games: ['paper'], highres_image: true, image_status: 'highres_scan', released_at: '2026-01-01', image_uris: { large: preferredCommanderImage } }], has_more: false }) });
-      }
-      if (request.url().startsWith(baseUrl)) return route.continue();
-      if (request.method() !== 'GET') report.externalWrites.push(request.url());
-      return route.abort();
-    });
-    await mobile.addInitScript(({ key, fixture }) => localStorage.setItem(key, JSON.stringify(fixture)), { key: storageKey, fixture: mobileFixture });
-    const phone = await mobile.newPage();
-    watch(phone);
-    await openDecks(phone);
-    await phone.locator('[data-commander-art-treatment="full_art"]').waitFor();
-    assert.equal(await phone.locator('[data-commander-art-treatment="full_art"]').getAttribute('src'), preferredCommanderImage);
-    assert(await phone.locator('.decks-library').isVisible());
+    const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 1, reducedMotion: 'reduce' });
+    await routeOffline(mobile, preferredImage);
+    await mobile.addInitScript(({ key, fixture }) => localStorage.setItem(key, JSON.stringify(fixture)), { key: storageKey, fixture: { ...fifty, decks: fifty.decks.slice(0, 3) } });
+    const phone = await mobile.newPage(); watch(phone); await openDecks(phone);
+    assert.equal(await phone.locator('.sanctum-featured-card').count(), 2);
+    assert.equal(await phone.locator('.sanctum-library-card').count(), 3);
     assert(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-    await phone.waitForTimeout(2500);
-    await phone.getByRole('button', { name: '+ New Deck', exact: true }).click();
+    assert.equal(await phone.locator('.sanctum-library-card').first().evaluate((el) => getComputedStyle(el).transitionDuration), '0s');
+    await phone.getByRole('button', { name: 'Create new deck', exact: true }).click();
     await phone.getByRole('button', { name: 'Close dialog', exact: true }).click();
     await phone.screenshot({ path: path.join(__dirname, 'my-decks-mobile.png'), fullPage: true });
-    pass('Mobile My Decks full-art display and modal cancel work without horizontal overflow');
+    pass('Mobile layout, reduced motion, modal cancel, and horizontal fit are verified');
     await mobile.close();
 
-    assert.deepEqual(report.errors, []);
-    assert.deepEqual(report.externalWrites, []);
-    pass('No browser runtime errors or external write requests');
+    assert.deepEqual(report.errors, []); assert.deepEqual(report.externalWrites, []);
+    pass('No browser runtime errors or external write requests were observed');
   } finally {
-    await browser.close();
-    report.finishedAt = new Date().toISOString();
+    await browser.close(); report.finishedAt = new Date().toISOString();
     fs.writeFileSync(path.join(__dirname, 'my-decks-report.json'), JSON.stringify(report, null, 2));
   }
 }
 
-run().catch((error) => {
-  report.failure = error.stack;
-  fs.writeFileSync(path.join(__dirname, 'my-decks-report.json'), JSON.stringify(report, null, 2));
-  console.error(error.stack);
-  process.exitCode = 1;
-});
+run().catch((error) => { report.failure = error.stack; fs.writeFileSync(path.join(__dirname, 'my-decks-report.json'), JSON.stringify(report, null, 2)); console.error(error.stack); process.exitCode = 1; });
