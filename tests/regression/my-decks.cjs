@@ -85,11 +85,32 @@ async function run() {
     await desktop.close();
 
     const collection = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-    await isolate(collection);
+    let commanderArtLookups = 0;
+    const preferredCommanderImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="488" height="680"%3E%3Crect width="488" height="680" rx="28" fill="%23241935"/%3E%3Crect x="18" y="18" width="452" height="644" rx="20" fill="none" stroke="%23d9bd77" stroke-width="8"/%3E%3Ctext x="244" y="350" text-anchor="middle" fill="%23f2dfae" font-size="38" font-family="serif"%3EPreferred full art%3C/text%3E%3C/svg%3E';
+    await collection.route('**/*', async (route) => {
+      const request = route.request();
+      if (new URL(request.url()).origin === 'https://api.scryfall.com') {
+        commanderArtLookups++;
+        assert.match(request.headers().accept || '', /application\/json/);
+        return route.fulfill({ status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' }, body: JSON.stringify({ data: [{ id: 'preferred-printing', oracle_id: original.commanderCard.oracleId, name: original.commanderCard.name, full_art: true, games: ['paper'], highres_image: true, image_status: 'highres_scan', released_at: '2026-01-01', image_uris: { large: preferredCommanderImage, art_crop: 'https://cards.scryfall.io/art_crop/not-used.jpg' } }], has_more: false }) });
+      }
+      if (request.url().startsWith(baseUrl)) return route.continue();
+      if (request.method() !== 'GET') report.externalWrites.push(request.url());
+      return route.abort();
+    });
     await collection.addInitScript(({ key, fixture }) => localStorage.setItem(key, JSON.stringify(fixture)), { key: storageKey, fixture: state });
     page = await collection.newPage();
     watch(page);
     await openDecks(page);
+    await page.locator('[data-commander-art-treatment="full_art"]').first().waitFor();
+    assert.equal(commanderArtLookups, 1);
+    const enhancedCommanderSrc = await page.locator('[data-commander-art-treatment="full_art"]').first().getAttribute('src');
+    assert.equal(enhancedCommanderSrc, preferredCommanderImage);
+    assert.doesNotMatch(enhancedCommanderSrc, /art_crop/i);
+    const storedAfterArtLookup = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
+    assert.equal(storedAfterArtLookup.decks[0].commanderCard.imageUrl, fixtureImage);
+    assert.equal(storedAfterArtLookup.decks[0].commanderCard.premiumImageUrl, undefined);
+    pass('Commander display swaps to one cached same-identity full-art printing without changing saved card data');
     const titles = await page.locator('.deck-showcase h3').allTextContents();
     assert.deepEqual(titles, ['Aegis Collection', 'Core Pair', 'Ancient Archive']);
     assert.equal(await page.locator('.deck-archived-badge').count(), 1);
@@ -107,6 +128,8 @@ async function run() {
 
     await page.getByRole('button', { name: 'Open Core Pair', exact: true }).click();
     await page.getByRole('heading', { name: 'Core Pair', exact: true }).waitFor();
+    await page.locator('.commander-portrait [data-commander-art-treatment="full_art"]').waitFor();
+    assert.equal(commanderArtLookups, 1);
     await page.getByRole('button', { name: /All decks/ }).click();
     await page.getByRole('heading', { name: 'My Decks', exact: true }).waitFor();
     pass('Deck-detail navigation and return to the collection work');
@@ -143,22 +166,32 @@ async function run() {
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     pass('Desktop My Decks layout has no horizontal overflow');
 
-    const mobileFixture = state;
+    const mobileFixture = { ...state, decks: [{ ...original, id: 'mobile-core', name: 'Mobile Core', status: 'active' }] };
     await collection.close();
 
     const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 1 });
-    await isolate(mobile);
+    await mobile.route('**/*', async (route) => {
+      const request = route.request();
+      if (new URL(request.url()).origin === 'https://api.scryfall.com') {
+        return route.fulfill({ status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' }, body: JSON.stringify({ data: [{ id: 'preferred-printing', oracle_id: original.commanderCard.oracleId, name: original.commanderCard.name, full_art: true, games: ['paper'], highres_image: true, image_status: 'highres_scan', released_at: '2026-01-01', image_uris: { large: preferredCommanderImage } }], has_more: false }) });
+      }
+      if (request.url().startsWith(baseUrl)) return route.continue();
+      if (request.method() !== 'GET') report.externalWrites.push(request.url());
+      return route.abort();
+    });
     await mobile.addInitScript(({ key, fixture }) => localStorage.setItem(key, JSON.stringify(fixture)), { key: storageKey, fixture: mobileFixture });
     const phone = await mobile.newPage();
     watch(phone);
     await openDecks(phone);
+    await phone.locator('[data-commander-art-treatment="full_art"]').waitFor();
+    assert.equal(await phone.locator('[data-commander-art-treatment="full_art"]').getAttribute('src'), preferredCommanderImage);
     assert(await phone.locator('.decks-library').isVisible());
     assert(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     await phone.waitForTimeout(2500);
     await phone.getByRole('button', { name: '+ New Deck', exact: true }).click();
     await phone.getByRole('button', { name: 'Close dialog', exact: true }).click();
     await phone.screenshot({ path: path.join(__dirname, 'my-decks-mobile.png'), fullPage: true });
-    pass('Mobile My Decks layout and modal cancel work without horizontal overflow');
+    pass('Mobile My Decks full-art display and modal cancel work without horizontal overflow');
     await mobile.close();
 
     assert.deepEqual(report.errors, []);
