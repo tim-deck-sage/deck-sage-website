@@ -1,7 +1,7 @@
 // Publish an explicit static allowlist. Keep Next's existing legal/support exports.
 const fs=require('fs'),path=require('path'),crypto=require('crypto');
 const repo=path.resolve(__dirname,'../..'),publicRoot=path.join(repo,'preview/public'),out=path.join(repo,'out');
-const allowed=['account-config.js','index.html','app.js','styles.css','fantasy.css','news-snapshot.json','card-worker.js','THIRD-PARTY-NOTICES.txt','assets/original/arcane-library-v2.png','assets/original/deck-sage-sigil.svg'];
+const allowed=['account-config.js','ai-scan-config.js','index.html','app.js','styles.css','fantasy.css','news-snapshot.json','card-worker.js','THIRD-PARTY-NOTICES.txt','assets/original/arcane-library-v2.png','assets/original/deck-sage-sigil.svg'];
 const songMedia=[
  ['assets/images/song.png','songs/background.png'],
  ['assets/images/commanders/Atraxa.png','songs/atraxa.png'],

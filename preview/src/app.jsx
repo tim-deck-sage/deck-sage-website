@@ -20,6 +20,8 @@ import {createAccountBackend} from './providers/supabaseAccounts';
 import {createSharedWorkspace} from './providers/sharedWorkspace';
 import {commanderFallbackImage,getPreferredCommanderArt} from './providers/commanderDisplayArt';
 import {AccountPanel} from './AccountPanel';
+import {AiBatchUpload} from './AiBatchUpload';
+import {emptyAiScanSession} from './aiScan';
 const ART='/assets/images/';
 function Sigil({variant=0}){const offset=variant%4;return <svg className="sigil" viewBox="0 0 60 80" fill="none" stroke="currentColor" strokeWidth=".9" aria-hidden="true"><path d="M30 2 54 20v40L30 78 6 60V20Z"/><path d="M30 8 49 23v34L30 72 11 57V23Z" opacity=".4"/><circle cx="30" cy="39" r="17"/><circle cx="30" cy="39" r="12" opacity=".35"/><path d={offset===0?'M18 44V28l12 4 12-4v16l-12 5-12-5Zm12-12v17':offset===1?'M30 19v40M12 39h36M19 28l22 22M19 50l22-22':offset===2?'M30 20 42 39 30 57 18 39Z M30 27 37 39 30 50 23 39Z':'M17 43c0-18 26-18 26 0M21 46c0-11 18-11 18 0M30 25v31'}/><path d="M30 10v5M30 63v7M2 39h5M53 39h5"/><circle cx="30" cy="39" r="2" fill="currentColor"/></svg>;}
 function Avatar({number=1,className=''}){return <span className={'avatar-mark '+className} data-avatar={number} style={{background:`radial-gradient(circle,hsl(${number*19} 20% 34%),#15332a)`}}><Sigil variant={number}/></span>;}
@@ -62,11 +64,11 @@ class Boundary extends React.Component{constructor(p){super(p);this.state={error
 function App(){
  const workspace=useMemo(()=>createBrowserWorkspace(localStorage),[]),backend=useMemo(()=>createAccountBackend(window.DECK_SAGE_ACCOUNTS),[]),accounts=useMemo(()=>createSharedWorkspace(workspace,backend),[workspace,backend]);
  const [accountSnapshot,setAccountSnapshot]=useState(()=>accounts.getSnapshot());
- const [batchUploads,setBatchUploads]=useState(emptyBatchUploads),batchUploadsRef=useRef(batchUploads);
+ const [batchUploads,setBatchUploads]=useState(emptyBatchUploads),batchUploadsRef=useRef(batchUploads),[batchScan,setBatchScan]=useState(emptyAiScanSession);
  useEffect(()=>{const stop=accounts.subscribe(setAccountSnapshot),end=accounts.start();return()=>{stop();end();};},[accounts]);
  const state=accountSnapshot.state,auth=backend,setState=value=>accounts.edit(value,accountSnapshot.epoch);
  useEffect(()=>{batchUploadsRef.current=batchUploads;},[batchUploads]);
- useEffect(()=>{setModal(null);setBatchUploads(emptyBatchUploads());},[accountSnapshot.epoch]);
+ useEffect(()=>{setModal(null);setBatchUploads(emptyBatchUploads());setBatchScan(emptyAiScanSession());},[accountSnapshot.epoch]);
  useEffect(()=>{const warn=e=>{if(accounts.getSnapshot().dirty||batchUploadsRef.current.some(Boolean)){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[accounts]);
  const [compactNavigation,setCompactNavigation]=useState(()=>matchMedia('(max-width:760px)').matches),menuButtonRef=useRef(null),sidebarRef=useRef(null);
  const [status,setStatus]=useState(null),[route,setRoute]=useState(location.hash.slice(2)||'home'),[modal,setModal]=useState(null),[toast,setToast]=useState(''),[mobileMenu,setMobileMenu]=useState(false),[storageError,setStorageError]=useState('');
@@ -77,18 +79,18 @@ function App(){
  useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(''),5000);return()=>clearTimeout(t);}},[toast]);
  useEffect(()=>{document.documentElement.dataset.theme=state.settings.theme;document.documentElement.dataset.motion=String(state.settings.motion);},[state.settings]);
  const go=path=>{location.hash='/'+path;};const notify=text=>setToast(text);
- const stageBatchPhoto=(index,file)=>{setBatchUploads(previous=>{const next=previous.slice();next[index]=file?{file,url:undefined}:null;batchUploadsRef.current=next;return next;});if(file)void createBatchPhotoThumbnail(file).then(url=>setBatchUploads(previous=>{if(previous[index]?.file!==file)return previous;const next=previous.slice();next[index]={file,url};batchUploadsRef.current=next;return next;})).catch(()=>setBatchUploads(previous=>{if(previous[index]?.file!==file)return previous;const next=previous.slice();next[index]={file,url:'data:image/invalid;base64,'};batchUploadsRef.current=next;return next;}));};
+ const stageBatchPhoto=(index,file)=>{setBatchScan(emptyAiScanSession());setBatchUploads(previous=>{const next=previous.slice();next[index]=file?{file,url:undefined}:null;batchUploadsRef.current=next;return next;});if(file)void createBatchPhotoThumbnail(file).then(url=>setBatchUploads(previous=>{if(previous[index]?.file!==file)return previous;const next=previous.slice();next[index]={file,url};batchUploadsRef.current=next;return next;})).catch(()=>setBatchUploads(previous=>{if(previous[index]?.file!==file)return previous;const next=previous.slice();next[index]={file,url:'data:image/invalid;base64,'};batchUploadsRef.current=next;return next;}));};
  const update=fn=>setState(previous=>{const next=fn(previous);return {...next,notifications:next.settings.notificationInbox?[{id:uid(),text:'Collection updated',date:new Date().toISOString(),read:false},...next.notifications].slice(0,100):next.notifications};});
  const editDeck=(id,fn)=>update(s=>({...s,decks:s.decks.map(d=>d.id===id?fn(d):d)}));
  const addCard=(card,target='bulk',quantity=1,variant='Normal')=>{update(s=>target==='bulk'?{...s,bulk:addInventory(s.bulk,card,quantity,variant)}:{...s,decks:s.decks.map(d=>d.id===target?{...d,cards:addInventory(d.cards,card,quantity,variant)}:d)});notify(`${quantity} ${card.name} added.`);};
- const context={state,setState,status,auth,workspace,accounts,backend,accountSnapshot,go,notify,update,editDeck,addCard,setModal,batchUploads,stageBatchPhoto};
+ const context={state,setState,status,auth,workspace,accounts,backend,accountSnapshot,go,notify,update,editDeck,addCard,setModal,batchUploads,stageBatchPhoto,batchScan,setBatchScan};
  const [page,routeContext,routeId]=route.split('/');const deckId=page==='decks'?routeContext:null;
  let content;
  if(page==='home')content=<Home {...context}/>;
  else if(page==='cards')content=<CardLibrary {...context}/>;
  else if(page==='decks')content=deckId?<><BatchUploadEntry go={go} path={'batch-upload/deck/'+deckId}/><DeckDetail {...context} id={deckId}/></>:<Decks {...context}/>;
  else if(page==='bulk')content=<><BatchUploadEntry go={go} path="batch-upload/bulk"/><Bulk {...context}/></>;
- else if(page==='batch-upload')content=<BatchUpload {...context} originType={routeContext} originId={routeId}/>;
+ else if(page==='batch-upload')content=<AiBatchUpload {...context} ui={{Icon,Button,PageHeader,Empty}} originType={routeContext} originId={routeId}/>;
  else if(page==='sage')content=<Sage {...context}/>;
  else if(page==='value')content=<Value {...context}/>;
  else if(page==='lore')content=<Lore {...context}/>;

@@ -20,6 +20,18 @@ function touchShard(key){settledShards.delete(key);settledShards.add(key);while(
 function shard(id){const key=String(id).slice(0,2);if(settledShards.has(key))touchShard(key);if(!shardPromises.has(key))shardPromises.set(key,boundedLoad(()=>gzipFile('cards-'+key+'.json.gz')).then(value=>{touchShard(key);return value}).catch(e=>{shardPromises.delete(key);settledShards.delete(key);throw e}));return shardPromises.get(key);}
 async function card(id){return (await shard(id))[id]||null;}
 async function resolve(name){const data=await index(),key=normalized(name);if(!key)return null;const exact=data.cards.filter(c=>c.normalized_name===key).sort((a,b)=>compare(b.source,a.source));if(exact.length)return card(exact[0].oracle_id);const candidates=(data.aliases.get(key)||[]).map(a=>({...data.byId.get(a.id),confidence:a.confidence}));const special=c=>['art_series','token','double_faced_token','emblem'].includes(c.layout)?1:0;candidates.sort((a,b)=>special(a)-special(b)||((a.source==='scryfall-oracle-bulk'?0:1)-(b.source==='scryfall-oracle-bulk'?0:1))||b.confidence-a.confidence||compare(a.name,b.name));return candidates.length?card(candidates[0].oracle_id):null;}
+async function matchName(name){
+ const data=await index(),key=normalized(name);if(!key)return {status:'not_found',card:null,candidates:[]};
+ const exact=[...new Map(data.cards.filter(c=>c.normalized_name===key).map(c=>[c.oracle_id,c])).values()];
+ if(exact.length===1)return {status:'matched',source:'exact',card:await card(exact[0].oracle_id),candidates:[]};
+ if(exact.length>1)return {status:'ambiguous',source:'exact',card:null,candidates:await Promise.all(exact.slice(0,8).map(c=>card(c.oracle_id)))};
+ const aliases=[...new Map((data.aliases.get(key)||[]).map(value=>[value.id,value])).values()].sort((a,b)=>b.confidence-a.confidence);
+ if(!aliases.length)return {status:'not_found',card:null,candidates:[]};
+ const candidates=(await Promise.all(aliases.slice(0,8).map(async value=>({...await card(value.id),matchConfidence:value.confidence})))).filter(Boolean);
+ const top=aliases[0],runnerUp=aliases[1];
+ if(top.confidence>=.88&&(!runnerUp||top.confidence-runnerUp.confidence>=.04))return {status:'matched',source:'alias',card:candidates[0],candidates:candidates.slice(1)};
+ return {status:'ambiguous',source:'alias',card:null,candidates};
+}
 const roleTerms={ramp:['add {','add one mana','search your library for a basic land','treasure token'],draw:['draw a card','draw two cards','draw three cards','draw cards','draw X cards'],removal:['destroy target','exile target','counter target','return target'],protection:['hexproof','indestructible','protection from','phase out'],tokens:['create','token'],recursion:['return','graveyard']};
 async function search(params){
  const data=await index(),query=String(params.q||'').trim().slice(0,180),norm=normalized(query),limit=Math.max(1,Math.min(Number(params.limit)||24,100)),offset=Math.max(0,Math.min(Number(params.offset)||0,50000));
@@ -46,6 +58,7 @@ async function dispatch(path,params,body){
  if(path==='/api/cards')return search(params);
  if(path==='/api/card')return {card:params.name?await resolve(params.name):await card(params.id)};
  if(path==='/api/resolve')return {cards:await Promise.all((body?.names||[]).map(resolve))};
+ if(path==='/api/match-name')return matchName(body?.name);
  if(path==='/api/retrieve'){const result=await search({...params,limit:Math.min(Number(params.limit)||8,20)});return {schema:'deck-sage-context-v1',query:params.q||'',totalMatches:result.total,cards:result.cards.map(c=>Object.fromEntries(['oracleId','name','manaCost','cmc','typeLine','oracleText','colorIdentity','keywords','power','toughness','legalities','dataSource','dataNote','metadataComplete'].map(k=>[k,c[k]]))),sourceUpdatedAt:(await manifest()).status.bulkUpdatedAt};}
  throw Error('Unsupported card request.');
 }
