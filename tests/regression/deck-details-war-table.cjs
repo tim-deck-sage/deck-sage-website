@@ -13,6 +13,7 @@ async function routeOffline(context) {
   await context.route('**/*', async route => {
     const request = route.request(), url = new URL(request.url());
     if (url.origin === 'https://api.scryfall.com') return route.fulfill({ status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' }, body: JSON.stringify({ data: [], has_more: false }) });
+    if (url.origin === 'https://cards.scryfall.io' && request.method() === 'GET') return route.continue();
     if (request.url().startsWith(baseUrl)) return route.continue();
     if (request.method() !== 'GET') report.externalWrites.push(request.url());
     return route.abort();
@@ -28,6 +29,11 @@ async function seed(page, fixture, route = '#/decks/war-table-fixture') {
 function card(name, identity, extra = {}) {
   return { id: name.toLowerCase().replaceAll(' ', '-'), oracleId: `oracle-${name}`, name, colorIdentity: identity, typeLine: 'Artifact', manaCost: '{2}', cmc: 2, quantity: 1, cardVariant: 'Normal', prices: { usd: '1.25' }, oracleText: 'Fixture rules text.', metadataComplete: true, ...extra };
 }
+function luminance(hex) { const values = hex.match(/[a-f\d]{2}/gi).map(value => parseInt(value, 16) / 255).map(value => value <= .03928 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4); return .2126 * values[0] + .7152 * values[1] + .0722 * values[2]; }
+function contrast(a, b) { const [high, low] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (high + .05) / (low + .05); }
+function themedDeck(id, name, commander, partner = null) {
+  return { id, name, commander: [commander, partner].filter(Boolean).map(item => item.name).join(' + '), commanderCard: commander, commanders: [{ ...commander, role: 'primary' }, ...(partner ? [{ ...partner, role: 'partner' }] : [])], format: 'Commander', status: 'active', cards: [], basicLands: { Plains: 0, Island: 0, Swamp: 0, Mountain: 0, Forest: 0, Wastes: 0 }, notes: '', createdAt: '2026-10-13T12:00:00.000Z' };
+}
 
 async function run() {
   const browser = await chromium.launch({ headless: true, channel: 'msedge' });
@@ -37,9 +43,23 @@ async function run() {
     const page = await desktop.newPage(); watch(page);
     await page.goto(`${baseUrl}/#/home`);
     const original = await readState(page) || { version: 1, profile: { name: 'Planeswalker', username: '', avatar: 1, role: 'Player', bio: '' }, decks: [], retainedDeckRecords: [], bulk: [], favorites: [], contacts: [], stores: [], notifications: [], settings: { theme: 'forest', motion: true, images: true, notificationInbox: true } };
-    const primary = card('Tymna the Weaver', ['W', 'B'], { role: 'primary', typeLine: 'Legendary Creature — Human Cleric', imageUrl: '' });
+    const primary = card('Tymna the Weaver', ['W', 'B'], { role: 'primary', typeLine: 'Legendary Creature - Human Cleric', manaCost: '{1}{W}{B}', imageUrl: '' });
     const partner = card('Kraum, Ludevic’s Opus', ['U', 'R'], { role: 'partner', typeLine: 'Legendary Creature — Zombie Horror', imageUrl: '' });
-    const fixture = { ...original, decks: [{ id: 'war-table-fixture', name: 'Four Color Council', commander: `${primary.name} + ${partner.name}`, commanderCard: primary, commanders: [primary, partner], format: 'Commander', status: 'active', cards: [card('Arcane Signet', []), card('Sol Ring', [], { quantity: 2, cmc: 1, manaCost: '{1}', prices: { usd: '2.10' } })], basicLands: { Plains: 1, Island: 2, Swamp: 3, Mountain: 4, Forest: 5, Wastes: 6 }, notes: 'Opening plan', createdAt: '2026-10-13T12:00:00.000Z' }] };
+    const mainDeck = { ...themedDeck('war-table-fixture', 'Four Color Council', primary, partner), cards: [card('Arcane Signet', []), card('Sol Ring', [], { quantity: 2, cmc: 1, manaCost: '{1}', prices: { usd: '2.10' } })], basicLands: { Plains: 1, Island: 2, Swamp: 3, Mountain: 4, Forest: 5, Wastes: 6 }, notes: 'Opening plan' };
+    const themeCases = [
+      ['theme-white', 'White Theme', card('White Lead', ['W'], { manaCost: '{2}{W}{W}' }), 'W'],
+      ['theme-blue', 'Blue Theme', card('Blue Lead', ['U'], { manaCost: '{1}{U}{U}' }), 'U'],
+      ['theme-black', 'Black Theme', card('Black Lead', ['B'], { manaCost: '{2}{B}' }), 'B'],
+      ['theme-red', 'Krenko Red Theme', card('Krenko, Mob Boss', ['R'], { id: '824b2d73-2151-4e5e-9f05-8f63e2bdcaa9', oracleId: '68418069-f615-40ef-ae0d-764192acae00', manaCost: '{2}{R}{R}', typeLine: 'Legendary Creature - Goblin Warrior', imageUrl: 'https://cards.scryfall.io/large/front/8/2/824b2d73-2151-4e5e-9f05-8f63e2bdcaa9.jpg?1783909065' }), 'R'],
+      ['theme-green', 'Marwyn Green Theme', card('Marwyn, the Nurturer', ['G'], { id: 'aad61d99-5c8e-47b7-ab1a-e70905f59205', oracleId: 'ee35de1c-aef1-4bd4-85fd-fe77bc927790', manaCost: '{2}{G}', typeLine: 'Legendary Creature - Elf Druid', imageUrl: 'https://cards.scryfall.io/large/front/a/a/aad61d99-5c8e-47b7-ab1a-e70905f59205.jpg?1783928311' }), 'G'],
+      ['theme-colorless', 'Colorless Theme', card('Colorless Lead', [], { manaCost: '{7}' }), 'C'],
+      ['theme-dominant', 'Dominant Blue Theme', card('Blue White Lead', ['W', 'U'], { manaCost: '{1}{U}{U}{W}' }), 'U'],
+      ['theme-tie', 'Stable White Tie', card('White Blue Tie', ['W', 'U'], { manaCost: '{W}{U}' }), 'W'],
+      ['theme-explicit', 'Explicit Black Theme', card('Black Green Lead', ['B', 'G'], { manaCost: '{G}{G}{G}', primaryColor: 'B' }), 'B'],
+      ['theme-dfc', 'DFC Black Theme', card('Two Faced Lead', ['U', 'B'], { manaCost: '', faces: [{ mana_cost: '{1}{B}{B}' }, { mana_cost: '{U}' }] }), 'B']
+    ];
+    const missingDeck = { ...themedDeck('theme-missing', 'Missing Theme Metadata', card('Temporary', [], {})), commander: '', commanderCard: null, commanders: [] };
+    const fixture = { ...original, decks: [mainDeck, ...themeCases.map(([id, name, commander]) => themedDeck(id, name, commander)), missingDeck] };
     await seed(page, fixture);
     await page.getByRole('heading', { name: 'Four Color Council', exact: true }).waitFor();
 
@@ -48,9 +68,38 @@ async function run() {
     assert.equal(await page.locator('.war-table-commander').count(), 2);
     assert.deepEqual(await page.locator('.war-table-commander figcaption').allTextContents(), ['Primary', 'Partner']);
     assert.deepEqual(await page.locator('.war-table-meta .sanctum-identity i').allTextContents(), ['W', 'U', 'B', 'R']);
-    assert.match(await page.locator('.war-table-page').getAttribute('style'), /--deck-spectrum/);
+    assert.equal(await page.locator('.war-table-page').getAttribute('data-war-primary'), 'W');
+    assert.match(await page.locator('.war-table-page').getAttribute('style'), /--war-primary/);
     for (const asset of ['background.webp', 'banner.webp', 'panel-frame.webp', 'divider.webp', 'land-plains.webp', 'land-island.webp', 'land-swamp.webp', 'land-mountain.webp', 'land-forest.webp', 'land-wastes.webp']) assert.equal((await page.request.get(`${baseUrl}/deck-details/${asset}`)).status(), 200, asset);
-    pass('Supplied War Table art, horizontal shell, partner roles, and complete four-color identity render');
+    pass('Supplied War Table art, horizontal shell, partner roles, and complete four-color identity render independently of the white lead theme');
+
+    const themeSurfaces = new Map();
+    for (const [id, name, , expected] of themeCases) {
+      await page.goto(`${baseUrl}/#/decks/${id}`);
+      await page.getByRole('heading', { name, exact: true }).waitFor();
+      assert.equal(await page.locator('.war-table-page').getAttribute('data-war-primary'), expected, name);
+      const theme = await page.locator('.war-table-page').evaluate(el => { const style = getComputedStyle(el); return { primary: style.getPropertyValue('--war-primary').trim(), onPrimary: style.getPropertyValue('--war-on-primary').trim() }; });
+      assert(contrast(theme.primary, theme.onPrimary) >= 4.5, `${name} primary button contrast`);
+      const surface = await page.locator('.war-table-panel').first().evaluate(el => getComputedStyle(el).backgroundImage);
+      themeSurfaces.set(expected, surface);
+      assert.match(surface, /gradient/);
+    }
+    assert.equal(new Set(['W', 'U', 'B', 'R', 'G', 'C'].map(color => themeSurfaces.get(color))).size, 6);
+    await page.goto(`${baseUrl}/#/decks/theme-missing`);
+    await page.getByRole('heading', { name: 'Missing Theme Metadata', exact: true }).waitFor();
+    assert.equal(await page.locator('.war-table-page').getAttribute('data-war-primary'), 'C');
+    await page.locator('.war-table-back').focus();
+    const focusStyle = await page.locator('.war-table-back').evaluate(el => { const style = getComputedStyle(el); return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth }; });
+    assert.notEqual(focusStyle.outlineStyle, 'none'); assert(Number.parseFloat(focusStyle.outlineWidth) >= 2);
+    for (const [id, filename] of [['theme-green', 'deck-details-theme-marwyn-green.png'], ['theme-red', 'deck-details-theme-krenko-red.png']]) {
+      await page.goto(`${baseUrl}/#/decks/${id}`);
+      await page.locator('.war-table-commander img.card-thumb').waitFor({ state: 'visible' });
+      await page.waitForFunction(() => document.querySelector('.war-table-commander img.card-thumb')?.complete);
+      await page.screenshot({ path: path.join(__dirname, filename), fullPage: false });
+    }
+    await page.goto(`${baseUrl}/#/decks/war-table-fixture`);
+    await page.getByRole('heading', { name: 'Four Color Council', exact: true }).waitFor();
+    pass('W/U/B/R/G/colorless, dominant mana, WUBRG tie-break, explicit primary, DFC, partner isolation, missing metadata, route switching, and Marwyn/Krenko comparison screenshots are deterministic');
 
     const tabs = ['Cards', 'Balance', 'Sage rating', 'Strategy', 'Upgrades'];
     for (const name of tabs.slice(1)) {
@@ -109,11 +158,11 @@ async function run() {
     await page.getByRole('textbox', { name: 'Deck name', exact: true }).fill('Council at Dawn');
     await page.getByRole('button', { name: 'Save changes', exact: true }).dblclick();
     await page.getByRole('heading', { name: 'Council at Dawn', exact: true }).waitFor();
-    assert.equal((await readState(page)).decks.length, 1);
+    assert.equal((await readState(page)).decks.length, fixture.decks.length);
     await page.getByRole('button', { name: 'All decks', exact: true }).click();
     await page.getByRole('heading', { name: 'My Decks', exact: true }).waitFor();
-    assert.equal(await page.getByRole('link', { name: 'Open Council at Dawn', exact: true }).count(), 2);
-    pass('Edit cancel/save, repeated submit protection, and All decks navigation preserve one deck');
+    assert.equal(await page.getByRole('link', { name: 'Open Council at Dawn', exact: true }).count(), 1);
+    pass('Edit cancel/save, repeated submit protection, and All decks navigation preserve the fixture collection');
 
     await page.goto(`${baseUrl}/#/decks/war-table-fixture`);
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
