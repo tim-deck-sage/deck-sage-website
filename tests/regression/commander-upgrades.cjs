@@ -7,7 +7,7 @@ const { chromium } = require(path.join(runtime, 'playwright'));
 const esbuild = require(path.resolve(__dirname, '../../node_modules/esbuild'));
 const baseUrl = process.env.DECK_SAGE_PREVIEW_URL || 'http://127.0.0.1:4184';
 const storageKey = 'deck-sage-web-v1';
-const report = { checks: [], errors: [], externalWrites: [], representativeRecommendations: {}, startedAt: new Date().toISOString() };
+const report = { checks: [], errors: [], externalWrites: [], representativeRecommendations: {}, beforeAfter: {}, performance: {}, reasonSamples: {}, startedAt: new Date().toISOString() };
 function pass(name) { report.checks.push(name); console.log('PASS', name); }
 
 function loadAnalysis() {
@@ -24,14 +24,15 @@ function analysisFixtures() {
   const equipment = synthetic('Quiet Equipment', 'Artifact — Equipment', 'Equipped creature gets +1/+1.', 2);
   const selfProtected = synthetic('Invisible Stalker', 'Creature — Human Rogue', 'Hexproof\nInvisible Stalker can’t be blocked.', 2, '{1}{U}');
   const cantrip = synthetic('Opt', 'Instant', 'Scry 1.\nDraw a card.', 1, '{U}');
+  const looter = synthetic('Careful Looter', 'Creature - Human Rogue', 'Whenever Careful Looter attacks, draw a card, then discard a card.', 2, '{1}{U}');
   const engine = synthetic('Consecrated Sphinx', 'Creature — Sphinx', 'Flying\nWhenever an opponent draws a card, you may draw two cards.', 6, '{4}{U}{U}');
   const wipe = synthetic('Austere Command', 'Sorcery', 'Choose two —\n• Destroy all artifacts.\n• Destroy all enchantments.\n• Destroy all creatures with mana value 3 or less.\n• Destroy all creatures with mana value 4 or greater.', 6, '{4}{W}{W}');
   const namedLand = synthetic('Command Tower', 'Land', "{T}: Add one mana of any color in your commander's color identity.", 0, '');
   const commander = synthetic('Fixture Leader', 'Legendary Creature — Wizard', 'Whenever you cast a spell, scry 1.', 3, '{1}{U}{U}'); commander.colorIdentity = ['U'];
-  const falsePositive = analyze(shell('False-positive guard', commander, [equipment, selfProtected, cantrip, engine, wipe, namedLand], basics({ Island: 33 })));
+  const falsePositive = analyze(shell('False-positive guard', commander, [equipment, selfProtected, cantrip, looter, engine, wipe, namedLand], basics({ Island: 33 })));
   assert.equal(falsePositive.rampCount, 0, 'artifacts are not automatically ramp');
   assert.equal(falsePositive.protectionCount, 0, 'self-only hexproof is not deck protection');
-  assert.equal(falsePositive.drawCount, 1.25, 'cantrip is fractional while repeatable draw is full weight');
+  assert.equal(falsePositive.drawCount, 1.35, 'cantrip and looting are fractional while repeatable net draw is full weight');
   assert.equal(falsePositive.boardWipeCount, 1, 'modal wipe counts once, not once per mode');
   assert.equal(falsePositive.finisherCount, 0, 'mana value alone is not a finisher');
   assert.equal(falsePositive.landCount, 34, 'named lands and basics are both counted');
@@ -41,11 +42,16 @@ function analysisFixtures() {
   const krenko = { ...synthetic('Krenko, Mob Boss', 'Legendary Creature — Goblin Warrior', '{T}: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.', 4, '{2}{R}{R}'), colorIdentity: ['R'] };
   const krenkoResult = analyze(shell('Krenko fixture', krenko, [...goblins, ...Array.from({ length: 38 }, (_, i) => synthetic(`Red spell ${i}`, 'Sorcery', 'Target creature gets +1/+0 until end of turn.', 3, '{2}{R}'))], basics({ Mountain: 37 })));
   assert(krenkoResult.planSignals.includes('tokens')); assert.equal(krenkoResult.tribe, 'Goblin'); assert(krenkoResult.issues.some(issue => issue.id === 'advantage'));
+  assert(krenkoResult.planSignals.includes('tap_commander')); assert(krenkoResult.issues.some(issue => issue.id === 'commander_support'));
 
   const elves = Array.from({ length: 25 }, (_, index) => synthetic(`Elf ${index}`, 'Creature — Elf Druid', index < 8 ? '{T}: Add {G}.' : '', 2, '{1}{G}'));
   const marwyn = { ...synthetic('Marwyn, the Nurturer', 'Legendary Creature — Elf Druid', 'Whenever another Elf enters under your control, put a +1/+1 counter on Marwyn.\n{T}: Add an amount of {G} equal to Marwyn’s power.', 3, '{2}{G}'), colorIdentity: ['G'] };
   const marwynResult = analyze(shell('Marwyn fixture', marwyn, [...elves, ...Array.from({ length: 37 }, (_, i) => synthetic(`Green spell ${i}`, 'Sorcery', 'Target creature gets +1/+1 until end of turn.', 3, '{2}{G}'))], basics({ Forest: 37 })));
   assert.equal(marwynResult.tribe, 'Elf'); assert(marwynResult.planSignals.includes('counters'));
+  assert(marwynResult.planSignals.includes('mana_engine')); assert(marwynResult.issues.some(issue => issue.id === 'commander_support'));
+
+  const sacrificeOnly = analyze(shell('Sacrifice is not graveyard', commander, Array.from({ length: 12 }, (_, i) => synthetic(`Sacrifice ${i}`, 'Artifact', 'Sacrifice this artifact: Add {C}.', 2, '{2}')), basics({ Island: 36 })));
+  assert(!sacrificeOnly.planSignals.includes('graveyard'), 'sacrifice text alone must not fabricate a graveyard plan');
 
   const spellslingerCommander = { ...synthetic('Talrand, Sky Summoner', 'Legendary Creature — Merfolk Wizard', 'Whenever you cast an instant or sorcery spell, create a 2/2 blue Drake creature token with flying.', 4, '{2}{U}{U}'), colorIdentity: ['U'] };
   const spellslinger = analyze(shell('Spellslinger fixture', spellslingerCommander, Array.from({ length: 28 }, (_, i) => synthetic(`Instant ${i}`, 'Instant', i < 4 ? 'Draw a card.' : 'Counter target spell unless its controller pays {1}.', 2, '{1}{U}')), basics({ Island: 36 })));
@@ -103,44 +109,78 @@ async function browserFixtures() {
       { id: 'interaction', label: 'Flexible interaction', severity: 'important', evidence: 'Low interaction.', recommendation: 'Add interaction.', candidateRole: 'interaction' },
       { id: 'finishers', label: 'Closing the game', severity: 'important', evidence: 'No finishers.', recommendation: 'Add a payoff.', candidateRole: 'finisher' }
     ];
-    const request = { colors: ['R'], issues, planSignals: ['tokens', 'typal'], tribe: 'Goblin', forestTargets: 0, humanRatio: 0, existingOracleIds: [krenko.oracleId], existingNames: [krenko.name] };
-    const first = await worker(page, '/api/recommendations', request), second = await worker(page, '/api/recommendations', request);
+    const commanderIssue = { id: 'commander_support', label: 'Commander engine support', severity: 'important', evidence: 'Tap engine lacks support.', recommendation: 'Add haste, untap, or protection.', candidateRole: 'commander_support' };
+    const krenkoCards = [...Array.from({ length: 24 }, (_, index) => synthetic(`Goblin body ${index}`, 'Creature - Goblin', index < 8 ? 'Create a 1/1 red Goblin creature token.' : 'Haste', 2, '{1}{R}')), ...Array.from({ length: 38 }, (_, index) => synthetic(`Red support ${index}`, 'Sorcery', 'Target creature gets +1/+0 until end of turn.', 3, '{2}{R}'))];
+    const request = { colors: ['R'], issues: [...issues, commanderIssue], planSignals: ['tokens', 'typal', 'tap_commander', 'commander_tokens'], tribe: 'Goblin', forestTargets: 0, humanRatio: 0, deckCards: krenkoCards, commanders: [{ ...krenko, role: 'primary' }], basicLands: basics({ Mountain: 37 }), targetSize: 100, existingOracleIds: [krenko.oracleId], existingNames: [krenko.name] };
+    const coldStarted = Date.now(), first = await worker(page, '/api/recommendations', request), coldMs = Date.now() - coldStarted, second = await worker(page, '/api/recommendations', request);
+    report.performance.coldWorkerRecommendationMs = coldMs;
+    assert(coldMs < 8000, `cold worker recommendation should remain interactive; took ${coldMs}ms`);
     const names = value => value.groups.map(group => [group.issue.id, group.cards.map(item => item.card.name)]);
     assert.deepEqual(names(first), names(second));
-    assert(['Skirk Prospector','Professional Face-Breaker'].includes(first.groups.find(group => group.issue.id === 'ramp').cards[0].card.name), 'Krenko-specific ramp should outrank alphabetical Arcane Signet and generic staples');
+    assert(['Sol Ring','Arcane Signet','Mind Stone'].includes(first.groups.find(group => group.issue.id === 'ramp').cards[0].card.name), `a reliable ramp shortage should prioritize repeatable acceleration over sacrifice or combat-dependent burst mana; received ${JSON.stringify(names(first))}`);
     assert(first.groups.find(group => group.issue.id === 'finishers').cards.some(item => ['Impact Tremors', 'Purphoros, God of the Forge', 'Shared Animosity', 'Goblin Bombardment', 'Thornbite Staff'].includes(item.card.name)));
+    assert(first.groups.find(group => group.issue.id === 'commander_support').cards.some(item => /haste advances|untap enables|protects the commander/.test(item.why)), 'Krenko support reasons must name the commander dependency they repair');
+    assert(!first.groups.find(group => group.issue.id === 'advantage').cards.some(item => item.card.name === "Smuggler's Copter"), 'repeatable looting is card selection, not sustained card advantage');
     assert(!first.groups.find(group => group.issue.id === 'interaction').cards.some(item => item.card.name === 'Soul-Guide Lantern'));
     assert(!first.groups.find(group => group.issue.id === 'interaction').cards.some(item => item.card.name === 'Lazotep Quarry'));
     for (const group of first.groups) for (const item of group.cards) { assert.equal(item.card.legalities.commander, 'legal'); assert(!item.card.colorIdentity.some(color => color !== 'R')); assert.notEqual(item.card.oracleId, krenko.oracleId); assert(item.why.length > 25); }
-    report.representativeRecommendations.krenko = names(first); pass('Krenko recommendations are deterministic, legal, color-safe, plan-weighted, explained, and ranked beyond alphabetic order');
+    assert(first.groups.flatMap(group => group.cards).every(item => item.swap?.mode === 'swap'), 'a complete 100-card fixture receives hypothetical swaps');
+    assert(first.groups.flatMap(group => group.cards).every(item => /lands stay at 37/i.test(item.swap.outcome)), 'spell-for-spell swaps preserve land count');
+    report.beforeAfter.krenkoRamp = { before: ['Professional Face-Breaker', 'Skirk Prospector', 'Sol Ring'], after: first.groups.find(group => group.issue.id === 'ramp').cards.map(item => item.card.name), repair: 'Reliable acceleration now outranks combat- and sacrifice-dependent burst mana for a diagnosed ramp shortage.' };
+    report.reasonSamples.krenko = Object.fromEntries(first.groups.map(group => [group.issue.id, group.cards[0] ? { card: group.cards[0].card.name, why: group.cards[0].why, swap: group.cards[0].swap.outcome, caveats: group.cards[0].caveats } : null]));
+    report.representativeRecommendations.krenko = names(first); pass('Krenko recommendations use actual Goblin/token density, prioritize reliable ramp, and produce constraint-preserving swaps');
 
     const excluded = first.groups.find(group => group.issue.id === 'ramp').cards[0].card;
     const excludedRun = await worker(page, '/api/recommendations', { ...request, existingOracleIds: [krenko.oracleId, excluded.oracleId], existingNames: [krenko.name] });
     assert(!excludedRun.groups.flatMap(group => group.cards).some(item => item.card.oracleId === excluded.oracleId));
     pass('Existing Oracle identities are excluded before scoring, including the selected commander');
 
-    const marwynRun = await worker(page, '/api/recommendations', { colors: ['G'], issues: [issues[0], issues[3]], planSignals: ['typal', 'counters'], tribe: 'Elf', forestTargets: 25, humanRatio: 0, existingOracleIds: [marwyn.oracleId], existingNames: [marwyn.name] });
+    const marwynCards = [...Array.from({ length: 25 }, (_, index) => synthetic(`Elf engine ${index}`, 'Creature - Elf Druid', index < 8 ? '{T}: Add {G}.' : index < 12 ? 'Target creature gets +1/+1 until end of turn.' : '', 2, '{1}{G}')), ...Array.from({ length: 37 }, (_, index) => synthetic(`Green support ${index}`, 'Sorcery', index < 4 ? 'Target creature gets +2/+2 until end of turn.' : '', 3, '{2}{G}'))];
+    const marwynBody = { colors: ['G'], issues: [issues[0], issues[3], commanderIssue], planSignals: ['typal', 'counters', 'tap_commander', 'mana_engine'], tribe: 'Elf', forestTargets: 37, humanRatio: 0, deckCards: marwynCards, commanders: [{ ...marwyn, role: 'primary' }], basicLands: basics({ Forest: 37 }), targetSize: 100, existingOracleIds: [marwyn.oracleId], existingNames: [marwyn.name] };
+    const marwynRun = await worker(page, '/api/recommendations', marwynBody);
     const marwynNames = marwynRun.groups.flatMap(group => group.cards.map(item => item.card.name));
     assert(marwynNames.some(name => ['Priest of Titania', 'Wirewood Channeler', 'Circle of Dreams Druid', 'Umbral Mantle', 'Staff of Domination', 'Sword of the Paruns', 'Genesis Wave', 'Finale of Devastation'].includes(name)));
-    report.representativeRecommendations.marwyn = names(marwynRun); pass('Marwyn receives Elf-engine and mana-conversion candidates with combo caveats where relevant');
+    assert(marwynRun.groups.find(group => group.issue.id === 'commander_support').cards.some(item => ['Wirewood Symbiote', 'Quirion Ranger', 'Umbral Mantle', 'Staff of Domination', 'Thousand-Year Elixir', "Magewright's Stone"].includes(item.card.name)), 'a supported Marwyn shell receives untap or engine-protection support');
+    const sparseElfCards = [...Array.from({ length: 4 }, (_, index) => synthetic(`Sparse Elf ${index}`, 'Creature - Elf Druid', '{T}: Add {G}.', 2, '{1}{G}')), ...Array.from({ length: 58 }, (_, index) => synthetic(`Unrelated Beast ${index}`, 'Creature - Beast', '', 3, '{2}{G}'))];
+    const sparseMarwyn = await worker(page, '/api/recommendations', { ...marwynBody, deckCards: sparseElfCards });
+    const sparseNames = sparseMarwyn.groups.flatMap(group => group.cards.map(item => item.card.name));
+    assert(!sparseNames.some(name => ['Priest of Titania', 'Wirewood Channeler', 'Circle of Dreams Druid', 'Umbral Mantle', 'Staff of Domination', 'Sword of the Paruns'].includes(name)), 'Elf-scaling and mana-conversion pieces must abstain without enough Elves and power support');
+    report.beforeAfter.marwynSparse = { before: ['Priest of Titania', 'Circle of Dreams Druid', 'Staff of Domination'], after: sparseNames, repair: 'A commander label alone no longer fabricates the Elf density and power needed by scaling engines or untap combos.' };
+    report.representativeRecommendations.marwyn = names(marwynRun); pass('Marwyn engine recommendations require actual Elf density and power support; sparse adversarial lists abstain');
 
-    const colorlessRun = await worker(page, '/api/recommendations', { colors: [], issues: [issues[0]], planSignals: ['artifacts'], existingOracleIds: [], existingNames: [] });
+    const colorlessRun = await worker(page, '/api/recommendations', { colors: [], issues: [issues[0]], planSignals: ['artifacts'], deckCards: Array.from({ length: 62 }, (_, index) => synthetic(`Construct ${index}`, 'Artifact Creature - Construct', '', 3, '{3}')), commanders: [], basicLands: basics({ Wastes: 38 }), targetSize: 100, existingOracleIds: [], existingNames: [] });
     assert(!colorlessRun.groups.flatMap(group => group.cards).some(item => ['Arcane Signet', 'Command Tower'].includes(item.card.name)));
-    const noForestRun = await worker(page, '/api/recommendations', { colors: ['G'], issues: [issues[0]], planSignals: [], forestTargets: 0, existingOracleIds: [], existingNames: [] });
+    const noForestRun = await worker(page, '/api/recommendations', { colors: ['G'], issues: [issues[0]], planSignals: [], forestTargets: 0, deckCards: [], commanders: [], basicLands: basics({ Wastes: 37 }), targetSize: 100, existingOracleIds: [], existingNames: [] });
     assert(!noForestRun.groups.flatMap(group => group.cards).some(item => ["Nature's Lore", 'Three Visits'].includes(item.card.name)));
-    const humanRun = await worker(page, '/api/recommendations', { colors: ['G'], issues: [issues[1]], planSignals: [], humanRatio: .8, existingOracleIds: [], existingNames: [] });
+    const humanRun = await worker(page, '/api/recommendations', { colors: ['G'], issues: [issues[1]], planSignals: [], humanRatio: .8, deckCards: Array.from({ length: 50 }, (_, index) => synthetic(`Human ${index}`, 'Creature - Human', '', 2, '{1}{G}')), commanders: [], basicLands: basics({ Forest: 37 }), targetSize: 100, existingOracleIds: [], existingNames: [] });
     assert(!humanRun.groups.flatMap(group => group.cards).some(item => item.card.name === 'Return of the Wildspeaker'));
+    const landIssue = { id: 'lands', label: 'Mana base depth', severity: 'important', current: 30, target: 34, evidence: '30 lands found.', recommendation: 'Add lands.', candidateRole: 'land' };
+    const landRun = await worker(page, '/api/recommendations', { colors: ['R'], issues: [landIssue], planSignals: [], deckCards: Array.from({ length: 69 }, (_, index) => synthetic(`Red nonland ${index}`, 'Creature - Goblin', '', 3, '{2}{R}')), commanders: [{ ...krenko, role: 'primary' }], basicLands: basics({ Mountain: 30 }), targetSize: 100, existingOracleIds: [krenko.oracleId], existingNames: [krenko.name] });
+    assert(landRun.groups[0].cards.length > 0 && landRun.groups[0].cards.every(item => !['Plains', 'Island', 'Swamp', 'Forest', 'Wastes'].includes(item.card.name)), 'land-depth candidates must not use off-color basics');
+    assert(landRun.groups[0].cards.every(item => item.swap?.mode === 'swap' && /lands move 30 to 31/.test(item.swap.outcome)), 'a full low-land deck reanalysis intentionally increases land count by cutting a nonland');
     pass('Colorless mana, Forest-target, and Human-heavy conditional candidates are guarded explicitly');
 
-    const spellslingerRun = await worker(page, '/api/recommendations', { colors: ['U'], issues: [issues[1], issues[3]], planSignals: ['spellslinger', 'tokens'], existingOracleIds: [], existingNames: [] });
+    const spellCards = [...Array.from({ length: 28 }, (_, index) => synthetic(`Instant ${index}`, 'Instant', 'Draw a card.', 2, '{1}{U}')), ...Array.from({ length: 34 }, (_, index) => synthetic(`Blue support ${index}`, 'Artifact', '', 2, '{2}'))];
+    const spellslingerRun = await worker(page, '/api/recommendations', { colors: ['U'], issues: [issues[1], issues[3]], planSignals: ['spellslinger', 'tokens'], deckCards: spellCards, commanders: [], basicLands: basics({ Island: 37 }), targetSize: 100, existingOracleIds: [], existingNames: [] });
     const spellslingerNames=spellslingerRun.groups.flatMap(group => group.cards.map(item=>item.card.name));assert(spellslingerNames.filter(name => ['Archmage Emeritus', 'Metallurgic Summonings', 'Murmuring Mystic', 'Shark Typhoon', 'Docent of Perfection', 'Aetherflux Reservoir'].includes(name)).length>=2);assert(!spellslingerNames.some(name=>['Thornbite Staff','It That Heralds the End'].includes(name)));
-    const graveyardRun = await worker(page, '/api/recommendations', { colors: ['B', 'G'], issues: [{ id: 'graveyard_hate', label: 'Graveyard counterplay', severity: 'watch', evidence: 'None.', recommendation: 'Add one.', candidateRole: 'graveyard_hate' }, issues[3]], planSignals: ['graveyard'], existingOracleIds: [], existingNames: [] });
-    for (const item of graveyardRun.groups.flatMap(group => group.cards)) if (['Rest in Peace', 'Relic of Progenitus'].includes(item.card.name)) assert(item.caveats.some(caveat => caveat.includes('own graveyard')));
+    const graveCards = [...Array.from({ length: 18 }, (_, index) => synthetic(`Grave enabler ${index}`, 'Creature - Insect', 'When this creature dies, mill two cards.', 2, '{1}{B}')), ...Array.from({ length: 44 }, (_, index) => synthetic(`Grave support ${index}`, 'Creature - Fungus', index < 8 ? 'Return target creature card from your graveyard to your hand.' : '', 3, '{2}{G}'))];
+    const graveyardRun = await worker(page, '/api/recommendations', { colors: ['B', 'G'], issues: [{ id: 'graveyard_hate', label: 'Graveyard counterplay', severity: 'watch', evidence: 'None.', recommendation: 'Add one.', candidateRole: 'graveyard_hate' }, issues[3]], planSignals: ['graveyard'], deckCards: graveCards, commanders: [], basicLands: basics({ Swamp: 18, Forest: 20 }), targetSize: 100, existingOracleIds: [], existingNames: [] });
+    assert(!graveyardRun.groups.flatMap(group => group.cards).some(item => ['Rest in Peace', 'Relic of Progenitus'].includes(item.card.name)), 'self-exiling graveyard hate must abstain in a graveyard deck');
     assert(graveyardRun.groups.find(group=>group.issue.id==='finishers').cards.some(item=>['Syr Konrad, the Grim','Living Death'].includes(item.card.name)));
-    const partnerRun = await worker(page, '/api/recommendations', { colors: ['W', 'B', 'R', 'G'], issues: [issues[2]], planSignals: ['tokens'], existingOracleIds: [tana.oracleId, tymna.oracleId], existingNames: [tana.name, tymna.name] });
+    const partnerCards = Array.from({ length: 61 }, (_, index) => synthetic(`Partner creature ${index}`, 'Creature - Saproling', index < 8 ? 'Create a 1/1 green Saproling creature token.' : '', 2, '{1}{G}'));
+    const partnerRun = await worker(page, '/api/recommendations', { colors: ['W', 'B', 'R', 'G'], issues: [issues[2]], planSignals: ['tokens'], deckCards: partnerCards, commanders: [{ ...tana, role: 'primary' }, { ...tymna, role: 'partner' }], basicLands: basics({ Plains: 0, Swamp: 12, Mountain: 12, Forest: 13 }), targetSize: 100, existingOracleIds: [tana.oracleId, tymna.oracleId], existingNames: [tana.name, tymna.name] });
     assert(partnerRun.groups.flatMap(group => group.cards).every(item => item.card.colorIdentity.every(color => ['W', 'B', 'R', 'G'].includes(color))));
+    assert(!partnerRun.groups.flatMap(group => group.cards).some(item => item.card.colorIdentity.includes('W')), 'zero white sources block technically legal but uncastable white-pip recommendations');
+    report.beforeAfter.graveyardConflict = { before: 'Rest in Peace and Relic of Progenitus were merely penalized and could still clear ranking.', after: graveyardRun.groups.find(group => group.issue.id === 'graveyard_hate').cards.map(item => item.card.name), repair: 'Global self-exile is now a hard conflict; selective or opposing-graveyard interaction remains eligible.' };
     report.representativeRecommendations.spellslinger = names(spellslingerRun); report.representativeRecommendations.graveyard = names(graveyardRun); report.representativeRecommendations.partner = names(partnerRun);
     pass('Spellslinger, graveyard-plan, and four-color partner recommendation outputs receive plan and identity checks');
+
+    const tokenWipe = await worker(page, '/api/recommendations', { ...request, issues: [{ id: 'wipes', label: 'Reset buttons', severity: 'watch', evidence: 'No reset.', recommendation: 'Consider a reset.', candidateRole: 'wipe' }] });
+    assert(!tokenWipe.groups.flatMap(group => group.cards).some(item => ['Blasphemous Act', 'Farewell', 'Supreme Verdict', 'Toxic Deluge', 'Worldslayer', 'Furnace Dragon'].includes(item.card.name)), 'a creature-token deck should not be told to erase its own board without compelling asymmetry');
+    report.beforeAfter.tokenWipe = { before: 'Generic symmetric creature wipes were eligible for every token deck.', after: tokenWipe.groups[0].cards.map(item => item.card.name), repair: 'Creature-board conflicts are rejected; only selective or one-sided resets remain.' };
+    const unfinished = await worker(page, '/api/recommendations', { ...request, deckCards: krenkoCards.slice(0, 30), basicLands: basics({ Mountain: 20 }) });
+    assert(unfinished.groups.flatMap(group => group.cards).every(item => item.swap?.mode === 'add' && item.swap.outcome.includes('/100-card shell')), 'unfinished lists receive add guidance without fabricated cuts');
+    pass('Adversarial token-wipe, colored-source, graveyard-conflict, and unfinished-shell guards pass');
 
     const filler = Array.from({ length: 62 }, (_, index) => ({ id: `fixture-${index}`, oracleId: `fixture-${index}`, name: `Goblin Fixture ${index}`, colorIdentity: ['R'], typeLine: 'Creature — Goblin', oracleText: index < 12 ? 'Create a 1/1 red Goblin creature token.' : 'Haste', manaCost: '{1}{R}', cmc: 2, quantity: 1, metadataComplete: true }));
     const deck = { id: 'recommendation-krenko', name: 'Krenko Recommendation QA', commander: krenko.name, commanderCard: krenko, commanders: [{ ...krenko, role: 'primary' }], format: 'Commander', status: 'active', cards: filler, basicLands: basics({ Mountain: 37 }), notes: '', createdAt: '2026-10-17T12:00:00.000Z' };

@@ -22,7 +22,7 @@ type DeckForBalance = {
 };
 
 export type DeckWeakness = {
-  id: 'lands' | 'color_sources' | 'curve' | 'ramp' | 'advantage' | 'interaction' | 'wipes' | 'protection' | 'graveyard_hate' | 'finishers' | 'incomplete';
+  id: 'lands' | 'color_sources' | 'curve' | 'ramp' | 'advantage' | 'interaction' | 'wipes' | 'protection' | 'graveyard_hate' | 'finishers' | 'commander_support' | 'incomplete';
   label: string;
   severity: 'watch' | 'important' | 'critical';
   current?: number;
@@ -62,23 +62,27 @@ const COLORS = ['W', 'U', 'B', 'R', 'G'] as const;
 const BASIC_COLORS: Record<string, string> = {Plains: 'W', Island: 'U', Swamp: 'B', Mountain: 'R', Forest: 'G'};
 
 function lower(value?: string): string { return String(value || '').toLowerCase(); }
-function text(card: DeckCard): string { return `${lower(card.typeLine)}\n${lower(card.oracleText)}`; }
 function isLand(card: DeckCard): boolean { return /(^|\s|—)land(\s|$|—)/i.test(card.typeLine || ''); }
 function isCreature(card: DeckCard): boolean { return /creature/i.test(card.typeLine || ''); }
 function amount(card: DeckCard): number { return Math.max(1, Number(card.quantity) || 1); }
 
-function isRamp(card: DeckCard): boolean {
-  if (isLand(card)) return false;
+function rampWeight(card: DeckCard): number {
+  if (isLand(card)) return 0;
   const rules = lower(card.oracleText);
-  return /(?:\{t\}|tap an untapped|sacrifice [^.:]+):?\s*add\s+(?:\{|one|two|three|x)/i.test(rules)
-    || /add (?:one|two|three|x|an amount of) mana/i.test(rules)
-    || /search your library for (?:an? )?(?:basic )?land card[^.]*put (?:it|that card) onto the battlefield/i.test(rules)
-    || /create (?:a|one|two|three|x) treasure token/i.test(rules);
+  if (/search your library for (?:an? )?(?:basic )?land card[^.]*put (?:it|that card) onto the battlefield/i.test(rules)) return 1;
+  if (/(?:\{t\}|tap an untapped)[^:]{0,100}:?\s*add\s+(?:\{|one|two|three|x)/i.test(rules) && !/sacrifice/i.test(rules)) return 1;
+  if (/add (?:one|two|three|x|an amount of) mana/i.test(rules) && !/sacrifice/i.test(rules)) return .75;
+  if (/(?:spells?|creatures?) (?:you cast )?cost [^.]*(?:less|to cast)/i.test(rules)) return .6;
+  if (/whenever[^.]{0,120}create (?:a|one|two|three|x) treasure token/i.test(rules)) return .5;
+  if (/create (?:a|one|two|three|x) treasure token/i.test(rules)) return .35;
+  if (/sacrifice [^.:]+:?\s*add/i.test(rules)) return .35;
+  return 0;
 }
 
 function advantageWeight(card: DeckCard): number {
   const rules = lower(card.oracleText);
   if (!rules) return 0;
+  if (/draw (?:a|one) card[\s\S]{0,80}discard (?:a|one) card/i.test(rules)) return .1;
   const repeatable = /(?:whenever|at the beginning|the first time|one or more|combat damage)[^.]{0,150}(?:draw|exile the top|look at the top)/i.test(rules)
     || /(?:\{t\}|pay [^.:]+|sacrifice [^.:]+):?[^.]{0,100}draw/i.test(rules)
     || /you may (?:play|cast) (?:cards?|spells?)?[^.]{0,80}(?:from exile|from the top)/i.test(rules);
@@ -165,6 +169,7 @@ function manaProfile(cards: DeckCard[], basics: BasicLandCounts, identity: strin
     if (isLand(card)) {
       const rules = lower(card.oracleText);
       for (const color of COLORS) if (new RegExp(`add \\{${color}\\}`, 'i').test(rules)) sources[color] += amount(card);
+      for (const [landType, color] of Object.entries(BASIC_COLORS)) if (new RegExp(`\\b${landType}\\b`, 'i').test(card.typeLine || '')) sources[color] += amount(card);
       if (/mana of any color in your commander'?s color identity/i.test(rules)) for (const color of identity) sources[color] += amount(card);
     }
   }
@@ -174,16 +179,22 @@ function manaProfile(cards: DeckCard[], basics: BasicLandCounts, identity: strin
 
 function detectPlan(deck: DeckForBalance, cards: DeckCard[]) {
   const commanders = commandZone(deck);
-  const joined = [...commanders, ...cards].map(text).join('\n');
   const signals: string[] = [];
   const spellCount = cards.filter(card => /instant|sorcery/i.test(card.typeLine || '')).length;
   const artifactCount = cards.filter(card => /artifact/i.test(card.typeLine || '')).length;
+  const tokenCards = cards.filter(card => /create [^.]*token|creature tokens? you control|whenever (?:one or more )?(?:creatures?|tokens?)[^.]*enter/i.test(card.oracleText || '')).length;
+  const counterCards = cards.filter(card => /\+1\/\+1 counter|counter on/i.test(card.oracleText || '')).length;
+  const graveyardCards = cards.filter(card => /(?:from|in|into|to) (?:your )?graveyard|mill \w+ cards?|return target [^.]* card from (?:your|a) graveyard/i.test(card.oracleText || '')).length;
+  const sacrificeCards = cards.filter(card => /sacrifice (?:a|another|one or more|any number of)/i.test(card.oracleText || '')).length;
   if (spellCount >= 16 || commanders.some(card => /instant or sorcery|noncreature spell/i.test(card.oracleText || ''))) signals.push('spellslinger');
-  if (/create [^.]*token/i.test(joined)) signals.push('tokens');
-  if (/\+1\/\+1 counter|counter on/i.test(joined)) signals.push('counters');
-  if (/graveyard|mill |discard |sacrifice/i.test(joined)) signals.push('graveyard');
+  if (tokenCards >= 5 || commanders.some(card => /create [^.]*token|creature tokens? you control/i.test(card.oracleText || ''))) signals.push('tokens');
+  if (counterCards >= 6 || commanders.some(card => /\+1\/\+1 counter|counter on/i.test(card.oracleText || ''))) signals.push('counters');
+  if (graveyardCards >= 6 || commanders.some(card => /(?:from|in|into|to) (?:your )?graveyard|mill \w+ cards?/i.test(card.oracleText || ''))) signals.push('graveyard');
   if (artifactCount >= 15 || commanders.some(card => /artifact/i.test(card.oracleText || ''))) signals.push('artifacts');
-  if (/sacrifice (?:a|another|one or more)/i.test(joined)) signals.push('sacrifice');
+  if (sacrificeCards >= 4 || commanders.some(card => /sacrifice (?:a|another|one or more|any number of)/i.test(card.oracleText || ''))) signals.push('sacrifice');
+  if (commanders.some(card => /\{t\}:/i.test(card.oracleText || ''))) signals.push('tap_commander');
+  if (commanders.some(card => /create [^.]*token/i.test(card.oracleText || ''))) signals.push('commander_tokens');
+  if (commanders.some(card => /add an amount of [^.]* equal to [^.]* power/i.test(card.oracleText || ''))) signals.push('mana_engine');
   const types = new Map<string, number>();
   const classTypes = new Set(['Advisor','Archer','Artificer','Assassin','Barbarian','Bard','Berserker','Cleric','Druid','Knight','Monk','Noble','Pirate','Ranger','Rogue','Scout','Shaman','Soldier','Warlock','Warrior','Wizard']);
   for (const card of cards.filter(isCreature)) {
@@ -207,7 +218,7 @@ export function analyzeDeckBalance(deck: DeckForBalance): DeckBalanceBreakdown {
   const creatureCount = cards.filter(isCreature).reduce((sum, card) => sum + amount(card), 0);
   const spellCount = cards.reduce((sum, card) => sum + amount(card), 0);
   const nonCreatureCount = spellCount - creatureCount;
-  const rampCount = cards.filter(isRamp).reduce((sum, card) => sum + amount(card), 0);
+  const rampCount = Number(cards.reduce((sum, card) => sum + rampWeight(card) * amount(card), 0).toFixed(2));
   const drawCount = Number(cards.reduce((sum, card) => sum + advantageWeight(card) * amount(card), 0).toFixed(2));
   const removalCount = cards.filter(card => isInteraction(card) && !isBoardWipe(card)).reduce((sum, card) => sum + amount(card), 0);
   const boardWipeCount = cards.filter(isBoardWipe).reduce((sum, card) => sum + amount(card), 0);
@@ -236,6 +247,11 @@ export function analyzeDeckBalance(deck: DeckForBalance): DeckBalanceBreakdown {
   if (removalCount < interactionTarget) addIssue({id:'interaction',label:'Flexible interaction',severity:removalCount < interactionTarget-3?'critical':'important',current:removalCount,target:interactionTarget,evidence:`${removalCount} precise answers to spells or permanents found.`,recommendation:'Add efficient answers that cover permanent types your colors can reach.',candidateRole:'interaction'});
   if (boardWipeCount < wipeTarget) addIssue({id:'wipes',label:'Reset buttons',severity:'watch',current:boardWipeCount,target:wipeTarget,evidence:`${boardWipeCount} broad reset ${boardWipeCount===1?'was':'were'} found.`,recommendation:'Consider a reset that is asymmetrical or leaves your main plan recoverable.',candidateRole:'wipe'});
   if (protectionCount < protectionTarget) addIssue({id:'protection',label:'Plan protection',severity:'watch',current:protectionCount,target:protectionTarget,evidence:`${protectionCount} effects protect other key pieces; self-only hexproof is excluded.`,recommendation:'Add protection that shields your commander, engine, or board from common interaction.',candidateRole:'protection'});
+  if (planSignals.includes('tap_commander')) {
+    const supportCount = cards.filter(card => /(?:haste|untap target (?:creature|permanent)|untap another target|untap an? [^.]* you control)/i.test(card.oracleText || '') || isProtection(card)).reduce((sum, card) => sum + amount(card), 0);
+    const supportTarget = planSignals.includes('mana_engine') ? 5 : 4;
+    if (supportCount < supportTarget) addIssue({id:'commander_support',label:'Commander engine support',severity:supportCount<2?'important':'watch',current:supportCount,target:supportTarget,evidence:`The commander's tap ability is central, but only ${supportCount} haste, untap, or protection pieces were found.`,recommendation:'Add support that makes the commander act sooner, act again, or survive interaction; prefer pieces that also fit the deck plan.',candidateRole:'commander_support'});
+  }
   if (graveyardHateCount < 1) addIssue({id:'graveyard_hate',label:'Graveyard counterplay',severity:'watch',current:graveyardHateCount,target:1,evidence:'No reliable way to interrupt an opponent’s graveyard was found.',recommendation:'Reserve a flexible slot for graveyard interaction that is not dead in other matchups.',candidateRole:'graveyard_hate'});
   if (finisherCount < finisherTarget) addIssue({id:'finishers',label:'Closing the game',severity:finisherCount===0?'important':'watch',current:finisherCount,target:finisherTarget,evidence:`${finisherCount} explicit ways to convert a board or engine into a win were found; mana value alone does not count.`,recommendation:'Add a payoff that advances the detected plan instead of a generic expensive threat.',candidateRole:'finisher'});
 
