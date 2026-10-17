@@ -12,6 +12,7 @@ function watch(page) { page.on('pageerror', error => report.errors.push(error.me
 async function routeOffline(context) {
   await context.route('**/*', async route => {
     const request = route.request(), url = new URL(request.url());
+    if (request.url().endsWith('/account-config.js')) return route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.DECK_SAGE_ACCOUNTS=null;' });
     if (url.origin === 'https://api.scryfall.com') return route.fulfill({ status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' }, body: JSON.stringify({ data: [], has_more: false }) });
     if (url.origin === 'https://cards.scryfall.io' && request.method() === 'GET') return route.continue();
     if (request.url().startsWith(baseUrl)) return route.continue();
@@ -22,7 +23,7 @@ async function routeOffline(context) {
 async function readState(page) { return page.evaluate(key => JSON.parse(localStorage.getItem(key)), storageKey); }
 async function seed(page, fixture, route = '#/decks/war-table-fixture') {
   await page.goto(`${baseUrl}/#/home`);
-  await page.evaluate(({ key, fixture }) => localStorage.setItem(key, JSON.stringify(fixture)), { key: storageKey, fixture });
+  await page.evaluate(({ key, fixture }) => { localStorage.setItem(key, JSON.stringify(fixture)); localStorage.setItem('deck-sage-browser-only-choice-v1', '1'); }, { key: storageKey, fixture });
   await page.goto(`${baseUrl}/${route}`);
   await page.reload();
 }

@@ -13,8 +13,10 @@ async function openDecks(page) { await page.goto(`${baseUrl}/#/decks`); await pa
 async function pick(page, label, name) { await page.getByRole('textbox', { name: label, exact: true }).fill(name); await page.locator('.picker-results button').filter({ hasText: name }).first().click(); }
 
 async function routeOffline(context, preferredImage) {
+  await context.addInitScript(() => localStorage.setItem('deck-sage-browser-only-choice-v1', '1'));
   await context.route('**/*', async (route) => {
     const request = route.request();
+    if (request.url().endsWith('/account-config.js')) return route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.DECK_SAGE_ACCOUNTS=null;' });
     if (new URL(request.url()).origin === 'https://api.scryfall.com') {
       const query = new URL(request.url()).searchParams.get('q') || '';
       const commanderIndex = ['Krenko, Mob Boss', 'Talrand, Sky Summoner', 'Marwyn, the Nurturer', 'Shorikai, Genesis Engine', 'Ayara, First of Locthwain', 'Karn, Legacy Reforged'].findIndex((name) => query.includes(name));

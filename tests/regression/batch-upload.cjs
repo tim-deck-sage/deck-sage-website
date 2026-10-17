@@ -20,12 +20,14 @@ const fixtureState = {
 function pass(name) { report.checks.push(name); console.log('PASS', name); }
 function watch(page) { page.on('pageerror', (error) => report.errors.push(error.message)); }
 async function isolate(context) {
+  await context.route('**/account-config.js', (route) => route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.DECK_SAGE_ACCOUNTS=null;' }));
   await context.route('https://**/*', (route) => {
     if (route.request().method() !== 'GET') report.externalWrites.push(route.request().url());
     return route.abort();
   });
   await context.addInitScript(({ key, state }) => {
     localStorage.setItem(key, JSON.stringify(state));
+    localStorage.setItem('deck-sage-browser-only-choice-v1', '1');
   }, { key: storageKey, state: fixtureState });
 }
 async function openBulk(page) {

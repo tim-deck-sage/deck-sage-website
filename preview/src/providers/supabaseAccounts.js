@@ -1,5 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
-import {consentInput,POLICY_VERSION} from './accountPolicy';
+import {consentInput,POLICY_VERSION,normalizeUsername} from './accountPolicy';
 import {validateState} from '../model';
 
 // Shared username workspaces deliberately use the username as their only access
@@ -13,7 +13,8 @@ export function createAccountBackend(config,clientOverride){
  const rpc=async(name,args)=>unwrap(await client.rpc(name,args));
  const normalize=result=>({...result,state:validateState(result.state),revision:Number(result.revision)||0});
  return {
-  async open(username,terms,privacy){const input=consentInput(username,terms,privacy);return normalize(await rpc('ds_shared_open',{p_username:input.p_username,p_version:POLICY_VERSION,p_terms:true,p_privacy:true}));},
+  async register(username,terms,privacy){const input=consentInput(username,terms,privacy);return normalize(await rpc('ds_shared_register',{p_username:input.p_username,p_version:POLICY_VERSION,p_terms:true,p_privacy:true}));},
+  async signIn(username){return normalize(await rpc('ds_shared_load',{p_username:normalizeUsername(username)}));},
   async load(username){return normalize(await rpc('ds_shared_load',{p_username:username}));},
   async save(username,state,revision,operation){return normalize(await rpc('ds_shared_save',{p_username:username,p_state:validateState(state),p_revision:revision,p_operation:operation}));},
  };

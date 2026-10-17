@@ -12,19 +12,22 @@ const base=()=>({version:1,profile:{name:'Planeswalker',username:'',avatar:1,rol
   await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email_confirmed_at timestamptz,is_anonymous boolean);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;`);
   await db.exec(fs.readFileSync('supabase/migrations/20261009153100_free_accounts.sql','utf8'));
   await db.exec(fs.readFileSync('supabase/migrations/20261010114605_shared_username_workspaces.sql','utf8'));
+  await db.exec(fs.readFileSync('supabase/migrations/20261017090000_shared_username_registration.sql','utf8'));
   await db.exec('set role anon');
 
-  await assert.rejects(()=>db.query("select public.ds_shared_open('alpha_user','web-2026-10-09-v1',false,true)"),/CURRENT_CONSENT_REQUIRED/);
+  await assert.rejects(()=>db.query("select public.ds_shared_register('alpha_user','web-2026-10-09-v1',false,true)"),/CURRENT_CONSENT_REQUIRED/);
   await db.exec('reset role');
   assert.equal((await db.query('select count(*)::int n from ds_private.shared_workspaces')).rows[0].n,0);
   pass('policy rejection creates no partial workspace');
 
   await db.exec('set role anon');
-  const opened=(await db.query("select public.ds_shared_open('  Alpha_User  ','web-2026-10-09-v1',true,true) value")).rows[0].value;
+  const opened=(await db.query("select public.ds_shared_register('  Alpha_User  ','web-2026-10-09-v1',true,true) value")).rows[0].value;
   assert.equal(opened.username,'alpha_user');assert.equal(opened.created,true);assert.deepEqual(opened.state.decks,[]);assert.deepEqual(opened.state.bulk,[]);
-  const reopened=(await db.query("select public.ds_shared_open('ALPHA_USER','web-2026-10-09-v1',true,true) value")).rows[0].value;
-  assert.equal(reopened.username,'alpha_user');assert.equal(reopened.created,false);
-  pass('normalized variants atomically open one workspace');
+  await assert.rejects(()=>db.query("select public.ds_shared_register('ALPHA_USER','web-2026-10-09-v1',true,true) value"),/USERNAME_TAKEN/);
+  await db.exec('reset role');
+  assert.equal((await db.query("select count(*)::int n from ds_private.shared_workspaces where username='alpha_user'")).rows[0].n,1);
+  await db.exec('set role anon');
+  pass('registration normalizes atomically and rejects an existing name without returning its workspace');
 
   const state=base();state.decks=[{id:'deck-1',name:'Fixture deck',cards:[],basicLands:{Plains:0,Island:0,Swamp:0,Mountain:0,Forest:0,Wastes:0},commanderCard:null}];state.bulk=[{name:'Fixture bulk',quantity:4,cardVariant:'Normal'}];
   const op='11111111-1111-4111-8111-111111111111';
@@ -54,9 +57,9 @@ const base=()=>({version:1,profile:{name:'Planeswalker',username:'',avatar:1,rol
   pass('shared tables have RLS and no public-table exposure');
 
   await db.exec('set role anon');
-  for(const signature of ['public.ds_shared_open(text,text,boolean,boolean)','public.ds_shared_load(text)','public.ds_shared_save(text,jsonb,bigint,uuid)'])assert.equal((await db.query('select has_function_privilege(current_user,$1,$2) ok',[signature,'execute'])).rows[0].ok,true);
+  for(const signature of ['public.ds_shared_register(text,text,boolean,boolean)','public.ds_shared_open(text,text,boolean,boolean)','public.ds_shared_load(text)','public.ds_shared_save(text,jsonb,bigint,uuid)'])assert.equal((await db.query('select has_function_privilege(current_user,$1,$2) ok',[signature,'execute'])).rows[0].ok,true);
   await assert.rejects(()=>db.query("select public.ds_finish_onboarding(null,'x','web-2026-10-09-v1',true,true)"),/permission denied/);
-  pass('anonymous API is limited to the three shared contracts; private account onboarding stays denied');
+  pass('anonymous API is limited to shared username contracts; private account onboarding stays denied');
 
   const tmoore=(await db.query("select public.ds_shared_open('tmoore','web-2026-10-09-v1',true,true) value")).rows[0].value;
   assert.equal(tmoore.username,'tmoore');

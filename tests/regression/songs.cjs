@@ -10,6 +10,8 @@ const report = { checks: [], errors: [], externalWrites: [], startedAt: new Date
 function pass(name) { report.checks.push(name); console.log('PASS', name); }
 function watch(page) { page.on('pageerror', (error) => report.errors.push(error.message)); }
 async function isolate(context) {
+  await context.addInitScript(() => localStorage.setItem('deck-sage-browser-only-choice-v1', '1'));
+  await context.route('**/account-config.js', (route) => route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.DECK_SAGE_ACCOUNTS=null;' }));
   await context.route('https://**/*', (route) => {
     if (route.request().method() !== 'GET') report.externalWrites.push(route.request().url());
     return route.abort();
@@ -77,6 +79,8 @@ async function run() {
     await desktop.close();
 
     const loading = await browser.newContext({ viewport: { width: 1080, height: 800 } });
+    await loading.addInitScript(() => localStorage.setItem('deck-sage-browser-only-choice-v1', '1'));
+    await loading.route('**/account-config.js', (route) => route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.DECK_SAGE_ACCOUNTS=null;' }));
     let requests = 0;
     let release;
     const gate = new Promise((resolve) => { release = resolve; });
@@ -97,6 +101,8 @@ async function run() {
     await loading.close();
 
     const failed = await browser.newContext({ viewport: { width: 1080, height: 800 } });
+    await failed.addInitScript(() => localStorage.setItem('deck-sage-browser-only-choice-v1', '1'));
+    await failed.route('**/account-config.js', (route) => route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.DECK_SAGE_ACCOUNTS=null;' }));
     await failed.route('**/assets/audio/Sephiroth.mp3', (route) => route.abort());
     const failedPage = await failed.newPage();
     watch(failedPage);

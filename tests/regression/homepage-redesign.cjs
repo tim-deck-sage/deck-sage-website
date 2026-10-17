@@ -21,6 +21,9 @@ function pass(name) {
   report.checks.push(name);
   console.log('PASS', name);
 }
+async function browserOnlyFixture(context) {
+  await context.route('**/account-config.js', (route) => route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.DECK_SAGE_ACCOUNTS=null;' }));
+}
 
 async function alphaBounds(file, threshold = 16) {
   const raw = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -69,6 +72,8 @@ async function run() {
   const browser = await chromium.launch({ headless: true, channel: 'msedge' });
   try {
     const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+    await desktop.addInitScript(() => localStorage.setItem('deck-sage-browser-only-choice-v1', '1'));
+    await browserOnlyFixture(desktop);
     const page = await desktop.newPage();
     page.on('pageerror', (error) => report.errors.push(error.message));
     await openHome(page);
@@ -143,6 +148,8 @@ async function run() {
     await desktop.close();
 
     const reduced = await browser.newContext({ viewport: { width: 1100, height: 900 }, reducedMotion: 'reduce' });
+    await reduced.addInitScript(() => localStorage.setItem('deck-sage-browser-only-choice-v1', '1'));
+    await browserOnlyFixture(reduced);
     const reducedPage = await reduced.newPage();
     await openHome(reducedPage);
     const motion = await reducedPage.locator('.home-feature').first().evaluate((element) => ({
@@ -155,6 +162,8 @@ async function run() {
     await reduced.close();
 
     const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await mobile.addInitScript(() => localStorage.setItem('deck-sage-browser-only-choice-v1', '1'));
+    await browserOnlyFixture(mobile);
     const phone = await mobile.newPage();
     phone.on('pageerror', (error) => report.errors.push(error.message));
     await openHome(phone);

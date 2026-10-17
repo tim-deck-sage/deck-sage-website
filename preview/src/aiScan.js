@@ -7,6 +7,8 @@ export const emptyAiScanSession=()=>({
  destination:'',
  error:'',
  saved:false,
+ saveApplied:false,
+ success:'',
 });
 
 export const aiScanConfig=()=>{
