@@ -92,6 +92,9 @@ async function offline(context) {
 async function worker(page, pathName, body = null, params = {}) {
   return page.evaluate(({ pathName, body, params }) => new Promise((resolve, reject) => { const instance = new Worker('/card-worker.js'); instance.onmessage = ({ data }) => { instance.terminate(); data.error ? reject(Error(data.error)) : resolve(data.result); }; instance.onerror = reject; instance.postMessage({ id: 1, path: pathName, body, params }); }), { pathName, body, params });
 }
+async function workerSequence(page, requests) {
+  return page.evaluate(requests => new Promise((resolve, reject) => { const instance = new Worker('/card-worker.js'); const results = []; instance.onerror = reject; instance.onmessage = ({ data }) => { if (data.error) { instance.terminate(); reject(Error(data.error)); return; } results.push(data.result); if (results.length === requests.length) { instance.terminate(); resolve(results); return; } const next = requests[results.length]; instance.postMessage({ id: results.length + 1, path: next.path, body: next.body, params: next.params || {} }); }; const first = requests[0]; instance.postMessage({ id: 1, path: first.path, body: first.body, params: first.params || {} }); }), requests);
+}
 async function resolve(page, names) { return (await worker(page, '/api/resolve', { names })).cards; }
 function siteState(decks) { return { version: 1, profile: { name: 'Recommendation QA', username: '', avatar: 1, role: 'Player', bio: '' }, decks, retainedDeckRecords: [], bulk: [], favorites: [], contacts: [], stores: [], notifications: [], settings: { theme: 'forest', motion: false, images: true, notificationInbox: true } }; }
 
@@ -100,7 +103,7 @@ async function browserFixtures() {
   try {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1050 } }); await offline(context);
     const page = await context.newPage(); page.on('pageerror', error => report.errors.push(error.message)); await page.goto(`${baseUrl}/#/home`);
-    const [krenko, marwyn, lutri, tolabow, tana, tymna] = await resolve(page, ['Krenko, Mob Boss', 'Marwyn, the Nurturer', 'Lutri, the Spellchaser', 'Tolabow, Loch Rascal', 'Tana, the Bloodsower', 'Tymna the Weaver']);
+    const [krenko, marwyn, lutri, tolabow, tana, tymna, kenrith] = await resolve(page, ['Krenko, Mob Boss', 'Marwyn, the Nurturer', 'Lutri, the Spellchaser', 'Tolabow, Loch Rascal', 'Tana, the Bloodsower', 'Tymna the Weaver', 'Kenrith, the Returned King']);
     assert.equal(lutri.legalities.commander, 'legal'); pass('Current catalog preserves Lutri as Commander-legal while the official restriction remains companion-only');
 
     const issues = [
@@ -111,12 +114,14 @@ async function browserFixtures() {
     ];
     const commanderIssue = { id: 'commander_support', label: 'Commander engine support', severity: 'important', evidence: 'Tap engine lacks support.', recommendation: 'Add haste, untap, or protection.', candidateRole: 'commander_support' };
     const krenkoCards = [...Array.from({ length: 24 }, (_, index) => synthetic(`Goblin body ${index}`, 'Creature - Goblin', index < 8 ? 'Create a 1/1 red Goblin creature token.' : 'Haste', 2, '{1}{R}')), ...Array.from({ length: 38 }, (_, index) => synthetic(`Red support ${index}`, 'Sorcery', 'Target creature gets +1/+0 until end of turn.', 3, '{2}{R}'))];
-    const request = { colors: ['R'], issues: [...issues, commanderIssue], planSignals: ['tokens', 'typal', 'tap_commander', 'commander_tokens'], tribe: 'Goblin', forestTargets: 0, humanRatio: 0, deckCards: krenkoCards, commanders: [{ ...krenko, role: 'primary' }], basicLands: basics({ Mountain: 37 }), targetSize: 100, existingOracleIds: [krenko.oracleId], existingNames: [krenko.name] };
-    const coldStarted = Date.now(), first = await worker(page, '/api/recommendations', request), coldMs = Date.now() - coldStarted, second = await worker(page, '/api/recommendations', request);
+    const request = { colors: ['R'], issues: [...issues, commanderIssue], planSignals: ['tokens', 'typal', 'tap_commander', 'commander_tokens'], tribe: 'Goblin', playstyle: 'balanced', forestTargets: 0, humanRatio: 0, deckCards: krenkoCards, commanders: [{ ...krenko, role: 'primary' }], basicLands: basics({ Mountain: 37 }), targetSize: 100, existingOracleIds: [krenko.oracleId], existingNames: [krenko.name] };
+    const coldStarted = Date.now(), [first, second, styleMiss] = await workerSequence(page, [{ path: '/api/recommendations', body: request }, { path: '/api/recommendations', body: request }, { path: '/api/recommendations', body: { ...request, playstyle: 'aggressive' } }]), coldMs = Date.now() - coldStarted;
     report.performance.coldWorkerRecommendationMs = coldMs;
     assert(coldMs < 8000, `cold worker recommendation should remain interactive; took ${coldMs}ms`);
     const names = value => value.groups.map(group => [group.issue.id, group.cards.map(item => item.card.name)]);
     assert.deepEqual(names(first), names(second));
+    assert.equal(first.cacheStatus, 'miss'); assert.equal(second.cacheStatus, 'hit'); assert.equal(styleMiss.cacheStatus, 'miss'); assert.equal(first.algorithmVersion, '2026-10-17.3');
+    pass('Recommendation cache hits only for the same full deck, commander, style, algorithm, and data snapshot');
     assert(['Sol Ring','Arcane Signet','Mind Stone'].includes(first.groups.find(group => group.issue.id === 'ramp').cards[0].card.name), `a reliable ramp shortage should prioritize repeatable acceleration over sacrifice or combat-dependent burst mana; received ${JSON.stringify(names(first))}`);
     assert(first.groups.find(group => group.issue.id === 'finishers').cards.some(item => ['Impact Tremors', 'Purphoros, God of the Forge', 'Shared Animosity', 'Goblin Bombardment', 'Thornbite Staff'].includes(item.card.name)));
     assert(first.groups.find(group => group.issue.id === 'commander_support').cards.some(item => /haste advances|untap enables|protects the commander/.test(item.why)), 'Krenko support reasons must name the commander dependency they repair');
@@ -126,6 +131,17 @@ async function browserFixtures() {
     for (const group of first.groups) for (const item of group.cards) { assert.equal(item.card.legalities.commander, 'legal'); assert(!item.card.colorIdentity.some(color => color !== 'R')); assert.notEqual(item.card.oracleId, krenko.oracleId); assert(item.why.length > 25); }
     assert(first.groups.flatMap(group => group.cards).every(item => item.swap?.mode === 'swap'), 'a complete 100-card fixture receives hypothetical swaps');
     assert(first.groups.flatMap(group => group.cards).every(item => /lands stay at 37/i.test(item.swap.outcome)), 'spell-for-spell swaps preserve land count');
+    assert(first.groups.flatMap(group => group.cards).every(item => !/^Goblin body/.test(item.swap.cut?.name || '')), 'hypothetical cuts preserve demonstrated Goblin/token engine pieces');
+    const patientRun = await worker(page, '/api/recommendations', { ...request, playstyle: 'patient' });
+    const unpredictableRun = await worker(page, '/api/recommendations', { ...request, playstyle: 'unpredictable' });
+    assert(styleMiss.groups.flatMap(group => group.cards).some(item => /Aggressive emphasis/.test(item.why)));
+    assert(patientRun.groups.flatMap(group => group.cards).some(item => /Patient emphasis/.test(item.why)));
+    assert(unpredictableRun.groups.find(group => group.issue.id === 'interaction').cards.some(item => /Unpredictable emphasis/.test(item.why)));
+    assert(['Sol Ring','Arcane Signet','Mind Stone'].includes(styleMiss.groups.find(group => group.issue.id === 'ramp').cards[0].card.name), 'Aggressive emphasis cannot displace reliable acceleration with burst or conditional ramp');
+    for (const styled of [styleMiss, patientRun, unpredictableRun]) for (const item of styled.groups.flatMap(group => group.cards)) { assert.equal(item.card.legalities.commander, 'legal'); assert(!item.card.colorIdentity.some(color => color !== 'R')); }
+    assert.notDeepEqual(names(styleMiss), names(unpredictableRun), 'style may reorder emphasis while keeping hard constraints fixed');
+    report.representativeRecommendations.styles = { balanced: names(first), aggressive: names(styleMiss), patient: names(patientRun), unpredictable: names(unpredictableRun) };
+    pass('All four playstyles change ranking emphasis without changing legality, identity, mana, or safety gates');
     report.beforeAfter.krenkoRamp = { before: ['Professional Face-Breaker', 'Skirk Prospector', 'Sol Ring'], after: first.groups.find(group => group.issue.id === 'ramp').cards.map(item => item.card.name), repair: 'Reliable acceleration now outranks combat- and sacrifice-dependent burst mana for a diagnosed ramp shortage.' };
     report.reasonSamples.krenko = Object.fromEntries(first.groups.map(group => [group.issue.id, group.cards[0] ? { card: group.cards[0].card.name, why: group.cards[0].why, swap: group.cards[0].swap.outcome, caveats: group.cards[0].caveats } : null]));
     report.representativeRecommendations.krenko = names(first); pass('Krenko recommendations use actual Goblin/token density, prioritize reliable ramp, and produce constraint-preserving swaps');
@@ -141,6 +157,7 @@ async function browserFixtures() {
     const marwynNames = marwynRun.groups.flatMap(group => group.cards.map(item => item.card.name));
     assert(marwynNames.some(name => ['Priest of Titania', 'Wirewood Channeler', 'Circle of Dreams Druid', 'Umbral Mantle', 'Staff of Domination', 'Sword of the Paruns', 'Genesis Wave', 'Finale of Devastation'].includes(name)));
     assert(marwynRun.groups.find(group => group.issue.id === 'commander_support').cards.some(item => ['Wirewood Symbiote', 'Quirion Ranger', 'Umbral Mantle', 'Staff of Domination', 'Thousand-Year Elixir', "Magewright's Stone"].includes(item.card.name)), 'a supported Marwyn shell receives untap or engine-protection support');
+    assert(marwynRun.groups.flatMap(group => group.cards).every(item => !/^Elf engine/.test(item.swap.cut?.name || '')), 'hypothetical cuts preserve demonstrated Elf/mana engine pieces');
     const sparseElfCards = [...Array.from({ length: 4 }, (_, index) => synthetic(`Sparse Elf ${index}`, 'Creature - Elf Druid', '{T}: Add {G}.', 2, '{1}{G}')), ...Array.from({ length: 58 }, (_, index) => synthetic(`Unrelated Beast ${index}`, 'Creature - Beast', '', 3, '{2}{G}'))];
     const sparseMarwyn = await worker(page, '/api/recommendations', { ...marwynBody, deckCards: sparseElfCards });
     const sparseNames = sparseMarwyn.groups.flatMap(group => group.cards.map(item => item.card.name));
@@ -171,6 +188,16 @@ async function browserFixtures() {
     const partnerRun = await worker(page, '/api/recommendations', { colors: ['W', 'B', 'R', 'G'], issues: [issues[2]], planSignals: ['tokens'], deckCards: partnerCards, commanders: [{ ...tana, role: 'primary' }, { ...tymna, role: 'partner' }], basicLands: basics({ Plains: 0, Swamp: 12, Mountain: 12, Forest: 13 }), targetSize: 100, existingOracleIds: [tana.oracleId, tymna.oracleId], existingNames: [tana.name, tymna.name] });
     assert(partnerRun.groups.flatMap(group => group.cards).every(item => item.card.colorIdentity.every(color => ['W', 'B', 'R', 'G'].includes(color))));
     assert(!partnerRun.groups.flatMap(group => group.cards).some(item => item.card.colorIdentity.includes('W')), 'zero white sources block technically legal but uncastable white-pip recommendations');
+    const flexibleBasics = basics({ Plains: 8, Island: 7, Swamp: 8, Mountain: 7, Forest: 7 });
+    const tokenList = Array.from({ length: 62 }, (_, index) => synthetic(`Flexible token ${index}`, 'Creature - Soldier', index < 18 ? 'Create a 1/1 white Soldier creature token.' : '', 2, '{1}{W}'));
+    const graveList = Array.from({ length: 62 }, (_, index) => synthetic(`Flexible grave ${index}`, 'Creature - Insect', index < 18 ? 'When this creature dies, mill two cards.' : index < 28 ? 'Return target creature card from your graveyard to your hand.' : '', 2, '{1}{B}'));
+    const flexibleBase = { colors: ['W', 'U', 'B', 'R', 'G'], issues: [issues[3]], tribe: '', playstyle: 'balanced', commanders: [{ ...kenrith, role: 'primary' }], basicLands: flexibleBasics, targetSize: 100, existingOracleIds: [kenrith.oracleId], existingNames: [kenrith.name] };
+    const tokenFlexible = await worker(page, '/api/recommendations', { ...flexibleBase, planSignals: ['tokens'], deckCards: tokenList });
+    const graveFlexible = await worker(page, '/api/recommendations', { ...flexibleBase, planSignals: ['graveyard'], deckCards: graveList });
+    const tokenFlexibleNames = tokenFlexible.groups[0].cards.map(item => item.card.name), graveFlexibleNames = graveFlexible.groups[0].cards.map(item => item.card.name);
+    assert.notDeepEqual(tokenFlexibleNames, graveFlexibleNames); assert(tokenFlexibleNames.some(name => ['Impact Tremors', 'Purphoros, God of the Forge', 'Shared Animosity', 'Goblin Bombardment'].includes(name))); assert(graveFlexibleNames.some(name => ['Syr Konrad, the Grim', 'Living Death'].includes(name)));
+    report.beforeAfter.flexibleCommander = { commander: kenrith.name, tokenList: tokenFlexibleNames, graveyardList: graveFlexibleNames, repair: 'The same flexible commander now follows demonstrated list contents instead of commander identity alone.' };
+    pass('The same flexible commander produces different supported results for token and graveyard lists');
     report.beforeAfter.graveyardConflict = { before: 'Rest in Peace and Relic of Progenitus were merely penalized and could still clear ranking.', after: graveyardRun.groups.find(group => group.issue.id === 'graveyard_hate').cards.map(item => item.card.name), repair: 'Global self-exile is now a hard conflict; selective or opposing-graveyard interaction remains eligible.' };
     report.representativeRecommendations.spellslinger = names(spellslingerRun); report.representativeRecommendations.graveyard = names(graveyardRun); report.representativeRecommendations.partner = names(partnerRun);
     pass('Spellslinger, graveyard-plan, and four-color partner recommendation outputs receive plan and identity checks');
@@ -178,12 +205,14 @@ async function browserFixtures() {
     const tokenWipe = await worker(page, '/api/recommendations', { ...request, issues: [{ id: 'wipes', label: 'Reset buttons', severity: 'watch', evidence: 'No reset.', recommendation: 'Consider a reset.', candidateRole: 'wipe' }] });
     assert(!tokenWipe.groups.flatMap(group => group.cards).some(item => ['Blasphemous Act', 'Farewell', 'Supreme Verdict', 'Toxic Deluge', 'Worldslayer', 'Furnace Dragon'].includes(item.card.name)), 'a creature-token deck should not be told to erase its own board without compelling asymmetry');
     report.beforeAfter.tokenWipe = { before: 'Generic symmetric creature wipes were eligible for every token deck.', after: tokenWipe.groups[0].cards.map(item => item.card.name), repair: 'Creature-board conflicts are rejected; only selective or one-sided resets remain.' };
-    const unfinished = await worker(page, '/api/recommendations', { ...request, deckCards: krenkoCards.slice(0, 30), basicLands: basics({ Mountain: 20 }) });
+    const unfinished = await worker(page, '/api/recommendations', { ...request, deckCards: krenkoCards.slice(0, 45), basicLands: basics({ Mountain: 20 }) });
     assert(unfinished.groups.flatMap(group => group.cards).every(item => item.swap?.mode === 'add' && item.swap.outcome.includes('/100-card shell')), 'unfinished lists receive add guidance without fabricated cuts');
-    pass('Adversarial token-wipe, colored-source, graveyard-conflict, and unfinished-shell guards pass');
+    const lowEvidence = await worker(page, '/api/recommendations', { ...request, deckCards: krenkoCards.slice(0, 20), basicLands: basics({ Mountain: 10 }) });
+    assert.equal(lowEvidence.groups.length, 0); assert.match(lowEvidence.abstention, /Only 31 of 100 cards/);
+    pass('Adversarial token-wipe, colored-source, graveyard-conflict, unfinished-shell, and low-confidence abstention guards pass');
 
     const filler = Array.from({ length: 62 }, (_, index) => ({ id: `fixture-${index}`, oracleId: `fixture-${index}`, name: `Goblin Fixture ${index}`, colorIdentity: ['R'], typeLine: 'Creature — Goblin', oracleText: index < 12 ? 'Create a 1/1 red Goblin creature token.' : 'Haste', manaCost: '{1}{R}', cmc: 2, quantity: 1, metadataComplete: true }));
-    const deck = { id: 'recommendation-krenko', name: 'Krenko Recommendation QA', commander: krenko.name, commanderCard: krenko, commanders: [{ ...krenko, role: 'primary' }], format: 'Commander', status: 'active', cards: filler, basicLands: basics({ Mountain: 37 }), notes: '', createdAt: '2026-10-17T12:00:00.000Z' };
+    const deck = { id: 'recommendation-krenko', name: 'Krenko Recommendation QA', commander: krenko.name, commanderCard: krenko, commanders: [{ ...krenko, role: 'primary' }], format: 'Commander', status: 'active', playstyle: 'balanced', cards: filler, basicLands: basics({ Mountain: 37 }), notes: '', createdAt: '2026-10-17T12:00:00.000Z' };
     const blockedCompanion = { ...deck, id: 'companion-guard', name: 'Companion Guard', commanders: [{ ...krenko, role: 'primary' }, { ...lutri, role: 'companion' }] };
     const tolabowDeck = { ...deck, id: 'tolabow-guard', name: 'Tolabow Guard', commander: tolabow.name, commanderCard: tolabow, commanders: [{ ...tolabow, role: 'primary' }], cards: filler.map(card => ({ ...card, colorIdentity: ['U'], manaCost: '{1}{U}', typeLine: 'Instant', oracleText: 'Draw a card.' })), basicLands: basics({ Island: 37 }) };
     const partnerDeck = { ...deck, id: 'partner-guard', name: 'Partner Guard', commander: `${tana.name} + ${tymna.name}`, commanderCard: tana, commanders: [{ ...tana, role: 'primary' }, { ...tymna, role: 'partner' }], basicLands: basics({ Plains: 10, Swamp: 9, Mountain: 9, Forest: 9 }) };
@@ -194,6 +223,11 @@ async function browserFixtures() {
     await page.evaluate(({ key, value }) => { localStorage.setItem(key, JSON.stringify(value)); localStorage.setItem('deck-sage-browser-only-choice-v1', '1'); }, { key: storageKey, value: siteState([deck]) });
     await page.goto(`${baseUrl}/#/decks/${deck.id}`); await page.reload(); await page.getByRole('tab', { name: 'Upgrades', exact: true }).click();
     await page.locator('.upgrade-group').first().waitFor({ timeout: 20000 }); assert.equal(await page.locator('.upgrade-card').count() > 0, true); assert.equal(await page.locator('[data-oracle-id]').count(), await page.locator('.upgrade-card').count()); assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+    assert.equal(await page.getByRole('radio').count(), 4); assert.equal(await page.getByRole('radio', { name: /Balanced/ }).getAttribute('aria-checked'), 'true'); assert.equal(await page.getByText(/independently evaluated alternative/, { exact: false }).count(), 1);
+    await page.getByRole('radio', { name: /Aggressive/ }).click(); await page.waitForFunction(key => JSON.parse(localStorage.getItem(key)).decks[0].playstyle === 'aggressive', storageKey); await page.getByText(/with aggressive ranking emphasis/i).waitFor({ timeout: 20000 });
+    await page.reload(); await page.getByRole('tab', { name: 'Upgrades', exact: true }).click(); await page.locator('.upgrade-group').first().waitFor({ timeout: 20000 }); assert.equal(await page.getByRole('radio', { name: /Aggressive/ }).getAttribute('aria-checked'), 'true');
+    const aggressiveRadio = page.getByRole('radio', { name: /Aggressive/ }); await aggressiveRadio.focus(); await aggressiveRadio.press('ArrowRight'); await page.waitForFunction(key => JSON.parse(localStorage.getItem(key)).decks[0].playstyle === 'patient', storageKey); await page.getByText(/with patient ranking emphasis/i).waitFor({ timeout: 20000 }); assert.equal(await page.getByRole('radio', { name: /Patient/ }).getAttribute('aria-checked'), 'true');
+    pass('Desktop playstyle selection persists locally, reloads, and supports radio-keyboard navigation');
     await page.screenshot({ path: path.join(__dirname, 'commander-upgrades-desktop.png'), fullPage: true });
     const firstCard = page.locator('.upgrade-card').first(), firstCardName = await firstCard.locator('.card-title').innerText(); await firstCard.locator('.upgrade-card-image').click(); await page.getByText('Format legalities', { exact: true }).waitFor(); assert(await page.locator('.card-faces, .rules-text').count()); await page.getByRole('button', { name: 'Close dialog' }).click();
     await firstCard.getByRole('button', { name: 'Add to deck', exact: true }).click(); await page.getByRole('button', { name: 'Cancel', exact: true }).click(); assert(!(await page.locator('.inventory-table').allTextContents()).join(' ').includes(firstCardName));
@@ -201,9 +235,9 @@ async function browserFixtures() {
     await context.close();
 
     const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 1, reducedMotion: 'reduce' }); await offline(mobile);
-    const phone = await mobile.newPage(); phone.on('pageerror', error => report.errors.push(error.message)); await phone.goto(`${baseUrl}/#/home`); await phone.evaluate(({ key, value }) => { localStorage.setItem(key, JSON.stringify(value)); localStorage.setItem('deck-sage-browser-only-choice-v1', '1'); }, { key: storageKey, value: siteState([deck]) }); await phone.goto(`${baseUrl}/#/decks/${deck.id}`); await phone.reload(); await phone.getByRole('tab', { name: 'Upgrades', exact: true }).click(); await phone.locator('.upgrade-card').first().waitFor({ timeout: 20000 }); assert(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)); await phone.screenshot({ path: path.join(__dirname, 'commander-upgrades-mobile.png'), fullPage: true });
-    await phone.reload(); await phone.getByRole('tab', { name: 'Upgrades', exact: true }).click(); await phone.locator('.upgrade-card').first().waitFor({ timeout: 20000 });
-    pass('Mobile Upgrades fits without horizontal overflow and remains deterministic after reload'); await mobile.close();
+    const phone = await mobile.newPage(); phone.on('pageerror', error => report.errors.push(error.message)); await phone.goto(`${baseUrl}/#/home`); await phone.evaluate(({ key, value }) => { localStorage.setItem(key, JSON.stringify(value)); localStorage.setItem('deck-sage-browser-only-choice-v1', '1'); }, { key: storageKey, value: siteState([deck]) }); await phone.goto(`${baseUrl}/#/decks/${deck.id}`); await phone.reload(); await phone.getByRole('tab', { name: 'Upgrades', exact: true }).click(); await phone.locator('.upgrade-card').first().waitFor({ timeout: 20000 }); assert(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)); assert.equal(await phone.locator('.playstyle-picker > div').evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length), 2); await phone.getByRole('radio', { name: /Unpredictable/ }).click(); await phone.waitForFunction(key => JSON.parse(localStorage.getItem(key)).decks[0].playstyle === 'unpredictable', storageKey); await phone.getByText(/with unpredictable ranking emphasis/i).waitFor({ timeout: 20000 }); await phone.screenshot({ path: path.join(__dirname, 'commander-upgrades-mobile.png'), fullPage: true });
+    await phone.reload(); await phone.getByRole('tab', { name: 'Upgrades', exact: true }).click(); await phone.locator('.upgrade-card').first().waitFor({ timeout: 20000 }); assert.equal(await phone.getByRole('radio', { name: /Unpredictable/ }).getAttribute('aria-checked'), 'true');
+    pass('Mobile Upgrades uses a two-column selector, fits without overflow, and persists style after reload'); await mobile.close();
 
     assert.deepEqual(report.errors, []); assert.deepEqual(report.externalWrites, []); pass('Recommendation QA produced no browser runtime errors or external writes');
   } finally { await browser.close(); }

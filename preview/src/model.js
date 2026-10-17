@@ -1,5 +1,12 @@
 export const STORAGE_KEY='deck-sage-web-v1';
 export const LAND_NAMES=['Plains','Island','Swamp','Mountain','Forest','Wastes'];
+export const DECK_PLAYSTYLES=[
+ {id:'balanced',label:'Balanced',title:'Let Sage Decide',description:'Follow the strongest demonstrated plan and repair the clearest gaps.'},
+ {id:'aggressive',label:'Aggressive',title:'Take the Fight to Them',description:'Emphasize supported early pressure, haste, evasion, and closing power.'},
+ {id:'patient',label:'Patient',title:'Control the Battlefield',description:'Emphasize efficient answers, resilient resources, protection, and recovery.'},
+ {id:'unpredictable',label:'Unpredictable',title:'Surprise the Table',description:'Emphasize verified instant-speed, flexible, and feasible surprise lines.'}
+];
+export const normalizeDeckPlaystyle=value=>DECK_PLAYSTYLES.some(style=>style.id===value)?value:'balanced';
 export const emptyLands=()=>Object.fromEntries(LAND_NAMES.map(n=>[n,0]));
 export const uid=()=>crypto.randomUUID();
 export const positive=n=>Math.max(1,Math.min(9999,Math.floor(Number(n)||1)));
@@ -30,7 +37,7 @@ export function validateState(input){
  if(input.decks.length>1000||input.bulk.length>100000)throw Error('Backup exceeds local workspace limits.');
  const output=baseState();
  const card=c=>{if(!c||typeof c.name!=='string'||!c.name.trim())throw Error('Backup includes a card without a name.');return {...compactCard(c),name:c.name.slice(0,200),quantity:positive(c.quantity),cardVariant:['Normal','Foil','Full Art'].includes(c.cardVariant)?c.cardVariant:'Normal',colorIdentity:Array.isArray(c.colorIdentity)?c.colorIdentity.filter(v=>'WUBRG'.includes(v)):[]};};
- output.decks=input.decks.map(d=>{if(!d||typeof d.name!=='string'||!Array.isArray(d.cards))throw Error('Backup contains an invalid deck.');return {...d,id:typeof d.id==='string'?d.id:uid(),name:d.name.slice(0,200),cards:d.cards.map(card),commanderCard:d.commanderCard?card(d.commanderCard):null,basicLands:Object.fromEntries(LAND_NAMES.map(n=>[n,Math.max(0,Math.min(9999,Math.floor(Number(d.basicLands?.[n])||0)))]))};});
+ output.decks=input.decks.map(d=>{if(!d||typeof d.name!=='string'||!Array.isArray(d.cards))throw Error('Backup contains an invalid deck.');return {...d,id:typeof d.id==='string'?d.id:uid(),name:d.name.slice(0,200),playstyle:normalizeDeckPlaystyle(d.playstyle),cards:d.cards.map(card),commanderCard:d.commanderCard?card(d.commanderCard):null,basicLands:Object.fromEntries(LAND_NAMES.map(n=>[n,Math.max(0,Math.min(9999,Math.floor(Number(d.basicLands?.[n])||0)))]))};});
  if(Array.isArray(input.retainedDeckRecords))output.retainedDeckRecords=input.retainedDeckRecords.slice(-1000).map(d=>{if(!d||typeof d.name!=='string'||!Array.isArray(d.cards))throw Error('Backup contains an invalid retained deck record.');return {...d,id:typeof d.id==='string'?d.id:uid(),name:d.name.slice(0,200),status:'deleted',cards:d.cards.map(card),commanderCard:d.commanderCard?card(d.commanderCard):null,basicLands:Object.fromEntries(LAND_NAMES.map(n=>[n,Math.max(0,Math.min(9999,Math.floor(Number(d.basicLands?.[n])||0)))]))};});
  output.bulk=input.bulk.map(card);
  output.profile={...output.profile,...(input.profile||{})};output.profile.avatar=Math.max(1,Math.min(19,Number(output.profile.avatar)||1));
