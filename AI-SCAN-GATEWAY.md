@@ -5,14 +5,14 @@ The website AI Scan uses an isolated Supabase Edge Function in the authorized TE
 - Project: `mihmykgxbneuhlcxolzm` (`Deck Sage DB Integration Test`)
 - Function: `website-ai-batch-scan`
 - URL: `https://mihmykgxbneuhlcxolzm.supabase.co/functions/v1/website-ai-batch-scan`
-- Deployed version: 4
+- Deployed version: 6
 - JWT verification: disabled intentionally because the website uses shared usernames rather than login accounts
 
 The gateway accepts requests only from `https://deck-sage.com`, validates one JPEG of at most 6 MB, applies HMAC-hashed-IP and global quotas, and calls OpenAI from the server. It does not log images or extracted names. The browser never receives the OpenAI key. Server processing also requires `AI_SCAN_ENABLED` to equal exactly `true`; a missing, false, or differently cased value keeps the gateway disabled even when `OPENAI_API_KEY` exists.
 
-## Current published state
+## Current release candidate
 
-`preview/public/ai-scan-config.js` contains the deployed endpoint but keeps `enabled: false`. The UI therefore shows an honest disabled state and cannot upload photos. The independent server-side switch is also default-off. No mock extraction is presented as live behavior.
+`preview/public/ai-scan-config.js` contains the deployed endpoint and sets `enabled: true` for the next reviewed website release. It becomes public only when that candidate is published. The independent server-side switch must also equal exact lowercase `true` before requests are admitted. No mock extraction is presented as live behavior.
 
 ## One-time secret setup
 

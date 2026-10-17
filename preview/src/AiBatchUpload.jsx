@@ -9,7 +9,7 @@ export function AiBatchUpload({state,go,notify,update,batchUploads,stageBatchPho
  const [errors,setErrors]=useState({}),[previewState,setPreviewState]=useState(()=>Object.fromEntries(batchUploads.map((photo,index)=>photo?[index,'loading']:null).filter(Boolean))),controllers=useRef(new Map()),reviewController=useRef(null),saveLock=useRef(false);
  const config=aiScanConfig(),stagedCount=batchUploads.filter(Boolean).length,totalBytes=batchUploads.reduce((sum,photo)=>sum+(photo?.file.size||0),0),formatBytes=bytes=>bytes<1024*1024?`${Math.max(1,Math.round(bytes/1024))} KB`:`${(bytes/1024/1024).toFixed(1)} MB`;
  const availableDecks=state.decks.filter(item=>!item.deletedAt&&!item.isDraft),originDestination=isDeck&&availableDecks.some(item=>item.id===deck.id)?deck.id:'bulk',busy=['scanning','matching','saving'].includes(batchScan.phase);
- useEffect(()=>{if(batchScan.phase==='stage'&&!batchScan.entries.length&&batchScan.destination!==originDestination)setBatchScan(current=>({...current,destination:originDestination}));},[originDestination]);
+ useEffect(()=>{if(batchScan.phase==='stage'&&!batchScan.entries.length&&batchScan.destination!==originDestination)setBatchScan(current=>({...current,destination:originDestination}));},[originDestination,batchScan.phase,batchScan.entries.length,batchScan.destination]);
  useEffect(()=>()=>{for(const controller of controllers.current.values())controller.abort();reviewController.current?.abort();},[]);
 
  function choose(index,event){
@@ -26,7 +26,7 @@ export function AiBatchUpload({state,go,notify,update,batchUploads,stageBatchPho
   if(!config.enabled){setBatchScan(current=>({...current,error:'AI Scan needs its server-side gateway connected before photos can be sent.'}));return;}
   const targets=batchUploads.map((photo,index)=>({photo,index})).filter(({photo,index})=>photo&&batchScan.photoStates[index]?.status!=='success');if(!targets.length)return;
   saveLock.current=false;const results={...batchScan.photoStates};
-  setBatchScan(current=>({...current,phase:'scanning',error:'',saved:false,photoStates:Object.fromEntries(batchUploads.map((photo,index)=>photo?[index,current.photoStates[index]?.status==='success'?current.photoStates[index]:{status:'queued'}]:null).filter(Boolean))}));
+  setBatchScan(current=>({...current,phase:'scanning',destination:originDestination,error:'',saved:false,photoStates:Object.fromEntries(batchUploads.map((photo,index)=>photo?[index,current.photoStates[index]?.status==='success'?current.photoStates[index]:{status:'queued'}]:null).filter(Boolean))}));
   let cursor=0;
   async function worker(){while(cursor<targets.length){const task=targets[cursor++],controller=new AbortController();controllers.current.set(task.index,controller);results[task.index]={status:'scanning'};setBatchScan(current=>({...current,photoStates:{...current.photoStates,[task.index]:results[task.index]}}));try{const value=await scanAiPhoto({endpoint:config.endpoint,file:task.photo.file,signal:controller.signal});results[task.index]={status:'success',...value};}catch(error){results[task.index]={status:error.name==='AbortError'?'cancelled':'error',error:error.name==='AbortError'?'Cancelled before this photo finished.':error.message};}finally{controllers.current.delete(task.index);setBatchScan(current=>({...current,photoStates:{...current.photoStates,[task.index]:results[task.index]}}));}}}
   await Promise.all(Array.from({length:Math.min(2,targets.length)},worker));

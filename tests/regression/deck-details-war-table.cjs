@@ -185,8 +185,11 @@ async function run() {
     await mobile.close();
 
     const scan = await (await browser.newContext()).request.get(`${baseUrl}/ai-scan-config.js`);
-    assert.equal(scan.status(), 200); assert.match(await scan.text(), /enabled\s*:\s*false|"enabled"\s*:\s*false/);
-    pass('Scanner remains disabled and untouched');
+    const scanConfig = await scan.text();
+    assert.equal(scan.status(), 200);
+    assert.match(scanConfig, /enabled\s*:\s*true|"enabled"\s*:\s*true/);
+    assert.match(scanConfig, /mihmykgxbneuhlcxolzm\.supabase\.co\/functions\/v1\/website-ai-batch-scan/);
+    pass('Scanner release candidate is enabled only through the authorized TEST gateway');
     assert.deepEqual(report.errors, []); assert.deepEqual(report.externalWrites, []);
     pass('No browser runtime errors or external write requests were observed');
   } finally {
