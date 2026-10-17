@@ -4,7 +4,7 @@ export const emptyAiScanSession=()=>({
  phase:'stage',
  photoStates:{},
  entries:[],
- destination:'bulk',
+ destination:'',
  error:'',
  saved:false,
 });
