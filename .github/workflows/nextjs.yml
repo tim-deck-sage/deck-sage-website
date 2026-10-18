@@ -4,6 +4,9 @@ on:
   push:
     branches: ["main"]
   workflow_dispatch:
+  schedule:
+    # GitHub schedules use UTC. Avoid the top of the hour, when scheduled runs are most likely to queue.
+    - cron: "23 7 * * *"
 
 permissions:
   contents: read
@@ -17,6 +20,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,6 +36,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Refresh and validate public Scryfall catalog
+        run: node preview/tools/refresh-card-catalog.cjs
+
+      - name: Test catalog filters and refresh guards
+        run: node tests/regression/card-library-search.cjs && node tests/regression/card-catalog-refresh.cjs
 
       - name: Build static site
         run: npm run build

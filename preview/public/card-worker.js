@@ -1,24 +1,40 @@
 'use strict';
-importScripts('/ramp-classification.js');
+importScripts('/ramp-classification.js','/card-facets.js');
 const {classifyRampCard}=self.DeckSageRamp;
+const facets=self.DeckSageFacets;
 const normalized=value=>String(value||'').normalize('NFKD').replace(/[^\x00-\x7F]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const compare=(a,b)=>a<b?-1:a>b?1:0;
-const shardPromises=new Map();let manifestPromise,indexPromise;
+const shardPromises=new Map();let manifestPromise,indexPromise,manifestState,manifestCheckedAt=0;
+const MANIFEST_TTL_MS=5*60*1000;
 const RECOMMENDATION_ALGORITHM='2026-10-18.5',PLAYSTYLES=new Set(['balanced','aggressive','patient','unpredictable']),recommendationCache=new Map();
 const settledShards=new Set();
 let activeLoads=0;const loadQueue=[];
 async function boundedLoad(action){if(activeLoads>=4)await new Promise(resolve=>loadQueue.push(resolve));activeLoads++;try{return await action();}finally{activeLoads--;loadQueue.shift()?.();}}
-async function fetchJson(url){const response=await fetch(url,{cache:'no-cache'});if(!response.ok)throw Error('Card library file could not load. Check your connection and try again.');return response.json();}
-function manifest(){if(!manifestPromise)manifestPromise=fetchJson('/card-data/manifest.json').catch(e=>{manifestPromise=null;throw e});return manifestPromise;}
-async function gzipFile(name){
+async function fetchJson(url){const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw Error('Card library file could not load. Check your connection and try again.');return response.json();}
+const manifestKey=value=>String(value?.catalogVersion||value?.status?.catalogVersion||value?.files?.['search-index.json.gz']?.sha256||'legacy');
+function clearCatalogCaches(){indexPromise=null;shardPromises.clear();settledShards.clear();recommendationCache.clear();}
+async function manifest(force=false){
+ if(!force&&manifestState&&Date.now()-manifestCheckedAt<MANIFEST_TTL_MS)return manifestState;
+ if(!manifestPromise){
+  const bucket=force?Date.now():Math.floor(Date.now()/MANIFEST_TTL_MS);
+  manifestPromise=fetchJson('/card-data/manifest.json?check='+bucket).then(value=>{
+   if(!value?.files?.['search-index.json.gz'])throw Error('Card library manifest is incomplete.');
+   if(manifestState&&manifestKey(value)!==manifestKey(manifestState))clearCatalogCaches();
+   manifestState=value;manifestCheckedAt=Date.now();return value;
+  }).finally(()=>{manifestPromise=null;});
+ }
+ return manifestPromise;
+}
+async function gzipFile(name,retry=true){
  if(typeof DecompressionStream==='undefined')throw Error('This preview needs a current browser with compressed-data support. Please update your browser.');
  const meta=await manifest(),file=meta.files[name];if(!file)throw Error('Card library file is not in the verified snapshot.');
- const response=await fetch('/card-data/'+name).catch(()=>{throw Error('Card library file could not load. Check your connection and try again.');});if(!response.ok)throw Error('Card library file could not load. Check your connection and try again.');
+ const version=manifestKey(meta),response=await fetch('/card-data/'+name+'?v='+encodeURIComponent(version),{cache:'force-cache'}).catch(()=>{throw Error('Card library file could not load. Check your connection and try again.');});if(!response.ok)throw Error('Card library file could not load. Check your connection and try again.');
  const bytes=await response.arrayBuffer();const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),v=>v.toString(16).padStart(2,'0')).join('');
+ if(digest!==file.sha256&&retry){const latest=await manifest(true);if(manifestKey(latest)!==version)return gzipFile(name,false);}
  if(digest!==file.sha256)throw Error('Card library snapshot changed or is incomplete. Refresh the page and try again.');
  try{return JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text());}catch{throw Error('Card library file is damaged. Refresh this page and try again.');}
 }
-function index(){if(!indexPromise)indexPromise=gzipFile('search-index.json.gz').then(data=>{const cards=data.cards.map(row=>Object.fromEntries(data.fields.map((field,i)=>[field,row[i]])));const byId=new Map(cards.map(card=>[card.oracle_id,card])),aliases=new Map();for(const [name,id,confidence] of data.aliases){if(!aliases.has(name))aliases.set(name,[]);aliases.get(name).push({id,confidence});}return {cards,byId,aliases};}).catch(e=>{indexPromise=null;throw e});return indexPromise;}
+async function index(){await manifest();if(!indexPromise)indexPromise=gzipFile('search-index.json.gz').then(data=>{const cards=data.cards.map(row=>Object.fromEntries(data.fields.map((field,i)=>[field,row[i]])));const byId=new Map(cards.map(card=>[card.oracle_id,card])),aliases=new Map();for(const [name,id,confidence] of data.aliases){if(!aliases.has(name))aliases.set(name,[]);aliases.get(name).push({id,confidence});}return {cards,byId,aliases};}).catch(e=>{indexPromise=null;throw e});return indexPromise;}
 function touchShard(key){settledShards.delete(key);settledShards.add(key);while(settledShards.size>24){const oldest=settledShards.values().next().value;settledShards.delete(oldest);shardPromises.delete(oldest);}}
 function shard(id){const key=String(id).slice(0,2);if(settledShards.has(key))touchShard(key);if(!shardPromises.has(key))shardPromises.set(key,boundedLoad(()=>gzipFile('cards-'+key+'.json.gz')).then(value=>{touchShard(key);return value}).catch(e=>{shardPromises.delete(key);settledShards.delete(key);throw e}));return shardPromises.get(key);}
 async function card(id){return (await shard(id))[id]||null;}
@@ -35,22 +51,24 @@ async function matchName(name){
  if(top.confidence>=.88&&(!runnerUp||top.confidence-runnerUp.confidence>=.04))return {status:'matched',source:'alias',card:candidates[0],candidates:candidates.slice(1)};
  return {status:'ambiguous',source:'alias',card:null,candidates};
 }
-const roleTerms={draw:['draw a card','draw two cards','draw three cards','draw cards','draw X cards'],removal:['destroy target','exile target','counter target','return target'],protection:['hexproof','indestructible','protection from','phase out'],tokens:['create','token'],recursion:['return','graveyard']};
 async function search(params){
  const data=await index(),query=String(params.q||'').trim().slice(0,180),norm=normalized(query),limit=Math.max(1,Math.min(Number(params.limit)||24,100)),offset=Math.max(0,Math.min(Number(params.offset)||0,50000));
  if(query&&!norm)return {cards:[],total:0,limit,offset};
  const aliasIds=new Set();if(query&&params.mode!=='text')for(const [name,aliases] of data.aliases)if(name.startsWith(norm))for(const a of aliases)aliasIds.add(a.id);
- const terms=norm.split(' ').slice(0,16),chosen=new Set(String(params.colors||'').split('').filter(c=>'WUBRG'.includes(c)));
+ const terms=norm.split(' ').slice(0,16),chosen=new Set(String(params.colors||'').split('').filter(c=>'WUBRG'.includes(c))),selectedRoles=String(params.roles||params.role||'').split(',').filter(role=>facets.byId[role]);
  let found=data.cards.filter(c=>{
   if(query){if(params.mode==='text'){const words=normalized(c.name+' '+c.type_line+' '+c.oracle_text).split(' ');if(!terms.every(term=>words.some(word=>word.startsWith(term))))return false;}else if(!c.normalized_name.startsWith(norm)&&!aliasIds.has(c.oracle_id)&&!c.name.toLowerCase().includes(query.toLowerCase()))return false;}
   if(params.type&&!c.type_line.toLowerCase().includes(params.type.toLowerCase()))return false;
-  if(params.colors!==undefined&&String(params.colors)!==''&&[...c.color_identity].some(color=>!chosen.has(color)))return false;
+  if((params.identity==='true'||(params.colors!==undefined&&String(params.colors)!==''))&&[...c.color_identity].some(color=>!chosen.has(color)))return false;
   if(params.commander==='true'&&(!c.commander_legal||!(/Legendary.*Creature/i.test(c.type_line)||/can be your commander/i.test(c.oracle_text))))return false;
   if(params.commander!=='true'&&params.legal==='true'&&!c.commander_legal)return false;
   if(params.rarity&&c.rarity!==params.rarity)return false;
   if(params.cmc!==undefined&&params.cmc!==''&&c.cmc>Number(params.cmc))return false;
-  if(params.role==='ramp'&&classifyRampCard(c).kind==='none')return false;
-  if(roleTerms[params.role]&&!roleTerms[params.role].some(term=>c.oracle_text.toLowerCase().includes(term.toLowerCase())))return false;
+  if(selectedRoles.length){
+   let enriched=c;
+   if(!Array.isArray(c.role_tags)&&selectedRoles.includes('ramp')&&classifyRampCard(c).kind!=='none'){const inferred=facets.roleSet(c);inferred.add('ramp');enriched={...c,role_tags:[...inferred]};}
+   if(!facets.matches(enriched,selectedRoles,params.roleMode==='all'?'all':'any'))return false;
+  }
   return true;
  });
  const rank=c=>c.normalized_name===norm?0:c.normalized_name.startsWith(norm)?1:2;
@@ -359,7 +377,7 @@ async function recommendations(body){
  return done({groups,suggestedCuts:attachStrongUpgrades(cutReview,groups),rampProfile:rampProfile(profile),reviewedAt:'2026-10-18',sourceUpdatedAt:snapshot.status.bulkUpdatedAt,method:`Deterministic whole-deck relationships with ${playstyle} ranking emphasis, shared ramp classification, two-tier protected cut review, contextual surplus checks, and safe hypothetical swaps. No runtime AI.`});
 }
 async function dispatch(path,params,body){
- if(path==='/api/status')return (await manifest()).status;
+ if(path==='/api/status')return (await manifest(true)).status;
  if(path==='/api/cards')return search(params);
  if(path==='/api/card')return {card:params.name?await resolve(params.name):await card(params.id)};
  if(path==='/api/resolve')return {cards:await Promise.all((body?.names||[]).map(resolve))};
