@@ -1,5 +1,5 @@
--- Prepared only. Apply to the authorized TEST project after explicit approval and
--- after Tim has entered DECK_SAGE_PUBLISHER_PIN through the Supabase secrets UI.
+-- Publisher schema applied to the authorized TEST project after Tim's explicit
+-- approval and private entry of DECK_SAGE_PUBLISHER_PIN in the Supabase secrets UI.
 
 create table public.ds_publications (
   id uuid primary key,

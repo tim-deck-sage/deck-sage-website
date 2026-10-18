@@ -11,6 +11,7 @@
     "test:homepage": "node tests/regression/homepage-redesign.cjs",
     "test:cards": "node tests/regression/card-library-search.cjs && node tests/regression/card-catalog-refresh.cjs && node tests/regression/card-library-ui.cjs",
     "test:publisher": "node tests/regression/publisher-policy.cjs && node tests/regression/publisher-ui.cjs",
+    "test:publisher:hosted": "node tests/regression/publisher-hosted.cjs",
     "test:decks": "node tests/regression/commander-display-art.cjs && node tests/regression/my-decks.cjs && node tests/regression/deck-details-war-table.cjs",
     "test:upgrades": "node tests/regression/commander-upgrades.cjs",
     "test:value": "node tests/regression/card-value-pricing.cjs && node tests/regression/card-value.cjs",
