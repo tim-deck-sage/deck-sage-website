@@ -1,5 +1,5 @@
 const API_ROOT='https://api.scryfall.com';
-export const CARD_VALUE_CACHE_KEY='deck-sage-card-value-v1';
+export const CARD_VALUE_CACHE_KEY='deck-sage-card-value-v2';
 export const CARD_VALUE_CACHE_TTL_MS=30*60*1000;
 export const SCRYFALL_BATCH_SIZE=75;
 export const SCRYFALL_REQUEST_SPACING_MS=120;
@@ -33,7 +33,7 @@ export function collectionValueEntries(state){
 export function collectionValueFingerprint(state){
  const source=collectionValueEntries(state).map(entry=>[entry.lookup.key,entry.variant,entry.quantity,entry.type,entry.deckId||'',entry.deckName||''].join('|')).sort().join('\n');
  let hash=2166136261;for(let index=0;index<source.length;index++){hash^=source.charCodeAt(index);hash=Math.imul(hash,16777619);}
- return `v1-${(hash>>>0).toString(16).padStart(8,'0')}-${source.length}`;
+ return `v2-${(hash>>>0).toString(16).padStart(8,'0')}-${source.length}`;
 }
 
 function slimCard(card){
@@ -73,13 +73,20 @@ async function fetchCollections(lookups,{fetchImpl,wait,onProgress}){
 }
 
 function premiumScore(card){
- const effects=new Set(card.frame_effects||[]),promos=new Set(card.promo_types||[]);
- let score=0;if(card.full_art)score+=10;if(card.border_color==='borderless')score+=7;
- for(const value of ['showcase','extendedart','inverted','nyxtouched','legendary'])if(effects.has(value))score+=value==='legendary'?1:4;
- for(const value of ['boosterfun','serialized','galaxy_foil'])if(promos.has(value))score+=3;
+ const effects=new Set(card.frame_effects||[]);
+ let score=0;
+ // Scryfall's legendary frame effect only describes the crown frame. It is
+ // not an alternate-art treatment, nor are generic showcase/promo markers.
+ if(card.full_art===true)score+=100;
+ if(card.border_color==='borderless')score+=90;
+ if(effects.has('extendedart'))score+=80;
  return score;
 }
-function choosePremium(cards){return cards.filter(card=>Number.isFinite(Number(card?.prices?.usd))&&premiumScore(card)>0).sort((a,b)=>premiumScore(b)-premiumScore(a)||String(b.released_at||'').localeCompare(String(a.released_at||'')))[0]||null;}
+function hasNonfoilUsd(card){
+ const raw=card?.prices?.usd;if(raw===null||raw===undefined||raw==='')return false;
+ const value=Number(raw);return Number.isFinite(value)&&value>=0;
+}
+function choosePremium(cards){return cards.filter(card=>hasNonfoilUsd(card)&&premiumScore(card)>0).sort((a,b)=>premiumScore(b)-premiumScore(a)||String(b.released_at||'').localeCompare(String(a.released_at||'')))[0]||null;}
 async function fetchPremium(baseCard,name,options){
  if(baseCard&&choosePremium([baseCard]))return baseCard;
  const escaped=String(name||'').replace(/["\\]/g,'\\$&');
@@ -103,9 +110,9 @@ export async function scanCollectionValue(state,{fetchImpl=globalThis.fetch?.bin
   if(index||entries.length)await wait(SCRYFALL_REQUEST_SPACING_MS);
   const entry=premiumEntries[index],chosen=await fetchPremium(cards.get(entry.lookup.key),entry.name,{fetchImpl,wait});if(chosen)premium.set(entry.lookup.key,chosen);
  }
- const items=entries.map(entry=>{const base=cards.get(entry.lookup.key)||null,chosen=premium.get(entry.lookup.key)||null,unit=unitPrice(entry,base,chosen);return {...entry,providerCard:chosen||base,unitPrice:unit,totalValue:unit===null?null:unit*entry.quantity,approximate:entry.lookup.kind==='name'||(entry.variant==='Full Art'&&chosen?.id!==base?.id),pricePrintingId:(chosen||base)?.id||'',priceStatus:unit===null?'missing':'priced'};});
+ const items=entries.map(entry=>{const base=cards.get(entry.lookup.key)||null,chosen=premium.get(entry.lookup.key)||null,isFullArt=entry.variant==='Full Art',pricingCard=isFullArt?chosen:base,unit=unitPrice(entry,base,chosen),replacement=isFullArt&&Boolean(chosen)&&chosen.id!==base?.id,approximate=unit!==null&&(entry.lookup.kind==='name'||replacement);return {...entry,providerCard:isFullArt?(chosen||base):base,unitPrice:unit,totalValue:unit===null?null:unit*entry.quantity,approximate,priceMatch:unit===null?'unavailable':approximate?'approximate':'exact',pricePrintingId:pricingCard?.id||'',priceStatus:unit===null?'missing':'priced'};});
  const fetchedAt=new Date(now()).toISOString();
- return {schema:1,fingerprint,fetchedAt,provider:'Scryfall',currency:'USD',basis:'daily market estimate',items};
+ return {schema:2,fingerprint,fetchedAt,provider:'Scryfall',currency:'USD',basis:'daily market estimate',items};
 }
 
 export async function lookupCurrentCardValue(name,{fetchImpl=globalThis.fetch?.bind(globalThis),wait=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds)),now=()=>Date.now()}={}){
@@ -122,7 +129,7 @@ export function startCollectionValueScan(state,options={}){
 }
 
 export function loadCollectionValueCache(storage,fingerprint){
- try{const value=JSON.parse(storage?.getItem(CARD_VALUE_CACHE_KEY)||'null');return value?.schema===1&&value.fingerprint===fingerprint&&Array.isArray(value.items)?value:null;}catch{return null;}
+ try{const value=JSON.parse(storage?.getItem(CARD_VALUE_CACHE_KEY)||'null');return value?.schema===2&&value.fingerprint===fingerprint&&Array.isArray(value.items)?value:null;}catch{return null;}
 }
 export function saveCollectionValueCache(storage,snapshot){try{storage?.setItem(CARD_VALUE_CACHE_KEY,JSON.stringify(snapshot));return true;}catch{return false;}}
 export function collectionValueCacheState(snapshot,at=Date.now()){if(!snapshot?.fetchedAt)return 'missing';return at-Date.parse(snapshot.fetchedAt)<=CARD_VALUE_CACHE_TTL_MS?'fresh':'stale';}

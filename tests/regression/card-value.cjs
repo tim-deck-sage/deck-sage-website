@@ -3,7 +3,7 @@ const fs=require('fs');
 const path=require('path');
 const runtime=process.env.DECK_SAGE_TEST_NODE_MODULES||'C:/Users/timmo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';
 const {chromium}=require(path.join(runtime,'playwright'));
-const baseUrl=process.env.DECK_SAGE_PREVIEW_URL||'http://127.0.0.1:4184',storageKey='deck-sage-web-v1',cacheKey='deck-sage-card-value-v1';
+const baseUrl=process.env.DECK_SAGE_PREVIEW_URL||'http://127.0.0.1:4184',storageKey='deck-sage-web-v1',cacheKey='deck-sage-card-value-v2';
 const report={checks:[],errors:[],requests:[],startedAt:new Date().toISOString()};
 const ids={normal:'11111111-1111-4111-8111-111111111111',foil:'22222222-2222-4222-8222-222222222222',premium:'33333333-3333-4333-8333-333333333333',commander:'44444444-4444-4444-8444-444444444444'};
 const fixture={version:1,profile:{name:'Value Tester',username:'',avatar:1,role:'Player',bio:''},retainedDeckRecords:[],favorites:[],contacts:[],stores:[],notifications:[],settings:{theme:'forest',motion:true,images:true,notificationInbox:true},bulk:[
@@ -42,7 +42,7 @@ async function installRoutes(context,control){
   return route.abort();
  });
 }
-async function seed(context,value=fixture){await context.addInitScript(({key,value})=>{if(sessionStorage.getItem('deck-sage-card-value-test-seeded'))return;localStorage.setItem(key,JSON.stringify(value));localStorage.setItem('deck-sage-browser-only-choice-v1','1');localStorage.removeItem('deck-sage-card-value-v1');sessionStorage.setItem('deck-sage-card-value-test-seeded','1');},{key:storageKey,value});}
+async function seed(context,value=fixture){await context.addInitScript(({key,value})=>{if(sessionStorage.getItem('deck-sage-card-value-test-seeded'))return;localStorage.setItem(key,JSON.stringify(value));localStorage.setItem('deck-sage-browser-only-choice-v1','1');localStorage.removeItem('deck-sage-card-value-v1');localStorage.removeItem('deck-sage-card-value-v2');sessionStorage.setItem('deck-sage-card-value-test-seeded','1');},{key:storageKey,value});}
 
 (async()=>{
  const browser=await chromium.launch({headless:true,channel:'msedge'}),control={fail:false};

@@ -6,7 +6,7 @@ Reference reviewed: Deck Sage app release `f2bc0805199e7c9293de3c5507743b82fa0fb
 | --- | --- |
 | Scryfall current USD pricing | Uses the same saved-printing `prices.usd` / `prices.usd_foil` semantics. Requests are batched through `/cards/collection` (75 identifiers maximum) and deliberately spaced. |
 | Saved printing first, name fallback | Exact Scryfall printing IDs are authoritative. Name-only fallback is visibly labeled approximate. |
-| Normal, Foil, and Full Art | Normal and Foil never substitute for one another. Full Art locates a premium-style nonfoil printing and remains unavailable when no matching USD value exists. |
+| Normal, Foil, and Full Art | Normal and Foil never substitute for one another. Full Art requires explicit Scryfall `full_art`, extended-art, or borderless treatment metadata plus a nonfoil USD price. A legendary crown, showcase label, or generic promo marker alone does not qualify. Replacement printings are labeled approximate; missing matches remain unavailable. |
 | Quantity totals | Web stack quantities are multiplied by unit value. Active and archived owned decks plus bulk are included; planning drafts, deleted records, and basic lands without printing records are excluded. |
 | Treasure Vault hero | Matched with the app's original `library.png`, collection total, Decks/Bulk/Priced/Missing metrics, dark panels, gold framing, green values, and red refresh action. |
 | Crown Jewel | Highest known unit-price card, variant, location, copy count, and stack total are shown. |
@@ -28,3 +28,5 @@ Evidence captured by `tests/regression/card-value.cjs`:
 - `tests/regression/card-value-report.json`
 
 The screenshots and JSON report are generated QA evidence and are intentionally ignored by Git; the repeatable test and assertions are committed.
+
+Provider classification coverage in `tests/regression/card-value-pricing.cjs` includes ordinary saved legendary printings, exact legendary full-art printings, full-art/extended-art/borderless signals, name-only approximations, unavailable premium prices, no-alternative searches, unchanged Normal pricing, and cache-version invalidation.

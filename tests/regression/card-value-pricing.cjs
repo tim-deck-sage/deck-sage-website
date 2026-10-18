@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const esbuild=require('esbuild');
 const built=esbuild.buildSync({stdin:{contents:"export * from './preview/src/providers/cardValuePricing';",resolveDir:process.cwd()},bundle:true,platform:'node',format:'cjs',write:false});
 const loaded={exports:{}};new Function('module','exports','require',built.outputFiles[0].text)(loaded,loaded.exports,require);
-const {CARD_VALUE_CACHE_TTL_MS,SCRYFALL_BATCH_SIZE,collectionValueCacheState,collectionValueEntries,collectionValueFingerprint,loadCollectionValueCache,lookupCurrentCardValue,saveCollectionValueCache,scanCollectionValue}=loaded.exports;
+const {CARD_VALUE_CACHE_KEY,CARD_VALUE_CACHE_TTL_MS,SCRYFALL_BATCH_SIZE,collectionValueCacheState,collectionValueEntries,collectionValueFingerprint,loadCollectionValueCache,lookupCurrentCardValue,saveCollectionValueCache,scanCollectionValue}=loaded.exports;
 let checks=0;const pass=name=>{checks++;console.log('PASS CARD VALUE '+name);};
 const ids={normal:'11111111-1111-4111-8111-111111111111',foil:'22222222-2222-4222-8222-222222222222',premium:'33333333-3333-4333-8333-333333333333',commander:'44444444-4444-4444-8444-444444444444'};
 const card=(id,name,prices,extra={})=>({id,name,oracle_id:'oracle-'+name,prices,image_uris:{normal:`https://cards.scryfall.io/${id}.jpg`},released_at:'2026-10-18',...extra});
@@ -26,6 +26,17 @@ const records=new Map([
 ]);
 const requests=[],waits=[];
 const response=(body,status=200,headers={})=>({ok:status>=200&&status<300,status,headers:{get:name=>headers[name.toLowerCase()]||null},json:async()=>body});
+async function scanPremiumCase({name,id,variant='Full Art',base,alternatives=[]}){
+ const caseRequests=[];
+ const fetchCase=async(url,options={})=>{
+  caseRequests.push({url,options});
+  if(url.includes('/cards/collection'))return response({object:'list',data:[base],not_found:[]});
+  if(url.includes('/cards/search'))return response({object:'list',data:alternatives,has_more:false});
+  throw Error('Unexpected premium-case URL '+url);
+ };
+ const result=await scanCollectionValue({bulk:[{id,name,quantity:2,cardVariant:variant}],decks:[]},{fetchImpl:fetchCase,wait:async()=>{},now:()=>Date.parse('2026-10-18T14:00:00Z')});
+ return {item:result.items[0],requests:caseRequests};
+}
 async function fetchImpl(url,options={}){
  requests.push({url,options});
  if(url.includes('/cards/collection')){
@@ -42,7 +53,7 @@ async function fetchImpl(url,options={}){
  const entries=collectionValueEntries(state);
  assert.equal(entries.length,7);assert.equal(entries.filter(entry=>entry.name==='Lead One').length,1);assert.equal(entries.find(entry=>entry.name==='Known Normal'&&entry.type==='deck').quantity,4);
  pass('owned quantities, multiple commanders, active decks, and bulk are inventoried without draft/deleted cards or duplicate primaries');
- assert.match(collectionValueFingerprint(state),/^v1-[0-9a-f]{8}-/);assert.notEqual(collectionValueFingerprint(state),collectionValueFingerprint({...state,bulk:[...state.bulk,{name:'Change',quantity:1}]}));
+ assert.match(collectionValueFingerprint(state),/^v2-[0-9a-f]{8}-/);assert.notEqual(collectionValueFingerprint(state),collectionValueFingerprint({...state,bulk:[...state.bulk,{name:'Change',quantity:1}]}));
  pass('cache fingerprint changes with the valued inventory');
  const snapshot=await scanCollectionValue(state,{fetchImpl,wait:async milliseconds=>waits.push(milliseconds),now:()=>Date.parse('2026-10-18T12:00:00Z')});
  assert.equal(snapshot.provider,'Scryfall');assert.equal(snapshot.currency,'USD');assert.equal(snapshot.basis,'daily market estimate');assert.equal(snapshot.fetchedAt,'2026-10-18T12:00:00.000Z');
@@ -51,15 +62,42 @@ async function fetchImpl(url,options={}){
  assert.equal(snapshot.items.find(item=>item.name==='Name Fallback').unitPrice,3);assert.equal(snapshot.items.find(item=>item.name==='Name Fallback').approximate,true);
  const premium=snapshot.items.find(item=>item.name==='Premium Card');assert.equal(premium.unitPrice,17.25);assert.equal(premium.pricePrintingId,'77777777-7777-4777-8777-777777777777');assert.equal(premium.approximate,true);
  pass('saved-printing normal, foil, name fallback, premium-printing, quantity, and unavailable-price semantics match the app without fabricated zeroes');
+ const ordinaryLegendary=card('99999999-9999-4999-8999-999999999991','Saved Base Legendary',{usd:'2.00',usd_foil:null},{frame_effects:['legendary']});
+ const fullArtAlternative=card('99999999-9999-4999-8999-999999999992','Saved Base Legendary',{usd:'19.00',usd_foil:null},{full_art:true,frame_effects:['legendary']});
+ const replacedLegendary=await scanPremiumCase({name:'Saved Base Legendary',id:ordinaryLegendary.id,base:ordinaryLegendary,alternatives:[fullArtAlternative]});
+ assert.equal(replacedLegendary.item.unitPrice,19);assert.equal(replacedLegendary.item.totalValue,38);assert.equal(replacedLegendary.item.pricePrintingId,fullArtAlternative.id);assert.equal(replacedLegendary.item.approximate,true);assert(replacedLegendary.requests.some(request=>request.url.includes('/cards/search')));
+ pass('a saved ordinary legendary printing is not Full Art and uses an honestly approximate premium replacement');
+ const exactLegendaryPremium=card('99999999-9999-4999-8999-999999999993','Real Premium Legendary',{usd:'21.00',usd_foil:null},{full_art:true,frame_effects:['legendary']});
+ const exactPremium=await scanPremiumCase({name:'Real Premium Legendary',id:exactLegendaryPremium.id,base:exactLegendaryPremium});
+ assert.equal(exactPremium.item.unitPrice,21);assert.equal(exactPremium.item.pricePrintingId,exactLegendaryPremium.id);assert.equal(exactPremium.item.approximate,false);assert(!exactPremium.requests.some(request=>request.url.includes('/cards/search')));
+ pass('an explicitly full-art saved legendary printing remains exact and does not trigger replacement search');
+ const unavailablePremium=await scanPremiumCase({name:'Unavailable Premium',id:'99999999-9999-4999-8999-999999999994',base:card('99999999-9999-4999-8999-999999999994','Unavailable Premium',{usd:'3.00',usd_foil:null},{frame_effects:['legendary']}),alternatives:[card('99999999-9999-4999-8999-999999999995','Unavailable Premium',{usd:null,usd_foil:'40.00'},{full_art:true})]});
+ assert.equal(unavailablePremium.item.unitPrice,null);assert.equal(unavailablePremium.item.totalValue,null);assert.equal(unavailablePremium.item.pricePrintingId,'');assert.equal(unavailablePremium.item.priceMatch,'unavailable');assert.equal(unavailablePremium.item.priceStatus,'missing');
+ pass('a genuine premium printing without nonfoil USD stays unavailable instead of borrowing the ordinary price');
+ const nameOnlyPremium=await scanPremiumCase({name:'Name Only Premium',id:'legacy-name-only',base:card('99999999-9999-4999-8999-999999999996','Name Only Premium',{usd:'14.00',usd_foil:null},{full_art:true})});
+ assert.equal(nameOnlyPremium.item.unitPrice,14);assert.equal(nameOnlyPremium.item.totalValue,28);assert.equal(nameOnlyPremium.item.approximate,true);assert.equal(nameOnlyPremium.item.pricePrintingId,'99999999-9999-4999-8999-999999999996');
+ pass('a name-only premium match remains explicitly approximate even when its treatment is genuine');
+ const noAlternative=await scanPremiumCase({name:'No Premium Alternative',id:'99999999-9999-4999-8999-999999999997',base:card('99999999-9999-4999-8999-999999999997','No Premium Alternative',{usd:'4.00',usd_foil:null},{frame_effects:['legendary']}),alternatives:[card('99999999-9999-4999-8999-999999999998','No Premium Alternative',{usd:'18.00',usd_foil:null},{frame_effects:['showcase'],promo_types:['boosterfun']})]});
+ assert.equal(noAlternative.item.unitPrice,null);assert.equal(noAlternative.item.totalValue,null);assert.equal(noAlternative.item.pricePrintingId,'');assert.equal(noAlternative.item.priceMatch,'unavailable');assert.equal(noAlternative.item.priceStatus,'missing');
+ pass('showcase or booster-fun metadata alone is not silently treated as Full Art when no genuine alternative exists');
+ const normalLegendary=await scanPremiumCase({name:'Ordinary Normal Legendary',id:ordinaryLegendary.id,variant:'Normal',base:{...ordinaryLegendary,name:'Ordinary Normal Legendary'}});
+ assert.equal(normalLegendary.item.unitPrice,2);assert.equal(normalLegendary.item.totalValue,4);assert.equal(normalLegendary.item.approximate,false);assert.equal(normalLegendary.item.providerCard.id,ordinaryLegendary.id);assert(!normalLegendary.requests.some(request=>request.url.includes('/cards/search')));
+ pass('ordinary normal legendary pricing is unchanged and never enters the premium path');
+ for(const [label,treatmentId,metadata] of [['full_art','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',{full_art:true}],['extendedart','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',{frame_effects:['extendedart']}],['borderless','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3',{border_color:'borderless'}]]){
+  const treated=card(treatmentId,`Treatment ${label}`,{usd:'12.00',usd_foil:null},metadata);
+  const result=await scanPremiumCase({name:`Treatment ${label}`,id:treated.id,base:treated});
+  assert.equal(result.item.unitPrice,12,label);assert.equal(result.item.approximate,false,label);assert(!result.requests.some(request=>request.url.includes('/cards/search')),label);
+ }
+ pass('explicit Scryfall full-art, extended-art, and borderless treatment metadata qualifies saved premium printings');
  const identifiers=JSON.parse(requests.find(request=>request.url.includes('/cards/collection')).options.body).identifiers;
  assert(identifiers.some(identifier=>identifier.id===ids.normal));assert(identifiers.some(identifier=>identifier.name==='Name Fallback'));assert(identifiers.length<=SCRYFALL_BATCH_SIZE);
  assert(requests.some(request=>request.url.includes('/cards/search')&&decodeURIComponent(request.url).includes('oracleid:oracle-Premium Card')));assert(waits.includes(120));
  pass('the Scryfall collection endpoint is batched at the documented limit and premium searches are deliberately spaced');
  const lookup=await lookupCurrentCardValue('Out Card',{fetchImpl,wait:async()=>{},now:()=>Date.parse('2026-10-18T13:00:00Z')});assert.equal(lookup.name,'Outside Card');assert.equal(lookup.normal,8);assert.equal(lookup.foil,null);assert.equal(lookup.fetchedAt,'2026-10-18T13:00:00.000Z');assert(requests.some(request=>request.url.includes('/cards/named?fuzzy=Out%20Card')));
  pass('standalone card search uses Scryfall fuzzy-name lookup and keeps normal and foil values separate');
- const store=new Map(),storage={getItem:key=>store.get(key)||null,setItem:(key,value)=>store.set(key,value)};assert(saveCollectionValueCache(storage,snapshot));assert.equal(JSON.stringify(loadCollectionValueCache(storage,snapshot.fingerprint)),JSON.stringify(snapshot));assert.equal(loadCollectionValueCache(storage,'different'),null);
+ const store=new Map([['deck-sage-card-value-v1',JSON.stringify({...snapshot,schema:1})]]),storage={getItem:key=>store.get(key)||null,setItem:(key,value)=>store.set(key,value)};assert.equal(loadCollectionValueCache(storage,snapshot.fingerprint),null);assert.equal(CARD_VALUE_CACHE_KEY,'deck-sage-card-value-v2');assert(saveCollectionValueCache(storage,snapshot));assert.equal(JSON.stringify(loadCollectionValueCache(storage,snapshot.fingerprint)),JSON.stringify(snapshot));assert.equal(loadCollectionValueCache(storage,'different'),null);
  assert.equal(collectionValueCacheState(snapshot,Date.parse(snapshot.fetchedAt)+CARD_VALUE_CACHE_TTL_MS),'fresh');assert.equal(collectionValueCacheState(snapshot,Date.parse(snapshot.fetchedAt)+CARD_VALUE_CACHE_TTL_MS+1),'stale');
- pass('matching cache snapshots remain fresh for 30 minutes and become explicitly stale afterward');
+ pass('v1 snapshots are invalidated while matching v2 snapshots remain fresh for 30 minutes and become explicitly stale afterward');
  let calls=0;const retried=await scanCollectionValue({bulk:[{id:ids.normal,name:'Known Normal',quantity:1,cardVariant:'Normal'}],decks:[]},{wait:async milliseconds=>waits.push(milliseconds),fetchImpl:async()=>{calls++;return calls===1?response({},429,{'retry-after':'1'}):response({data:[records.get(ids.normal)],not_found:[]});}});
  assert.equal(calls,2);assert.equal(retried.items[0].unitPrice,2.5);assert(waits.includes(1000));
  pass('temporary provider throttling honors Retry-After and recovers without changing the value');
