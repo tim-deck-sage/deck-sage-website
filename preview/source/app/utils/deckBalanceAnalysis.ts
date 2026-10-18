@@ -50,6 +50,7 @@ export type DeckBalanceBreakdown = {
   protectionCount: number;
   graveyardHateCount: number;
   finisherCount: number;
+  roleTargets: Record<string, number>;
   colorSources: Record<string, number>;
   colorDemand: Record<string, number>;
   planSignals: string[];
@@ -289,5 +290,6 @@ export function analyzeDeckBalance(deck: DeckForBalance): DeckBalanceBreakdown {
     ? `${deck.name} has a ${status.toLowerCase()} provisional shell. The list is too incomplete for confident final targets.`
     : `${deck.name} is rated ${status}. Targets adapt to its ${averageCmc.toFixed(1)} curve${planSignals.length?` and ${planSignals.join('/')} plan`:''}; they are guidance, not rigid rules.`;
 
-  return {status,summary,confidence,completeness,landCount,averageCmc,creatureCount,nonCreatureCount,rampCount,drawCount,removalCount,boardWipeCount,protectionCount,graveyardHateCount,finisherCount,colorSources,colorDemand,planSignals,tribe,strengths,concerns,recommendations,issues};
+  const roleTargets = {land:landTarget,ramp:rampTarget,advantage:advantageTarget,interaction:interactionTarget,wipe:wipeTarget,protection:protectionTarget,graveyard_hate:1,finisher:finisherTarget,commander_support:planSignals.includes('tap_commander')?(planSignals.includes('mana_engine')?5:4):0};
+  return {status,summary,confidence,completeness,landCount,averageCmc,creatureCount,nonCreatureCount,rampCount,drawCount,removalCount,boardWipeCount,protectionCount,graveyardHateCount,finisherCount,roleTargets,colorSources,colorDemand,planSignals,tribe,strengths,concerns,recommendations,issues};
 }
