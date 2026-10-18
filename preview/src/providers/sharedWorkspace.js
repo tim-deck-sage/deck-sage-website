@@ -34,6 +34,21 @@ export function createSharedWorkspace(guest,backend,{delay=700,uuid=()=>crypto.r
   try{const saved=await backend.save(pending.username,pending.state,pending.revision,pending.id);if(current!==epoch)return;base=validateState(saved.state);operation=null;writing=false;const dirty=!equal(snapshot.state,pending.state);emit({revision:saved.revision,dirty,status:dirty?'Changes waiting to sync':'Shared collection synced'});if(dirty)schedule();return saved;}
   catch(e){if(current!==epoch)return;writing=false;if(e.message?.includes('REVISION_CONFLICT')){blocked=true;operation=null;try{const remote=await backend.load(pending.username);if(current===epoch)emit({conflict:remote,error:'Another browser changed this collection. Export your pending changes, then choose which version to keep.',status:'Sync conflict'});}catch{if(current===epoch)emit({error:'Could not load the other version. Retry sync.',status:'Sync paused'});}}else emit({error:'Changes are still in memory. Export a backup before leaving, or retry sync. '+e.message,status:'Sync paused'});throw e;}
  }
+ async function commitAtomic(transform,{operationId=uuid(),retries=2,retryDelay=120}={}){
+  if(!backend||snapshot.mode!=='account')throw Error('SHARED_USERNAME_REQUIRED');
+  if(snapshot.dirty||writing||blocked||snapshot.conflict)throw Error('SYNC_NOT_READY');
+  const current=epoch,username=snapshot.username,revision=snapshot.revision,before=copy(snapshot.state);
+  const next=validateState(transform(copy(before)));
+  writing=true;emit({state:next,dirty:true,status:'Saving confirmed deck.',error:''});
+  let lastError;
+  for(let attempt=0;attempt<=retries;attempt+=1){
+   try{const saved=await backend.save(username,next,revision,operationId);if(current!==epoch)throw Error('ACCOUNT_CHANGED');base=validateState(saved.state);writing=false;emit({state:copy(base),revision:saved.revision,dirty:false,status:'Shared collection synced',error:''});return saved;}
+   catch(error){lastError=error;if(current!==epoch){writing=false;throw error;}if(error.message?.includes('REVISION_CONFLICT'))break;if(attempt<retries)await new Promise(resolve=>setTimeout(resolve,retryDelay*(attempt+1)));}
+  }
+  try{const remote=await backend.load(username);if(current!==epoch)throw Error('ACCOUNT_CHANGED');if(equal(validateState(remote.state),next)){base=validateState(remote.state);writing=false;emit({state:copy(base),revision:remote.revision,dirty:false,status:'Shared collection synced',error:''});return remote;}if(lastError?.message?.includes('REVISION_CONFLICT')){blocked=true;emit({state:before,revision,dirty:false,conflict:remote,error:'Another browser changed this collection before the deck was confirmed. Review the refreshed collection and try again.',status:'Sync conflict'});}else emit({state:before,revision,dirty:false,error:'The confirmed deck was not saved. Your collection is unchanged. '+lastError.message,status:'Save failed'});
+  }catch(loadError){emit({state:before,revision,dirty:false,error:'The confirmed deck could not be verified as saved. Reload this username before trying again. '+loadError.message,status:'Save unverified'});}
+  writing=false;throw lastError||Error('SAVE_FAILED');
+ }
  const api={
   getSnapshot:()=>snapshot,
   subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},
@@ -47,7 +62,7 @@ export function createSharedWorkspace(guest,backend,{delay=700,uuid=()=>crypto.r
   async logout({discard=false}={}){if((snapshot.dirty||writing||snapshot.conflict)&&!discard)throw Error('UNSAVED_SHARED_CHANGES');++epoch;clear();remember('');base=guest.load();emit({epoch,mode:'guest',state:copy(base),username:'',profile:null,revision:0,dirty:false,error:'',conflict:null,status:guestStatus});},
   async importGuest(){if(snapshot.mode!=='account'||snapshot.dirty||writing)throw Error('Sync shared changes before importing.');if(snapshot.revision!==0)throw Error('Import is available only before this shared workspace has been changed.');const current=epoch;blocked=true;emit({mode:'importing',status:'Importing browser collection'});try{const saved=await backend.save(snapshot.username,guest.load(),snapshot.revision,uuid());if(current!==epoch)return;blocked=false;enter(saved,'Browser collection imported');return saved;}catch(e){if(current===epoch){blocked=false;emit({mode:'account',error:e.message,status:'Import paused'});}throw e;}},
   resolveConflict(keepLocal){if(!snapshot.conflict)throw Error('Retry loading the conflicting version first.');base=validateState(snapshot.conflict.state);operation=null;blocked=false;emit({state:keepLocal?snapshot.state:copy(base),revision:snapshot.conflict.revision,dirty:keepLocal,conflict:null,error:'',status:keepLocal?'Changes waiting to sync':'Loaded other browser version'});if(keepLocal)schedule();},
-  exportGuest:()=>copy(guest.load()),sync,
+  exportGuest:()=>copy(guest.load()),sync,commitAtomic,
  };
  return api;
 }

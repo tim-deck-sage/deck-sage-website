@@ -13,12 +13,14 @@
     "test:upgrades": "node tests/regression/commander-upgrades.cjs",
     "test:value": "node tests/regression/card-value-pricing.cjs && node tests/regression/card-value.cjs",
     "test:batch-upload": "node tests/regression/batch-upload.cjs",
+    "test:bulk-discovery": "node tests/regression/bulk-deck-discovery.cjs && node tests/regression/bulk-deck-discovery-ui.cjs",
     "test:ai-scan": "node tests/regression/ai-scan-gateway.cjs && node tests/regression/ai-scan.cjs",
     "test:songs": "node tests/regression/commander-theme-player.cjs && node tests/regression/songs.cjs",
-    "test:accounts": "node tests/accounts/shared-sql.cjs && node tests/accounts/shared-controller.cjs && node tests/accounts/legacy-hardening.cjs",
+    "test:accounts": "node tests/accounts/shared-sql.cjs && node tests/accounts/shared-controller.cjs && node tests/accounts/bulk-atomic-persistence.cjs && node tests/accounts/legacy-hardening.cjs",
     "test:accounts:browser": "node tests/accounts/shared-controller.cjs",
     "test:accounts:hosted": "node tests/accounts/shared-hosted.cjs",
     "test:accounts:hosted-ui": "node tests/accounts/shared-ui-hosted.cjs",
+    "test:bulk-discovery:hosted-ui": "node tests/accounts/bulk-discovery-hosted-ui.cjs",
     "test:accounts:hardening": "node tests/accounts/legacy-hardening.cjs"
   },
   "dependencies": {
