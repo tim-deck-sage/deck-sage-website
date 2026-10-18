@@ -25,7 +25,7 @@ Each deck stores one validated value in the existing workspace state JSON: `bala
 
 Style only changes ranking weight. It cannot override legality, color identity, structural colored sources, enabler requirements, self-conflict rejection, essential role preservation, or low-evidence abstention. Every recommendation and hypothetical swap is an independently evaluated alternative, not a safe bundle to apply all at once.
 
-The in-worker cache is capped and keyed by the complete normalized deck input, command-zone cards, selected style, algorithm version (`2026-10-17.3`), and catalog snapshot. Cached results contain no username or account data; identical public card inputs may safely share the same deterministic result, while any list/style/version/snapshot change is a miss.
+The in-worker cache is capped and keyed by the complete normalized deck input, command-zone cards, selected style, algorithm version (`2026-10-18.1`), and catalog snapshot. Cached results contain no username or account data; identical public card inputs may safely share the same deterministic result, while any list/style/version/snapshot change is a miss.
 
 ## Catalog-backed before/after checks
 
@@ -37,6 +37,13 @@ The in-worker cache is capped and keyed by the complete normalized deck input, c
 | Mono-red creature-token deck | Generic symmetric wipes were eligible | `Vandalblast` is the only reviewed reset surviving the fixture | `Blasphemous Act`, `Farewell`, `Worldslayer`, `Furnace Dragon`, and other symmetric self-wipes are rejected. |
 | Four-color partner deck with zero explicit white sources | Any identity-legal white answer could rank | `Beast Within`, `Feed the Swarm`, `Abrade` | White-pip suggestions abstain until the structural source problem is repaired. |
 | Kenrith, the Returned King; two different complete five-color lists | A flexible commander's identity could dominate the same generic output | Token density selects token payoffs; graveyard density selects `Syr Konrad, the Grim` / `Living Death` | The full 99 now supplies the evidence, even when commander identity is unchanged. |
+
+## October 18 typal and land-ramp correction
+
+- Creature-class subtypes are no longer discarded. Every subtype present after the creature type-line separator is eligible, including Wizard, Soldier, Warrior, and Knight. A type is selected only when density plus actual commander/deck rules support distinguish it; unsupported and tied Human/Wizard piles abstain. Mixed-species Wizards and Human Wizards with Wizard-specific support correctly select Wizard, while Human-specific support can select Human.
+- Recommendation relationships now require the named type in rules text. A generic word such as “other” cannot fabricate a Wizard explanation. Catalog-backed Wizard fixtures surface `Azami, Lady of Scrolls` with the actual supporting Wizard cards named in the explanation.
+- Land-search parsing keeps search and battlefield placement in the same bounded Oracle-text effect. It recognizes singular and multiple basics, “one … the other,” Forest and basic-land-type searches, and `it`/`that card`/`them` placement. Net-positive sacrifice effects such as `Harrow` count; replacements such as `Crop Rotation`, hand-only tutors such as `Land Tax`, ordinary extra land drops, opponent-only searches, and unrelated later battlefield clauses do not.
+- Current catalog records for `Rampant Growth`, `Cultivate`, `Kodama's Reach`, `Nature's Lore`, `Three Visits`, `Farseek`, `Harrow`, `Roiling Regrowth`, `Knight of the White Orchid`, `Land Tax`, and `Crop Rotation` are exercised directly. Catch-up ramp is weighted conditionally rather than as fully reliable.
 
 The browser regression records exact outputs, generated reasons, hypothetical swap outcomes, and a cold-worker timing sample in `tests/regression/commander-upgrades-report.json` (test artifact, ignored by Git). The committed assertions cover determinism, desktop/mobile rendering, repeated navigation, add cancellation without mutation, and no external writes.
 

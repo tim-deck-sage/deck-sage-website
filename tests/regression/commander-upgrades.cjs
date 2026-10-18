@@ -38,6 +38,53 @@ function analysisFixtures() {
   assert.equal(falsePositive.landCount, 34, 'named lands and basics are both counted');
   pass('False-positive guards separate artifacts, cantrips, self-protection, modal wipes, finishers, and named lands');
 
+  const rampOracle = [
+    ['Rampant Growth', 'Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.'],
+    ['Cultivate', 'Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.'],
+    ["Kodama's Reach", 'Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.'],
+    ["Nature's Lore", 'Search your library for a Forest card, put that card onto the battlefield, then shuffle.'],
+    ['Three Visits', 'Search your library for a Forest card, put it onto the battlefield, then shuffle.'],
+    ['Farseek', 'Search your library for a Plains, Island, Swamp, or Mountain card, put it onto the battlefield tapped, then shuffle.'],
+    ['Migration Path', 'Search your library for up to two basic land cards, put them onto the battlefield tapped, then shuffle.'],
+    ['Harrow', 'As an additional cost to cast this spell, sacrifice a land. Search your library for up to two basic land cards, put them onto the battlefield, then shuffle.'],
+    ['Roiling Regrowth', 'Sacrifice a land. Search your library for up to two basic land cards, put them onto the battlefield tapped, then shuffle.'],
+    ['Entish Restoration', 'Sacrifice a land. Search your library for up to two basic land cards, put them onto the battlefield tapped, then shuffle. If you control a creature with power 4 or greater, instead search your library for up to three basic land cards, put them onto the battlefield tapped, then shuffle.']
+  ].map(([name, oracleText]) => synthetic(name, 'Sorcery', oracleText, 3, '{2}{G}'));
+  for (const rampCard of rampOracle) assert.equal(analyze(shell(rampCard.name, commander, [rampCard], basics({ Island: 36 }))).rampCount, 1, `${rampCard.name} should count as one reliable ramp piece`);
+  const conditionalRamp = synthetic('Knight of the White Orchid', 'Creature — Human Knight', 'First strike. When this creature enters, if an opponent controls more lands than you, you may search your library for a Plains card, put it onto the battlefield, then shuffle.', 2, '{W}{W}');
+  assert.equal(analyze(shell('Conditional catch-up ramp', commander, [conditionalRamp], basics({ Island: 36 }))).rampCount, .65, 'catch-up land ramp should be credited conditionally rather than as fully reliable');
+  const nonRampOracle = [
+    ['Land Tax', 'At the beginning of your upkeep, if an opponent controls more lands than you, you may search your library for up to three basic land cards, reveal them, put them into your hand, then shuffle.'],
+    ['Explore', 'You may play an additional land this turn. Draw a card.'],
+    ['Crop Rotation', 'As an additional cost to cast this spell, sacrifice a land. Search your library for a land card, put that card onto the battlefield, then shuffle.'],
+    ['Scapeshift', 'Sacrifice any number of lands. Search your library for up to that many land cards, put them onto the battlefield tapped, then shuffle.'],
+    ['Opponent Gift', 'Target opponent may search their library for a basic land card, put that card onto the battlefield tapped, then shuffle.'],
+    ['Unrelated Clauses', 'Search your library for a basic land card, reveal it, put it into your hand, then shuffle. Put target creature card from your graveyard onto the battlefield.']
+  ].map(([name, oracleText]) => synthetic(name, 'Sorcery', oracleText, 2, '{1}{G}'));
+  for (const card of nonRampOracle) assert.equal(analyze(shell(card.name, commander, [card], basics({ Island: 36 }))).rampCount, 0, `${card.name} must not count as net mana acceleration`);
+  const rampComplete = analyze(shell('Real land ramp', commander, [...rampOracle.slice(0, 8), ...Array.from({ length: 54 }, (_, index) => synthetic(`Ramp filler ${index}`, 'Creature — Beast', '', 2, '{1}{G}'))], basics({ Island: 37 })));
+  assert.equal(rampComplete.rampCount, 8); assert(!rampComplete.issues.some(issue => issue.id === 'ramp'), 'eight real land-ramp spells should satisfy the adaptive ramp target');
+  pass('Land-search parsing recognizes single, multiple, one-and-other, named-subtype, and net-positive sacrifice ramp without counting tutors or land replacements');
+
+  const typalCommander = (type, text = `Other ${type}s you control get +1/+1.`) => ({ ...synthetic(`${type} Leader`, `Legendary Creature — ${type}`, text, 3, '{2}{U}'), colorIdentity: ['U'] });
+  const typalCards = (type, count = 10, extra = '') => Array.from({ length: count }, (_, index) => synthetic(`${type} ${index}`, `Creature — ${extra}${extra ? ' ' : ''}${type}`, index < 2 ? `Other ${type}s you control have ward {1}.` : '', 2, '{1}{U}'));
+  for (const type of ['Wizard', 'Soldier', 'Warrior', 'Knight']) {
+    const result = analyze(shell(`${type} evidence`, typalCommander(type), [...typalCards(type), ...Array.from({ length: 12 }, (_, index) => synthetic(`${type} filler ${index}`, 'Creature — Beast', '', 2, '{1}{U}'))], basics({ Island: 37 })));
+    assert.equal(result.tribe, type); assert(result.planSignals.includes('typal'));
+  }
+  const humanWizards = Array.from({ length: 10 }, (_, index) => synthetic(`Human Wizard ${index}`, 'Creature — Human Wizard', index < 3 ? 'Wizards you control have ward {1}.' : '', 2, '{1}{U}'));
+  const wizardFavored = analyze(shell('Wizard over Human', typalCommander('Wizard'), [...humanWizards, ...Array.from({ length: 12 }, (_, index) => synthetic(`Faerie ${index}`, 'Creature — Faerie', '', 2, '{1}{U}'))], basics({ Island: 37 })));
+  assert.equal(wizardFavored.tribe, 'Wizard');
+  const humanFavoredCards = Array.from({ length: 10 }, (_, index) => synthetic(`Human Wizard H${index}`, 'Creature — Human Wizard', index < 3 ? 'Humans you control have ward {1}.' : '', 2, '{1}{U}'));
+  const humanFavored = analyze(shell('Human over Wizard', typalCommander('Human', 'Other Humans you control get +1/+1.'), [...humanFavoredCards, ...Array.from({ length: 12 }, (_, index) => synthetic(`Spirit ${index}`, 'Creature — Spirit', '', 2, '{1}{U}'))], basics({ Island: 37 })));
+  assert.equal(humanFavored.tribe, 'Human');
+  const mixedWizards = ['Human', 'Merfolk', 'Faerie', 'Vedalken'].flatMap(species => Array.from({ length: 3 }, (_, index) => synthetic(`${species} Wizard ${index}`, `Creature — ${species} Wizard`, index === 0 ? 'Other Wizards you control have ward {1}.' : '', 2, '{1}{U}')));
+  const mixedResult = analyze(shell('Mixed Wizards', typalCommander('Wizard'), [...mixedWizards, ...Array.from({ length: 10 }, (_, index) => synthetic(`Mixed filler ${index}`, 'Creature — Illusion', '', 2, '{1}{U}'))], basics({ Island: 37 })));
+  assert.equal(mixedResult.tribe, 'Wizard');
+  const ambiguous = analyze(shell('Ambiguous Human Wizards', synthetic('Generic Leader', 'Legendary Creature — Human Wizard', 'Scry 1.', 3, '{2}{U}'), [...Array.from({ length: 10 }, (_, index) => synthetic(`Ambiguous ${index}`, 'Creature — Human Wizard', '', 2, '{1}{U}')), ...Array.from({ length: 12 }, (_, index) => synthetic(`Ambiguous filler ${index}`, 'Creature — Beast', '', 2, '{1}{U}'))], basics({ Island: 37 })));
+  assert.equal(ambiguous.tribe, undefined); assert(!ambiguous.planSignals.includes('typal'));
+  pass('Evidence-based typal detection supports Wizard, Soldier, Warrior, and Knight classes; resolves overlapping Human Wizard plans; and abstains on unsupported ties');
+
   const goblins = Array.from({ length: 24 }, (_, index) => synthetic(`Goblin ${index}`, 'Creature — Goblin', index < 8 ? 'Create a 1/1 red Goblin creature token.' : '', 2, '{1}{R}'));
   const krenko = { ...synthetic('Krenko, Mob Boss', 'Legendary Creature — Goblin Warrior', '{T}: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.', 4, '{2}{R}{R}'), colorIdentity: ['R'] };
   const krenkoResult = analyze(shell('Krenko fixture', krenko, [...goblins, ...Array.from({ length: 38 }, (_, i) => synthetic(`Red spell ${i}`, 'Sorcery', 'Target creature gets +1/+0 until end of turn.', 3, '{2}{R}'))], basics({ Mountain: 37 })));
@@ -105,6 +152,11 @@ async function browserFixtures() {
     const page = await context.newPage(); page.on('pageerror', error => report.errors.push(error.message)); await page.goto(`${baseUrl}/#/home`);
     const [krenko, marwyn, lutri, tolabow, tana, tymna, kenrith] = await resolve(page, ['Krenko, Mob Boss', 'Marwyn, the Nurturer', 'Lutri, the Spellchaser', 'Tolabow, Loch Rascal', 'Tana, the Bloodsower', 'Tymna the Weaver', 'Kenrith, the Returned King']);
     assert.equal(lutri.legalities.commander, 'legal'); pass('Current catalog preserves Lutri as Commander-legal while the official restriction remains companion-only');
+    const catalogRamp = await resolve(page, ['Rampant Growth', 'Cultivate', "Kodama's Reach", "Nature's Lore", 'Three Visits', 'Farseek', 'Harrow', 'Roiling Regrowth', 'Knight of the White Orchid', 'Land Tax', 'Crop Rotation']);
+    for (const card of catalogRamp.slice(0, 8)) assert.equal(analyze(shell(`Catalog ${card.name}`, krenko, [card], basics({ Mountain: 36 }))).rampCount, 1, `${card.name} catalog Oracle text should count as ramp`);
+    assert.equal(analyze(shell('Catalog catch-up ramp', krenko, [catalogRamp[8]], basics({ Mountain: 36 }))).rampCount, .65);
+    for (const card of catalogRamp.slice(9)) assert.equal(analyze(shell(`Catalog ${card.name}`, krenko, [card], basics({ Mountain: 36 }))).rampCount, 0, `${card.name} catalog Oracle text should not count as net ramp`);
+    pass('Current local catalog Oracle records reproduce the land-ramp positives and net-ramp negatives');
 
     const issues = [
       { id: 'ramp', label: 'Mana acceleration', severity: 'important', evidence: 'Low ramp.', recommendation: 'Add ramp.', candidateRole: 'ramp' },
@@ -113,6 +165,13 @@ async function browserFixtures() {
       { id: 'finishers', label: 'Closing the game', severity: 'important', evidence: 'No finishers.', recommendation: 'Add a payoff.', candidateRole: 'finisher' }
     ];
     const commanderIssue = { id: 'commander_support', label: 'Commander engine support', severity: 'important', evidence: 'Tap engine lacks support.', recommendation: 'Add haste, untap, or protection.', candidateRole: 'commander_support' };
+    const wizardCards = [...Array.from({ length: 20 }, (_, index) => synthetic(`Wizard body ${index}`, 'Creature — Human Wizard', index < 4 ? 'Other Wizards you control have ward {1}.' : '', 2, '{1}{U}')), ...Array.from({ length: 42 }, (_, index) => synthetic(`Wizard support ${index}`, 'Sorcery', 'Scry 1.', 2, '{1}{U}'))];
+    const wizardStaples = ['Rhystic Study','Skullclamp','Idol of Oblivion','Mystic Remora','Archmage Emeritus',"Tocasia's Welcome",'Trouble in Pairs','Esper Sentinel','Phyrexian Arena','Black Market Connections','Morbid Opportunist','Professional Face-Breaker','Valakut Exploration','Guardian Project','Beast Whisperer','Toski, Bearer of Secrets','Return of the Wildspeaker'];
+    const wizardRun = await worker(page, '/api/recommendations', { colors: ['U'], issues: [issues[1]], planSignals: ['typal'], tribe: 'Wizard', playstyle: 'balanced', deckCards: wizardCards, commanders: [], basicLands: basics({ Island: 38 }), targetSize: 100, existingOracleIds: [], existingNames: wizardStaples });
+    const wizardCandidate = wizardRun.groups[0].cards.find(item => item.card.name === 'Azami, Lady of Scrolls');
+    assert(wizardCandidate, 'supported Wizard evidence should make Azami eligible as repeatable card advantage'); assert.match(wizardCandidate.why, /Wizard support is already present from Wizard body/);
+    for (const item of wizardRun.groups[0].cards) if (/Wizard support/.test(item.why)) assert(/\bWizards?\b/i.test(item.card.oracleText), `${item.card.name} must not receive a Wizard explanation without Wizard rules text`);
+    pass('Wizard recommendations consume the corrected subtype evidence and never infer support from an unrelated word such as “other”');
     const krenkoCards = [...Array.from({ length: 24 }, (_, index) => synthetic(`Goblin body ${index}`, 'Creature - Goblin', index < 8 ? 'Create a 1/1 red Goblin creature token.' : 'Haste', 2, '{1}{R}')), ...Array.from({ length: 38 }, (_, index) => synthetic(`Red support ${index}`, 'Sorcery', 'Target creature gets +1/+0 until end of turn.', 3, '{2}{R}'))];
     const request = { colors: ['R'], issues: [...issues, commanderIssue], planSignals: ['tokens', 'typal', 'tap_commander', 'commander_tokens'], tribe: 'Goblin', playstyle: 'balanced', forestTargets: 0, humanRatio: 0, deckCards: krenkoCards, commanders: [{ ...krenko, role: 'primary' }], basicLands: basics({ Mountain: 37 }), targetSize: 100, existingOracleIds: [krenko.oracleId], existingNames: [krenko.name] };
     const sequence = await workerSequence(page, [{ path: '/api/recommendations', body: request }, { path: '/api/recommendations', body: request }, { path: '/api/recommendations', body: { ...request, playstyle: 'aggressive' } }]), [first, second, styleMiss] = sequence.results, [coldMs, cacheMs, styleMs] = sequence.durations;
@@ -120,7 +179,7 @@ async function browserFixtures() {
     assert(coldMs < 8000, `cold worker recommendation should remain interactive; took ${coldMs}ms`);
     const names = value => value.groups.map(group => [group.issue.id, group.cards.map(item => item.card.name)]);
     assert.deepEqual(names(first), names(second));
-    assert.equal(first.cacheStatus, 'miss'); assert.equal(second.cacheStatus, 'hit'); assert.equal(styleMiss.cacheStatus, 'miss'); assert.equal(first.algorithmVersion, '2026-10-17.3');
+    assert.equal(first.cacheStatus, 'miss'); assert.equal(second.cacheStatus, 'hit'); assert.equal(styleMiss.cacheStatus, 'miss'); assert.equal(first.algorithmVersion, '2026-10-18.1');
     pass('Recommendation cache hits only for the same full deck, commander, style, algorithm, and data snapshot');
     assert(['Sol Ring','Arcane Signet','Mind Stone'].includes(first.groups.find(group => group.issue.id === 'ramp').cards[0].card.name), `a reliable ramp shortage should prioritize repeatable acceleration over sacrifice or combat-dependent burst mana; received ${JSON.stringify(names(first))}`);
     assert(first.groups.find(group => group.issue.id === 'finishers').cards.some(item => ['Impact Tremors', 'Purphoros, God of the Forge', 'Shared Animosity', 'Goblin Bombardment', 'Thornbite Staff'].includes(item.card.name)));
@@ -137,7 +196,7 @@ async function browserFixtures() {
     assert(styleMiss.groups.flatMap(group => group.cards).some(item => /Aggressive emphasis/.test(item.why)));
     assert(patientRun.groups.flatMap(group => group.cards).some(item => /Patient emphasis/.test(item.why)));
     assert(unpredictableRun.groups.find(group => group.issue.id === 'interaction').cards.some(item => /Unpredictable emphasis/.test(item.why)));
-    assert(['Sol Ring','Arcane Signet','Mind Stone'].includes(styleMiss.groups.find(group => group.issue.id === 'ramp').cards[0].card.name), 'Aggressive emphasis cannot displace reliable acceleration with burst or conditional ramp');
+    assert(['Sol Ring','Arcane Signet','Mind Stone'].includes(styleMiss.groups.find(group => group.issue.id === 'ramp').cards[0].card.name), `Aggressive emphasis cannot displace reliable acceleration with burst or conditional ramp; received ${JSON.stringify(names(styleMiss))}`);
     for (const styled of [styleMiss, patientRun, unpredictableRun]) for (const item of styled.groups.flatMap(group => group.cards)) { assert.equal(item.card.legalities.commander, 'legal'); assert(!item.card.colorIdentity.some(color => color !== 'R')); }
     assert.notDeepEqual(names(styleMiss), names(unpredictableRun), 'style may reorder emphasis while keeping hard constraints fixed');
     report.representativeRecommendations.styles = { balanced: names(first), aggressive: names(styleMiss), patient: names(patientRun), unpredictable: names(unpredictableRun) };

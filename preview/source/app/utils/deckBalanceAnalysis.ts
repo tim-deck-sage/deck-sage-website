@@ -66,10 +66,31 @@ function isLand(card: DeckCard): boolean { return /(^|\s|—)land(\s|$|—)/i.te
 function isCreature(card: DeckCard): boolean { return /creature/i.test(card.typeLine || ''); }
 function amount(card: DeckCard): number { return Math.max(1, Number(card.quantity) || 1); }
 
+function wordNumber(value: string): number {
+  const normalized = lower(value).replace(/^up to\s+/, '').trim();
+  return ({a: 1, an: 1, one: 1, two: 2, three: 3, four: 4} as Record<string, number>)[normalized] || 1;
+}
+
+function landSearchRampWeight(rules: string): number {
+  const searches = [...rules.matchAll(/search your library for\s+(up to\s+)?(a|an|one|two|three|four|x)\s+([^.]{1,180}?)(?:,\s*(?:reveal [^.]{0,100}?,\s*)?|\s+and\s+)put\s+(one|it|that card|them|those cards|the rest|any number of them)\s+onto the battlefield/gi)];
+  let best = 0;
+  for (const match of searches) {
+    const searchStart = match.index || 0, count = wordNumber(`${match[1] || ''}${match[2]}`);
+    if (!/(?:basic\s+land|\bland card|plains|island|swamp|mountain|forest)/i.test(match[3])) continue;
+    const placed = /^(?:them|those cards|the rest|any number of them)$/i.test(match[4]) ? count : 1;
+    const prefix = rules.slice(Math.max(0, searchStart - 220), searchStart), sacrifice = /sacrifice (?:a|one) land/i.test(prefix) ? 1 : 0;
+    if (placed - sacrifice <= 0) continue;
+    const conditional = /if an opponent controls more lands|if a player controls more lands|whenever [^.]{0,100}(?:deals combat damage|attacks)/i.test(prefix);
+    best = Math.max(best, conditional ? .65 : 1);
+  }
+  return best;
+}
+
 function rampWeight(card: DeckCard): number {
   if (isLand(card)) return 0;
   const rules = lower(card.oracleText);
-  if (/search your library for (?:an? )?(?:basic )?land card[^.]*put (?:it|that card) onto the battlefield/i.test(rules)) return 1;
+  const landSearch = landSearchRampWeight(rules);
+  if (landSearch) return landSearch;
   if (/(?:\{t\}|tap an untapped)[^:]{0,100}:?\s*add\s+(?:\{|one|two|three|x)/i.test(rules) && !/sacrifice/i.test(rules)) return 1;
   if (/add (?:one|two|three|x|an amount of) mana/i.test(rules) && !/sacrifice/i.test(rules)) return .75;
   if (/(?:spells?|creatures?) (?:you cast )?cost [^.]*(?:less|to cast)/i.test(rules)) return .6;
@@ -195,15 +216,35 @@ function detectPlan(deck: DeckForBalance, cards: DeckCard[]) {
   if (commanders.some(card => /\{t\}:/i.test(card.oracleText || ''))) signals.push('tap_commander');
   if (commanders.some(card => /create [^.]*token/i.test(card.oracleText || ''))) signals.push('commander_tokens');
   if (commanders.some(card => /add an amount of [^.]* equal to [^.]* power/i.test(card.oracleText || ''))) signals.push('mana_engine');
-  const types = new Map<string, number>();
-  const classTypes = new Set(['Advisor','Archer','Artificer','Assassin','Barbarian','Bard','Berserker','Cleric','Druid','Knight','Monk','Noble','Pirate','Ranger','Rogue','Scout','Shaman','Soldier','Warlock','Warrior','Wizard']);
-  for (const card of cards.filter(isCreature)) {
-    const tail = String(card.typeLine || '').split('—')[1] || '';
-    for (const type of tail.trim().split(/\s+/).filter(Boolean)) if (!['and', 'or'].includes(lower(type)) && !classTypes.has(type)) types.set(type, (types.get(type) || 0) + amount(card));
+  const subtypeCounts = new Map<string, number>(), supportCounts = new Map<string, number>(), commandersWithSupport = new Set<string>();
+  const subtypeWords = (card: DeckCard) => {
+    const typeLine = String(card.typeLine || ''), separator = typeLine.match(/\s(?:—|–|-)\s/);
+    if (!separator || !isCreature(card)) return [];
+    const tail = typeLine.slice((separator.index || 0) + separator[0].length).replace(/\bTime Lord\b/g, 'Time_Lord');
+    return [...new Set(tail.split(/\s+/).map(value => value.replace('_', ' ')).filter(value => value && !['and', 'or'].includes(lower(value))))];
+  };
+  const typeForms = (type: string) => {
+    const irregular: Record<string, string> = {Elf:'Elves',Dwarf:'Dwarves',Mouse:'Mice',Child:'Children',Ox:'Oxen'};
+    return [type, irregular[type] || (type.endsWith('s') ? `${type}es` : `${type}s`)];
+  };
+  const supportsType = (card: DeckCard, type: string) => {
+    const forms = typeForms(type).map(value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), rules = String(card.oracleText || '');
+    return new RegExp(`(?:another|other|each|target|all|number of|for each)\\s+(?:${forms})\\b|\\b(?:${forms})\\s+(?:you control|spells? you cast|creatures? you control|gets?|have|gain|enter|dies?|attacks?)`, 'i').test(rules);
+  };
+  const creatureTotal = cards.filter(isCreature).reduce((sum, card) => sum + amount(card), 0);
+  for (const card of cards.filter(isCreature)) for (const type of subtypeWords(card)) subtypeCounts.set(type, (subtypeCounts.get(type) || 0) + amount(card));
+  for (const type of subtypeCounts.keys()) {
+    supportCounts.set(type, cards.filter(card => supportsType(card, type)).reduce((sum, card) => sum + amount(card), 0));
+    if (commanders.some(card => supportsType(card, type))) commandersWithSupport.add(type);
   }
-  const tribe = [...types.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
-  if (tribe && tribe[1] >= 8) signals.push('typal');
-  return {signals: [...new Set(signals)], tribe: tribe?.[1] >= 8 ? tribe[0] : undefined};
+  const candidates = [...subtypeCounts.entries()].map(([type, count]) => {
+    const support = supportCounts.get(type) || 0, commanderSupport = commandersWithSupport.has(type), commanderSubtype = commanders.some(card => subtypeWords(card).includes(type));
+    return {type,count,support,commanderSupport,score:count+support*3+(commanderSupport?6:0)+(commanderSubtype ? .5 : 0)};
+  }).filter(item => item.count >= 8 && item.count / Math.max(1, creatureTotal) >= .25 && (item.commanderSupport || item.support >= 2))
+    .sort((a, b) => b.score - a.score || b.support - a.support || b.count - a.count || a.type.localeCompare(b.type));
+  const tribe = candidates[0] && (!candidates[1] || candidates[0].score - candidates[1].score >= 2) ? candidates[0].type : undefined;
+  if (tribe) signals.push('typal');
+  return {signals: [...new Set(signals)], tribe};
 }
 
 export function analyzeDeckBalance(deck: DeckForBalance): DeckBalanceBreakdown {
