@@ -17,6 +17,12 @@ if(!config&&fs.existsSync(configFile)){
 fs.writeFileSync(configFile,'window.DECK_SAGE_ACCOUNTS='+JSON.stringify(config)+';');
 let html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
 html=html.replace(/connect-src 'self'(?: https:\/\/mihmykgxbneuhlcxolzm\.supabase\.co)?;/,"connect-src 'self'"+(config?' '+config.url:'')+';');
+if(!html.includes('/publisher-config.js'))html=html.replace('<script src="/news-config.js" defer></script>','<script src="/news-config.js" defer></script><script src="/publisher-config.js" defer></script>');
+const publicOrigin='https://mihmykgxbneuhlcxolzm.supabase.co';
+if(!/img-src[^;]*blob:/.test(html))html=html.replace("img-src 'self'","img-src 'self' blob:");
+if(!/media-src[^;]*blob:/.test(html))html=html.replace("media-src 'self'","media-src 'self' blob:");
+if(!/img-src[^;]*mihmykgxbneuhlcxolzm/.test(html))html=html.replace("img-src 'self'","img-src 'self' "+publicOrigin);
+if(!/media-src[^;]*mihmykgxbneuhlcxolzm/.test(html))html=html.replace("media-src 'self'","media-src 'self' "+publicOrigin);
 fs.writeFileSync(path.join(root,'public/index.html'),html);
 esbuild.build({entryPoints:[path.join(root,'src/app.jsx')],bundle:true,minify:true,legalComments:'eof',platform:'browser',format:'iife',target:'es2020',outfile:path.join(root,'public/app.js'),define:{'process.env.NODE_ENV':'"production"'},plugins:[{name:'original-adapters',setup(build){
  build.onResolve({filter:/.*/},args=>{if(!args.path.startsWith('.'))return;let file=path.resolve(args.resolveDir,args.path);for(const candidate of [file,file+'.ts'])if(aliases[candidate])return {path:aliases[candidate]};});
