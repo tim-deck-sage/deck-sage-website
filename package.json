@@ -11,6 +11,7 @@
     "test:homepage": "node tests/regression/homepage-redesign.cjs",
     "test:decks": "node tests/regression/commander-display-art.cjs && node tests/regression/my-decks.cjs && node tests/regression/deck-details-war-table.cjs",
     "test:upgrades": "node tests/regression/commander-upgrades.cjs",
+    "test:value": "node tests/regression/card-value-pricing.cjs && node tests/regression/card-value.cjs",
     "test:batch-upload": "node tests/regression/batch-upload.cjs",
     "test:ai-scan": "node tests/regression/ai-scan-gateway.cjs && node tests/regression/ai-scan.cjs",
     "test:songs": "node tests/regression/commander-theme-player.cjs && node tests/regression/songs.cjs",
