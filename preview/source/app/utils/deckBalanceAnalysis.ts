@@ -1,3 +1,5 @@
+import { classifyRampCard } from '../../../public/ramp-classification';
+
 type DeckCard = {
   name: string;
   manaCost?: string;
@@ -66,38 +68,8 @@ function isLand(card: DeckCard): boolean { return /(^|\s|—)land(\s|$|—)/i.te
 function isCreature(card: DeckCard): boolean { return /creature/i.test(card.typeLine || ''); }
 function amount(card: DeckCard): number { return Math.max(1, Number(card.quantity) || 1); }
 
-function wordNumber(value: string): number {
-  const normalized = lower(value).replace(/^up to\s+/, '').trim();
-  return ({a: 1, an: 1, one: 1, two: 2, three: 3, four: 4} as Record<string, number>)[normalized] || 1;
-}
-
-function landSearchRampWeight(rules: string): number {
-  const searches = [...rules.matchAll(/search your library for\s+(up to\s+)?(a|an|one|two|three|four|x)\s+([^.]{1,180}?)(?:,\s*(?:reveal [^.]{0,100}?,\s*)?|\s+and\s+)put\s+(one|it|that card|them|those cards|the rest|any number of them)\s+onto the battlefield/gi)];
-  let best = 0;
-  for (const match of searches) {
-    const searchStart = match.index || 0, count = wordNumber(`${match[1] || ''}${match[2]}`);
-    if (!/(?:basic\s+land|\bland card|plains|island|swamp|mountain|forest)/i.test(match[3])) continue;
-    const placed = /^(?:them|those cards|the rest|any number of them)$/i.test(match[4]) ? count : 1;
-    const prefix = rules.slice(Math.max(0, searchStart - 220), searchStart), sacrifice = /sacrifice (?:a|one) land/i.test(prefix) ? 1 : 0;
-    if (placed - sacrifice <= 0) continue;
-    const conditional = /if an opponent controls more lands|if a player controls more lands|whenever [^.]{0,100}(?:deals combat damage|attacks)/i.test(prefix);
-    best = Math.max(best, conditional ? .65 : 1);
-  }
-  return best;
-}
-
 function rampWeight(card: DeckCard): number {
-  if (isLand(card)) return 0;
-  const rules = lower(card.oracleText);
-  const landSearch = landSearchRampWeight(rules);
-  if (landSearch) return landSearch;
-  if (/(?:\{t\}|tap an untapped)[^:]{0,100}:?\s*add\s+(?:\{|one|two|three|x)/i.test(rules) && !/sacrifice/i.test(rules)) return 1;
-  if (/add (?:one|two|three|x|an amount of) mana/i.test(rules) && !/sacrifice/i.test(rules)) return .75;
-  if (/(?:spells?|creatures?) (?:you cast )?cost [^.]*(?:less|to cast)/i.test(rules)) return .6;
-  if (/whenever[^.]{0,120}create (?:a|one|two|three|x) treasure token/i.test(rules)) return .5;
-  if (/create (?:a|one|two|three|x) treasure token/i.test(rules)) return .35;
-  if (/sacrifice [^.:]+:?\s*add/i.test(rules)) return .35;
-  return 0;
+  return classifyRampCard(card).weight;
 }
 
 function advantageWeight(card: DeckCard): number {

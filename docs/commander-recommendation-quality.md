@@ -25,7 +25,9 @@ Each deck stores one validated value in the existing workspace state JSON: `bala
 
 Style only changes ranking weight. It cannot override legality, color identity, structural colored sources, enabler requirements, self-conflict rejection, essential role preservation, or low-evidence abstention. Every recommendation and hypothetical swap is an independently evaluated alternative, not a safe bundle to apply all at once.
 
-The in-worker cache is capped and keyed by the complete normalized deck input (including faces, mana costs, layout, and metadata status), command-zone cards, selected style, algorithm version (`2026-10-18.2`), and catalog snapshot. Cached results contain no username or account data; identical public card inputs may safely share the same deterministic result, while any list/style/version/snapshot change is a miss.
+The in-worker cache is capped and keyed by the complete normalized deck input (including faces, mana costs, layout, and metadata status), command-zone cards, selected style, algorithm version (`2026-10-18.3`), and catalog snapshot. Cached results contain no username or account data; identical public card inputs may safely share the same deterministic result, while any list/style/version/snapshot change is a miss.
+
+Ramp classification has one browser-safe source in `preview/public/ramp-classification.js`. The balance analyzer imports it into the main application bundle, while the recommendation worker loads the same deployed file before profiling a deck. Net-positive land searches and repeatable mana are separated from catch-up/conditional acceleration, one-shot burst mana, land-to-hand fixing, and land replacements. Worker role coverage, candidate ranking, weighted ramp totals, swap explanations, and Suggested Cuts protection all consume that shared result. The worker exposes its weighted ramp profile in recommendation results so cross-engine parity can be checked against the same complete legal deck, and algorithm-version cache invalidation refreshes previously divergent results.
 
 ## Suggested Cuts review
 

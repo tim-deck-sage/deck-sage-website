@@ -5,15 +5,17 @@ const Module = require('module');
 const runtime = process.env.DECK_SAGE_TEST_NODE_MODULES || 'C:/Users/timmo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';
 const { chromium } = require(path.join(runtime, 'playwright'));
 const esbuild = require(path.resolve(__dirname, '../../node_modules/esbuild'));
+const { classifyRampCard } = require(path.resolve(__dirname, '../../preview/public/ramp-classification.js'));
 const baseUrl = process.env.DECK_SAGE_PREVIEW_URL || 'http://127.0.0.1:4184';
 const storageKey = 'deck-sage-web-v1';
 const report = { checks: [], errors: [], externalWrites: [], representativeRecommendations: {}, beforeAfter: {}, performance: {}, reasonSamples: {}, startedAt: new Date().toISOString() };
 function pass(name) { report.checks.push(name); console.log('PASS', name); }
 
 function loadAnalysis() {
-  const source = fs.readFileSync(path.resolve(__dirname, '../../preview/source/app/utils/deckBalanceAnalysis.ts'), 'utf8');
+  const sourcePath = path.resolve(__dirname, '../../preview/source/app/utils/deckBalanceAnalysis.ts');
+  const source = fs.readFileSync(sourcePath, 'utf8');
   const code = esbuild.transformSync(source, { loader: 'ts', format: 'cjs', target: 'node20' }).code;
-  const mod = new Module('deck-balance-test'); mod.filename = 'deckBalanceAnalysis.cjs'; mod.paths = module.paths; mod._compile(code, mod.filename); return mod.exports.analyzeDeckBalance;
+  const mod = new Module(sourcePath); mod.filename = sourcePath; mod.paths = Module._nodeModulePaths(path.dirname(sourcePath)); mod._compile(code, mod.filename); return mod.exports.analyzeDeckBalance;
 }
 const analyze = loadAnalysis();
 const basics = (values = {}) => ({ Plains: 0, Island: 0, Swamp: 0, Mountain: 0, Forest: 0, Wastes: 0, ...values });
@@ -50,9 +52,9 @@ function analysisFixtures() {
     ['Roiling Regrowth', 'Sacrifice a land. Search your library for up to two basic land cards, put them onto the battlefield tapped, then shuffle.'],
     ['Entish Restoration', 'Sacrifice a land. Search your library for up to two basic land cards, put them onto the battlefield tapped, then shuffle. If you control a creature with power 4 or greater, instead search your library for up to three basic land cards, put them onto the battlefield tapped, then shuffle.']
   ].map(([name, oracleText]) => synthetic(name, 'Sorcery', oracleText, 3, '{2}{G}'));
-  for (const rampCard of rampOracle) assert.equal(analyze(shell(rampCard.name, commander, [rampCard], basics({ Island: 36 }))).rampCount, 1, `${rampCard.name} should count as one reliable ramp piece`);
+  for (const rampCard of rampOracle) { assert.deepEqual(classifyRampCard(rampCard), { kind: 'reliable', weight: 1, basis: 'net-land-search' }, `${rampCard.name} should use the shared reliable-ramp classification`); assert.equal(analyze(shell(rampCard.name, commander, [rampCard], basics({ Island: 36 }))).rampCount, 1, `${rampCard.name} should count as one reliable ramp piece`); }
   const conditionalRamp = synthetic('Knight of the White Orchid', 'Creature — Human Knight', 'First strike. When this creature enters, if an opponent controls more lands than you, you may search your library for a Plains card, put it onto the battlefield, then shuffle.', 2, '{W}{W}');
-  assert.equal(analyze(shell('Conditional catch-up ramp', commander, [conditionalRamp], basics({ Island: 36 }))).rampCount, .65, 'catch-up land ramp should be credited conditionally rather than as fully reliable');
+  assert.deepEqual(classifyRampCard(conditionalRamp), { kind: 'conditional', weight: .65, basis: 'net-land-search' }); assert.equal(analyze(shell('Conditional catch-up ramp', commander, [conditionalRamp], basics({ Island: 36 }))).rampCount, .65, 'catch-up land ramp should be credited conditionally rather than as fully reliable');
   const nonRampOracle = [
     ['Land Tax', 'At the beginning of your upkeep, if an opponent controls more lands than you, you may search your library for up to three basic land cards, reveal them, put them into your hand, then shuffle.'],
     ['Explore', 'You may play an additional land this turn. Draw a card.'],
@@ -61,7 +63,7 @@ function analysisFixtures() {
     ['Opponent Gift', 'Target opponent may search their library for a basic land card, put that card onto the battlefield tapped, then shuffle.'],
     ['Unrelated Clauses', 'Search your library for a basic land card, reveal it, put it into your hand, then shuffle. Put target creature card from your graveyard onto the battlefield.']
   ].map(([name, oracleText]) => synthetic(name, 'Sorcery', oracleText, 2, '{1}{G}'));
-  for (const card of nonRampOracle) assert.equal(analyze(shell(card.name, commander, [card], basics({ Island: 36 }))).rampCount, 0, `${card.name} must not count as net mana acceleration`);
+  for (const card of nonRampOracle) { assert.equal(classifyRampCard(card).kind, 'none', `${card.name} must be rejected by the shared ramp classifier`); assert.equal(analyze(shell(card.name, commander, [card], basics({ Island: 36 }))).rampCount, 0, `${card.name} must not count as net mana acceleration`); }
   const rampComplete = analyze(shell('Real land ramp', commander, [...rampOracle.slice(0, 8), ...Array.from({ length: 54 }, (_, index) => synthetic(`Ramp filler ${index}`, 'Creature — Beast', '', 2, '{1}{G}'))], basics({ Island: 37 })));
   assert.equal(rampComplete.rampCount, 8); assert(!rampComplete.issues.some(issue => issue.id === 'ramp'), 'eight real land-ramp spells should satisfy the adaptive ramp target');
   pass('Land-search parsing recognizes single, multiple, one-and-other, named-subtype, and net-positive sacrifice ramp without counting tutors or land replacements');
@@ -157,7 +159,28 @@ async function browserFixtures() {
     for (const card of catalogRamp.slice(0, 8)) assert.equal(analyze(shell(`Catalog ${card.name}`, krenko, [card], basics({ Mountain: 36 }))).rampCount, 1, `${card.name} catalog Oracle text should count as ramp`);
     assert.equal(analyze(shell('Catalog catch-up ramp', krenko, [catalogRamp[8]], basics({ Mountain: 36 }))).rampCount, .65);
     for (const card of catalogRamp.slice(9)) assert.equal(analyze(shell(`Catalog ${card.name}`, krenko, [card], basics({ Mountain: 36 }))).rampCount, 0, `${card.name} catalog Oracle text should not count as net ramp`);
+    for (const card of catalogRamp.slice(0, 9)) assert((await worker(page, '/api/cards', null, { q: card.name, role: 'ramp', limit: 10 })).cards.some(result => result.name === card.name), `${card.name} should pass the worker ramp-role filter`);
+    for (const card of catalogRamp.slice(9)) assert(!(await worker(page, '/api/cards', null, { q: card.name, role: 'ramp', limit: 10 })).cards.some(result => result.name === card.name), `${card.name} should fail the worker ramp-role filter`);
     pass('Current local catalog Oracle records reproduce the land-ramp positives and net-ramp negatives');
+
+    const [solRing] = await resolve(page, ['Sol Ring']);
+    const completeRampCards = [...catalogRamp.slice(0, 8), solRing, catalogRamp[8], catalogRamp[9], catalogRamp[10], archmage, ...Array.from({ length: 9 }, (_, index) => synthetic(`Ramp parity draw ${index}`, 'Enchantment', 'At the beginning of your upkeep, draw two cards.', 3, '{2}{U}')), ...Array.from({ length: 40 }, (_, index) => synthetic(`Ramp parity filler ${index}`, 'Creature - Human', 'Vigilance', 2, '{1}{W}'))];
+    const completeRampBasics = basics({ Plains: 8, Island: 8, Swamp: 7, Mountain: 7, Forest: 7 });
+    const completeRampDeck = shell('Cross-engine ramp parity', kenrith, completeRampCards, completeRampBasics);
+    const completeRampBalance = analyze(completeRampDeck);
+    assert.equal(completeRampBalance.rampCount, 9.65); assert(!completeRampBalance.issues.some(issue => issue.id === 'ramp'), 'nine reliable and one conditional accelerant must not be diagnosed as missing ramp');
+    const completeRampBody = { colors: ['W', 'U', 'B', 'R', 'G'], issues: completeRampBalance.issues, planSignals: completeRampBalance.planSignals, tribe: completeRampBalance.tribe || '', playstyle: 'balanced', deckCards: completeRampCards, commanders: [{ ...kenrith, role: 'primary' }], basicLands: completeRampBasics, targetSize: 100, existingOracleIds: completeRampCards.map(card => card.oracleId).filter(Boolean), existingNames: completeRampCards.map(card => card.name) };
+    const completeRampWorker = await worker(page, '/api/recommendations', completeRampBody);
+    assert.deepEqual(completeRampWorker.rampProfile, { reliable: 9, conditional: .65, burst: 0, weightedTotal: 9.65 }, 'worker ramp totals must match balance weights for the same complete legal deck');
+    assert(!completeRampWorker.groups.some(group => group.issue.id === 'ramp'), 'the live worker caller must not fabricate a ramp gap absent from balance diagnosis');
+    const parityCuts = new Set((completeRampWorker.suggestedCuts.cards || []).map(item => item.card.name));
+    for (const card of [...catalogRamp.slice(0, 8), solRing]) assert(!parityCuts.has(card.name), `${card.name} must remain protected as reliable ramp`);
+    assert(parityCuts.has('Archmage Emeritus'), 'the control cut should still surface while essential ramp is protected');
+    const forcedRampIssue = { id: 'ramp', label: 'Mana acceleration', severity: 'important', current: 4, target: 9, evidence: 'Diagnostic forced ramp gap.', recommendation: 'Add reliable acceleration.', candidateRole: 'ramp' };
+    const forcedRampWorker = await worker(page, '/api/recommendations', { ...completeRampBody, issues: [forcedRampIssue] });
+    const rampGroup = forcedRampWorker.groups.find(group => group.issue.id === 'ramp'); assert(rampGroup?.cards.length, 'upgrade ranking should return ramp candidates for the diagnostic issue');
+    assert.equal(classifyRampCard(rampGroup.cards[0].card).kind, 'reliable'); assert.match(rampGroup.cards[0].why, /repeatable or net-positive land acceleration/);
+    pass('One complete legal deck stays consistent across balance diagnosis, worker weighted counts, upgrade explanations, and Suggested Cuts ramp guards');
 
     const issues = [
       { id: 'ramp', label: 'Mana acceleration', severity: 'important', evidence: 'Low ramp.', recommendation: 'Add ramp.', candidateRole: 'ramp' },
@@ -223,7 +246,7 @@ async function browserFixtures() {
     assert(coldMs < 8000, `cold worker recommendation should remain interactive; took ${coldMs}ms`);
     const names = value => value.groups.map(group => [group.issue.id, group.cards.map(item => item.card.name)]);
     assert.deepEqual(names(first), names(second));
-    assert.equal(first.cacheStatus, 'miss'); assert.equal(second.cacheStatus, 'hit'); assert.equal(styleMiss.cacheStatus, 'miss'); assert.equal(shapeMiss.cacheStatus, 'miss'); assert.equal(first.algorithmVersion, '2026-10-18.2');
+    assert.equal(first.cacheStatus, 'miss'); assert.equal(second.cacheStatus, 'hit'); assert.equal(styleMiss.cacheStatus, 'miss'); assert.equal(shapeMiss.cacheStatus, 'miss'); assert.equal(first.algorithmVersion, '2026-10-18.3');
     pass('Recommendation cache hits only for the same full deck, card faces/costs, commander, style, algorithm, and data snapshot');
     assert(['Sol Ring','Arcane Signet','Mind Stone'].includes(first.groups.find(group => group.issue.id === 'ramp').cards[0].card.name), `a reliable ramp shortage should prioritize repeatable acceleration over sacrifice or combat-dependent burst mana; received ${JSON.stringify(names(first))}`);
     assert(first.groups.find(group => group.issue.id === 'finishers').cards.some(item => ['Impact Tremors', 'Purphoros, God of the Forge', 'Shared Animosity', 'Goblin Bombardment', 'Thornbite Staff'].includes(item.card.name)));
