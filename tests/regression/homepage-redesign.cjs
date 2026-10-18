@@ -85,6 +85,41 @@ async function run() {
     assert.equal(await page.locator('.home-page img[src*="cards.scryfall"]').count(), 0);
     pass('Homepage renders only the seven supplied semantic feature links in a 3 + 4 layout');
 
+    let libraryLink = page.getByRole('link', { name: 'Search the library of every MTG card', exact: true });
+    assert.equal(await libraryLink.count(), 1);
+    assert.equal(await libraryLink.getAttribute('href'), '#/cards');
+    assert.equal(await page.getByText('Indexed card identities', { exact: true }).count(), 0);
+    const desktopLibraryText = await libraryLink.locator('strong').evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return { lines: range.getClientRects().length, fits: element.scrollWidth <= element.clientWidth + 1 };
+    });
+    assert(desktopLibraryText.lines >= 2);
+    assert(desktopLibraryText.fits);
+    const libraryBox = await libraryLink.boundingBox();
+    assert(libraryBox && libraryBox.width > 100 && libraryBox.height > 40);
+    await libraryLink.click({ position: { x: libraryBox.width - 8, y: libraryBox.height - 8 } });
+    await page.waitForURL(/#\/cards$/);
+    await page.getByRole('heading', { name: 'The card library', exact: true }).waitFor();
+    await page.evaluate(() => { location.hash = '#/home'; });
+    await page.getByRole('heading', { name: /Welcome back/ }).waitFor();
+    libraryLink = page.getByRole('link', { name: 'Search the library of every MTG card', exact: true });
+    await page.evaluate(() => document.activeElement?.blur());
+    for (let index = 0; index < 12; index += 1) {
+      await page.keyboard.press('Tab');
+      if (await libraryLink.evaluate((element) => document.activeElement === element)) break;
+    }
+    assert(await libraryLink.evaluate((element) => document.activeElement === element));
+    assert.notEqual(await libraryLink.evaluate((element) => getComputedStyle(element).outlineStyle), 'none');
+    await libraryLink.dispatchEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true });
+    assert(await libraryLink.evaluate((element) => element.classList.contains('is-pressed')));
+    await libraryLink.dispatchEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true });
+    await libraryLink.press('Enter');
+    await page.waitForURL(/#\/cards$/);
+    pass('The full card-library stat is an exact-label link with mouse and keyboard navigation');
+    await page.evaluate(() => { location.hash = '#/home'; });
+    await page.getByRole('heading', { name: /Welcome back/ }).waitFor();
+
     const geometry = await page.locator('.home-feature').evaluateAll((elements) => elements.map((element) => {
       const image = element.querySelector('img').getBoundingClientRect();
       const link = element.getBoundingClientRect();
@@ -158,6 +193,7 @@ async function run() {
     }));
     assert.equal(motion.animation, 'none');
     assert(motion.transition.split(',').every((duration) => duration.trim() === '0s'));
+    assert.equal(await reducedPage.locator('.home-library-stat').evaluate((element) => getComputedStyle(element).transitionDuration), '0s');
     pass('Prefers-reduced-motion disables feature pulses and transitions');
     await reduced.close();
 
@@ -167,14 +203,23 @@ async function run() {
     const phone = await mobile.newPage();
     phone.on('pageerror', (error) => report.errors.push(error.message));
     await openHome(phone);
-    const touchTarget = phone.locator('.home-feature').first();
+    const touchTarget = phone.locator('.home-library-stat');
     await touchTarget.dispatchEvent('pointerdown', { pointerType: 'touch', isPrimary: true });
     assert(await touchTarget.evaluate((element) => element.classList.contains('is-pressed')));
     await touchTarget.dispatchEvent('pointerup', { pointerType: 'touch', isPrimary: true });
     assert(!(await touchTarget.evaluate((element) => element.classList.contains('is-pressed'))));
+    const mobileLibraryText = await touchTarget.locator('strong').evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return { lines: range.getClientRects().length, fits: element.scrollWidth <= element.clientWidth + 1 };
+    });
+    assert(mobileLibraryText.lines >= 2);
+    assert(mobileLibraryText.fits);
     assert(await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
     await phone.screenshot({ path: path.join(__dirname, 'homepage-mobile.png'), fullPage: true });
-    pass('Touch press feedback and mobile layout work without horizontal overflow');
+    await touchTarget.tap();
+    await phone.waitForURL(/#\/cards$/);
+    pass('Touch press feedback, wrapped text, mobile layout, and library navigation work without overflow');
     await mobile.close();
 
     assert.deepEqual(report.errors, []);
