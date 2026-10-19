@@ -53852,7 +53852,8 @@ const react_1 = __importStar(require(2));
 const staticCards_1 = require(1);
 const gameplayCoachModel_1 = require(119);
 const coachPolicy_1 = require(120);
-const labels = { equipment_access: 'Equipment access', mana_acceleration: 'Mana acceleration', early_protection: 'Early protection', card_draw: 'Card draw', removal_vulnerability: 'Interaction', expensive_curve: 'Mana curve', early_game: 'Early game', board_wipe_recovery: 'Board-wipe recovery', synergy: 'Synergy', other: 'Table adaptation' };
+const label = category => coachPolicy_1.COACH_LABELS[category] || String(category || 'Earlier classification').replaceAll('_', ' ');
+const commandersOf = deck => deck.commanders?.length ? deck.commanders : deck.commanderCards?.length ? deck.commanderCards : deck.commanderCard ? [deck.commanderCard] : [];
 function GameplayCoach({ deck, balance, accountSnapshot, setModal, ui }) {
     const { Button, CardThumb } = ui, scope = (0, react_1.useMemo)(() => (0, coachPolicy_1.coachScope)(accountSnapshot?.username || accountSnapshot?.state?.profile?.name || 'guest', deck.id), [accountSnapshot?.username, accountSnapshot?.epoch, deck.id]), [history, setHistory] = (0, react_1.useState)(() => (0, coachPolicy_1.readCoachHistory)(localStorage, scope)), [enabled, setEnabled] = (0, react_1.useState)(false), [phase, setPhase] = (0, react_1.useState)('idle'), [progress, setProgress] = (0, react_1.useState)(null), [error, setError] = (0, react_1.useState)(''), [observation, setObservation] = (0, react_1.useState)(''), [result, setResult] = (0, react_1.useState)(null), model = (0, react_1.useRef)(null);
     (0, react_1.useEffect)(() => () => model.current?.destroy(), [scope]);
@@ -53869,18 +53870,39 @@ function GameplayCoach({ deck, balance, accountSnapshot, setModal, ui }) {
         setError(value.message);
     } }
     function cancel() { model.current?.cancel(); model.current = null; setPhase('idle'); setProgress(null); setError('Local model work was cancelled. The downloaded browser cache, if complete, remains on this device.'); }
-    async function analyze() { if (!observation.trim() || phase !== 'ready')
-        return; setPhase('thinking'); setError(''); try {
-        const snapshot = (0, coachPolicy_1.snapshotDeck)(deck), previous = history.at(-1), changes = (0, coachPolicy_1.confirmedChanges)(previous?.snapshot || snapshot, snapshot), raw = await model.current.interpret({ observation: observation.trim(), deck: { name: deck.name, total: balance?.totalCards, lands: balance?.landCount, ramp: balance?.rampCount, draw: balance?.drawCount, removal: balance?.removalCount, protection: balance?.protectionCount }, recent: history.slice(-4).map(row => ({ observation: row.observation, category: row.category, confirmedChanges: row.confirmedChanges })) }), classification = (0, coachPolicy_1.classifyCoachOutput)(raw, observation), issue = (0, coachPolicy_1.categoryIssue)(classification.primary), commanders = (deck.commanderCards?.length ? deck.commanderCards : deck.commanderCard ? [deck.commanderCard] : []), colors = [...new Set(commanders.flatMap(card => card.colorIdentity || []))], existing = [...(deck.cards || []), ...commanders], response = await (0, staticCards_1.cardRequest)('/api/recommendations', { method: 'POST', body: JSON.stringify({ colors, issues: [issue], roleTargets: balance?.roleTargets || {}, planSignals: balance?.planSignals || [], tribe: balance?.tribe || '', playstyle: deck.playstyle || 'balanced', deckCards: deck.cards || [], commanders, basicLands: deck.basicLands || {}, targetSize: deck.format === 'Standard' ? 60 : 100, existingOracleIds: existing.flatMap(card => [card.oracleId, card.id]).filter(Boolean), existingNames: existing.map(card => card.name) }) }), recommendations = await response.json(), cards = recommendations.groups?.[0]?.cards || [], fallback = `This game points toward ${labels[classification.primary].toLowerCase()}, but one observation is not enough to prove a deck-wide problem. Compare it with your saved balance metrics and test the verified options below before changing the list.`, explanation = (0, coachPolicy_1.safeExplanation)(await model.current.explain({ observation: observation.trim(), classification, verifiedMetrics: { lands: balance?.landCount, ramp: balance?.rampCount, draw: balance?.drawCount, removal: balance?.removalCount, protection: balance?.protectionCount }, verifiedCandidates: cards.map(item => item.card.name), confirmedChanges: changes }), fallback), record = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, at: new Date().toISOString(), observation: observation.trim().slice(0, 2000), category: classification.primary, confidence: classification.confidence, source: classification.source, explanation, recommendations: cards.slice(0, 3).map(item => ({ name: item.card.name })), snapshot, confirmedChanges: changes, outcome: null };
-        setResult({ record, cards: cards.slice(0, 3), notice: recommendations.abstention || recommendations.groups?.[0]?.emptyReason });
-        setHistory((0, coachPolicy_1.writeCoachHistory)(localStorage, scope, record));
-        setObservation('');
-        setPhase('ready');
+    async function analyze() {
+        if (!observation.trim() || phase !== 'ready')
+            return;
+        setPhase('thinking');
+        setError('');
+        setResult(null);
+        try {
+            const rawObservation = observation.trim(), snapshot = (0, coachPolicy_1.snapshotDeck)(deck), previous = history.at(-1), changes = previous?.snapshot?.length ? (0, coachPolicy_1.confirmedChanges)(previous.snapshot, snapshot) : [], commanders = commandersOf(deck), mentionedCards = (0, coachPolicy_1.mentionedDeckCards)(deck, rawObservation), raw = await model.current.interpret({ observation: rawObservation, deck: { name: deck.name, commanders: commanders.map(card => card.name) }, mentionedDeckCards: mentionedCards, recentPlayerText: history.slice(-4).map(row => ({ observation: row.observation, outcome: row.outcome, confirmedChanges: row.confirmedChanges })) }), intent = (0, coachPolicy_1.classifyCoachOutput)(raw, rawObservation);
+            if (intent.needsClarification) {
+                setResult({ clarification: intent.clarification, intent });
+                setPhase('ready');
+                return;
+            }
+            const metrics = (0, coachPolicy_1.relevantMetrics)(balance, intent), knowledge = (0, coachPolicy_1.rulesKnowledge)(intent, rawObservation), issues = intent.categories.map(coachPolicy_1.categoryIssue).filter(Boolean).slice(0, 2), colors = [...new Set(commanders.flatMap(card => card.colorIdentity || []))], existing = [...(deck.cards || []), ...commanders];
+            let recommendations = { groups: [] }, cards = [];
+            if (issues.length) {
+                const response = await (0, staticCards_1.cardRequest)('/api/recommendations', { method: 'POST', body: JSON.stringify({ colors, issues, skipCutReview: true, roleTargets: balance?.roleTargets || {}, planSignals: balance?.planSignals || [], tribe: balance?.tribe || '', playstyle: deck.playstyle || 'balanced', deckCards: deck.cards || [], commanders, basicLands: deck.basicLands || {}, targetSize: deck.format === 'Standard' ? 60 : 100, existingOracleIds: existing.flatMap(card => [card.oracleId, card.id]).filter(Boolean), existingNames: existing.map(card => card.name) }) });
+                recommendations = await response.json();
+                const seen = new Set();
+                cards = (recommendations.groups || []).flatMap(group => group.cards || []).filter(item => { const key = item.card.oracleId || item.card.name; if (seen.has(key))
+                    return false; seen.add(key); return true; }).slice(0, 4);
+            }
+            const fallback = (0, coachPolicy_1.coachFallback)(intent, metrics, knowledge), allowedNames = [...commanders, ...mentionedCards, ...cards.map(item => item.card)].map(card => card.name), explanation = (0, coachPolicy_1.safeExplanation)(await model.current.explain({ playerObservation: rawObservation, statedIntent: { primary: intent.primary, secondary: intent.secondary, reasons: intent.reasons, timing: intent.timing, correction: intent.correction }, verifiedDeckEvidence: { metrics, mentionedCards, rulesKnowledge: knowledge }, verifiedCandidates: cards.map(item => ({ name: item.card.name, typeLine: item.card.typeLine, oracleText: item.card.oracleText, why: item.why })), instruction: 'Answer the player’s stated issue first. Do not replace it with a generic deck deficit.' }), fallback, intent, allowedNames), record = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, at: new Date().toISOString(), classificationVersion: coachPolicy_1.CLASSIFICATION_VERSION, observation: rawObservation.slice(0, 2000), category: intent.primary, categories: intent.categories, confidence: intent.confidence, source: intent.source, explanation, recommendations: cards.map(item => ({ name: item.card.name })), snapshot, confirmedChanges: changes, outcome: null };
+            setResult({ record, cards, knowledge, notice: recommendations.abstention || (recommendations.groups || []).map(group => group.emptyReason).filter(Boolean).join(' ') });
+            setHistory((0, coachPolicy_1.writeCoachHistory)(localStorage, scope, record));
+            setObservation('');
+            setPhase('ready');
+        }
+        catch (value) {
+            setError(value.message || 'The local coach could not finish.');
+            setPhase('ready');
+        }
     }
-    catch (value) {
-        setError(value.message || 'The local coach could not finish.');
-        setPhase('ready');
-    } }
     if (window.DECK_SAGE_COACH?.enabled === false)
         return react_1.default.createElement("section", { className: "coach-shell" },
             react_1.default.createElement("h2", null, "Gameplay Coach is resting"),
@@ -53906,30 +53928,42 @@ function GameplayCoach({ deck, balance, accountSnapshot, setModal, ui }) {
             phase === 'ready' && react_1.default.createElement(react_1.default.Fragment, null,
                 react_1.default.createElement("label", { className: "coach-observation" },
                     "What happened in your last game?",
-                    react_1.default.createElement("textarea", { maxLength: "2000", value: observation, onChange: event => setObservation(event.target.value), placeholder: "Example: I had Equipment in the deck, but I couldn't find it consistently before my commander was removed." })),
+                    react_1.default.createElement("textarea", { maxLength: "2000", value: observation, onChange: event => setObservation(event.target.value), placeholder: "Example: Marwyn made plenty of mana, but I had no scalable outlet that could turn it into a win." })),
                 react_1.default.createElement(Button, { disabled: !observation.trim(), onClick: analyze }, "Analyze this game"))),
         error && react_1.default.createElement("div", { className: "notice", role: "alert" },
             error,
             phase === 'error' && react_1.default.createElement("button", { className: "text-button", onClick: activate }, "Retry")),
-        result && react_1.default.createElement("article", { className: "coach-result" },
-            react_1.default.createElement("span", { className: "badge" }, labels[result.record.category]),
-            react_1.default.createElement("h3", null, "Sage's read"),
+        result?.clarification && react_1.default.createElement("article", { className: "coach-result coach-clarification", role: "status" },
+            react_1.default.createElement("span", { className: "badge" }, "One detail needed"),
+            react_1.default.createElement("h3", null, "I don\u2019t want to guess"),
+            react_1.default.createElement("p", null, result.clarification),
+            react_1.default.createElement("p", { className: "muted" }, "Add that detail to your note and analyze it again. Nothing was saved as a conclusion.")),
+        result?.record && react_1.default.createElement("article", { className: "coach-result" },
+            react_1.default.createElement("div", { className: "coach-intents" }, result.record.categories.map(category => react_1.default.createElement("span", { className: "badge", key: category }, label(category)))),
+            react_1.default.createElement("h3", null, "Sage\u2019s read"),
             react_1.default.createElement("p", null, result.record.explanation),
             react_1.default.createElement("p", { className: "muted" },
                 "Confidence: ",
                 result.record.confidence,
                 ". One game is a signal, not proof."),
+            result.knowledge?.map(item => react_1.default.createElement("p", { className: "coach-rules-note", key: item.id },
+                item.text,
+                " ",
+                react_1.default.createElement("a", { href: item.url, target: "_blank", rel: "noreferrer" }, item.source))),
             result.cards.length ? react_1.default.createElement("div", { className: "coach-cards" }, result.cards.map(item => react_1.default.createElement("article", { key: item.card.oracleId || item.card.name },
                 react_1.default.createElement("button", { type: "button", onClick: () => setModal({ type: 'card', card: item.card }) },
                     react_1.default.createElement(CardThumb, { card: item.card })),
                 react_1.default.createElement("h4", null, item.card.name),
                 react_1.default.createElement("p", null, item.why),
-                react_1.default.createElement(Button, { variant: "secondary small", onClick: () => setModal({ type: 'add-card', card: item.card, target: deck.id }) }, "Review add")))) : react_1.default.createElement("p", null, result.notice || 'The deterministic library did not find a candidate that cleared its safety checks.')),
+                item.caveats?.map(caveat => react_1.default.createElement("small", { key: caveat }, caveat)),
+                react_1.default.createElement(Button, { variant: "secondary small", onClick: () => setModal({ type: 'add-card', card: item.card, target: deck.id }) }, "Review add")))) : react_1.default.createElement("p", null, result.notice || 'This looks like a play, sequencing, or rules question rather than evidence that the deck needs another card.')),
         react_1.default.createElement("section", { className: "coach-history" },
             react_1.default.createElement("h3", null, "Recent games on this device"),
             history.length ? history.slice().reverse().map(row => react_1.default.createElement("article", { key: row.id },
                 react_1.default.createElement("time", null, new Date(row.at).toLocaleDateString()),
-                react_1.default.createElement("strong", null, labels[row.category]),
+                react_1.default.createElement("strong", null,
+                    label(row.category),
+                    row.classificationVersion !== coachPolicy_1.CLASSIFICATION_VERSION && react_1.default.createElement("small", null, " \u00B7 earlier classifier")),
                 react_1.default.createElement("p", null, row.observation),
                 row.confirmedChanges?.length > 0 && react_1.default.createElement("small", null,
                     "Confirmed deck changes: ",
@@ -53962,41 +53996,117 @@ function createCoachModel(onProgress = () => { }) { let worker = null, next = 0,
 },120:function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.COACH_CATEGORIES = void 0;
+exports.COACH_LABELS = exports.COACH_CATEGORIES = exports.CLASSIFICATION_VERSION = void 0;
+exports.analyzeObservationIntent = analyzeObservationIntent;
 exports.classifyCoachOutput = classifyCoachOutput;
+exports.mentionedDeckCards = mentionedDeckCards;
+exports.relevantMetrics = relevantMetrics;
+exports.rulesKnowledge = rulesKnowledge;
+exports.categoryIssue = categoryIssue;
+exports.coachFallback = coachFallback;
+exports.safeExplanation = safeExplanation;
 exports.snapshotDeck = snapshotDeck;
 exports.confirmedChanges = confirmedChanges;
 exports.coachScope = coachScope;
 exports.readCoachHistory = readCoachHistory;
 exports.writeCoachHistory = writeCoachHistory;
 exports.updateCoachFeedback = updateCoachFeedback;
-exports.categoryIssue = categoryIssue;
-exports.safeExplanation = safeExplanation;
-exports.COACH_CATEGORIES = ['equipment_access', 'mana_acceleration', 'early_protection', 'card_draw', 'removal_vulnerability', 'expensive_curve', 'early_game', 'board_wipe_recovery', 'synergy', 'other'];
-const clean = value => String(value || '').trim().slice(0, 2000);
-function classifyCoachOutput(text, observation = '') { let parsed = null; const match = String(text || '').match(/\{[\s\S]*?\}/); if (match)
+exports.CLASSIFICATION_VERSION = 2;
+exports.COACH_CATEGORIES = ['mana_outlet', 'combat_finisher', 'equipment_access', 'mana_acceleration', 'mana_fixing', 'mana_timing', 'early_protection', 'board_wipe_recovery', 'card_draw', 'card_selection', 'specific_card_access', 'removal_vulnerability', 'interaction_timing', 'expensive_curve', 'early_game', 'synergy', 'rules_interaction', 'other'];
+exports.COACH_LABELS = { mana_outlet: 'Mana outlet', combat_finisher: 'Late-game finisher', equipment_access: 'Equipment access', mana_acceleration: 'Mana quantity', mana_fixing: 'Color fixing', mana_timing: 'Mana timing', early_protection: 'Protection', board_wipe_recovery: 'Recovery', card_draw: 'Card quantity', card_selection: 'Card selection', specific_card_access: 'Specific-card access', removal_vulnerability: 'Interaction', interaction_timing: 'Interaction timing', expensive_curve: 'Mana curve', early_game: 'Early game', synergy: 'Synergy', rules_interaction: 'Rules interaction', other: 'Unclear game issue' };
+const clean = value => String(value || '').trim().slice(0, 2000), unique = values => [...new Set(values.filter(Boolean))], has = (value, pattern) => pattern.test(value), notNear = (value, word) => !new RegExp(`(?:not|wasn['’]?t|weren['’]?t|isn['’]?t|didn['’]?t|don['’]?t|never)\\s+(?:really\\s+)?(?:have\\s+|need\\s+)?[^.]{0,28}${word}`, 'i').test(value);
+function analyzeObservationIntent(observation) {
+    const raw = clean(observation), value = raw.toLowerCase(), scores = {}, reasons = {}, excluded = [];
+    const add = (category, score, reason) => { scores[category] = (scores[category] || 0) + score; (reasons[category] || (reasons[category] = [])).push(reason); };
+    const correction = has(value, /\b(?:i meant|actually|to clarify|that wasn['’]?t|that was not|not .{0,35}(?:issue|problem)|don['’]?t need)\b/), timing = has(value, /\b(?:late game|late-game|turns? [7-9]|turn 1\d)\b/) ? 'late' : has(value, /\b(?:opening hand|mulligan|early game|early-game|first few turns?|turns? [1-3])\b/) ? 'early' : has(value, /\b(?:after|following) (?:a |the )?(?:board )?wipe\b/) ? 'after_wipe' : 'unspecified';
+    if (has(value, /\b(?:ways? to|need to|want to|how (?:can|do) i) (?:spend|use|sink|convert)\b[^.]{0,65}\bmana\b|\b(?:spend|use) all (?:of )?(?:the |my )?mana\b|\bmana sinks?\b|\b(?:excess|extra|huge amounts? of|too much) mana\b|\bonce [^.]{0,45} produc(?:es|ing) (?:it|mana)\b/))
+        add('mana_outlet', 12, 'You described surplus mana and need a payoff or repeatable outlet, not another producer.');
+    if (has(value, /\b(?:high[- ]impact|late[- ]game|game[- ]ending|finishers?|close out|end the game|win the game|combat payoff|attack payoff|overrun|alpha strike)\b/) && has(value, /\b(?:attack|combat|creatures?|cards?|payoff|win|finisher|late[- ]game)\b/))
+        add('combat_finisher', 10, 'You asked for a late-game combat payoff or finisher.');
+    if (has(value, /\b(?:wrong colors?|colou?r screw|only (?:[wubrg]|blue|black|white|red|green)(?: sources?)?|couldn['’]?t produce|missing (?:blue|black|white|red|green)|colored sources?)\b/))
+        add('mana_fixing', 9, 'You had a color-access problem, not necessarily a total-mana shortage.');
+    if (has(value, /\b(?:lands? (?:entered|came in) tapped|tapped lands?|mana (?:arrived|came) too late|commander tax|equip costs?|activation costs?|couldn['’]?t hold up|spent (?:all|too much) mana)\b/))
+        add('mana_timing', 8, 'You described when mana was available or what it had to pay for.');
+    if (has(value, /\b(?:missed? land drops?|stuck on (?:\w+|\d+) lands?|mana screw|not enough (?:lands?|mana)|needed more mana|couldn['’]?t make enough mana)\b/) && !has(value, /\b(?:don['’]?t|do not|didn['’]?t) need (?:more )?(?:mana|mana producers?|ramp)|\b(?:plenty of|enough|lots of) (?:mana|lands?|ramp)\b/))
+        add('mana_acceleration', 9, 'You described insufficient total mana or missed land development.');
+    else if (has(value, /\b(?:mana|lands?|ramp)\b/) && notNear(value, 'mana|lands?|ramp|producers?'))
+        add('mana_acceleration', 1, 'Mana was mentioned without enough evidence of a shortage.');
+    const equipment = has(value, /\b(?:equipment|equip|sword|boots|greaves)\b/), specific = has(value, /\b(?:specific|particular|exact|one card|piece|tutor|search for|find (?:it|them|my|the))\b/);
+    if (equipment && has(value, /\b(?:could(?:n['']?t| not)|did(?:n['']?t| not)|never|rarely|hard to|waiting|need(?:ed)?)\b.{0,45}\b(?:find|draw|see|access)|\b(?:find|draw|see|access)\b.{0,45}\b(?:equipment|equip|sword|boots|greaves)/) && !has(value, /\b(?:equipment (?:was|were) fine|found (?:my |the )?equipment|had (?:my |the )?equipment)\b/))
+        add('equipment_access', 10, 'You described finding Equipment consistently, not simply increasing the Equipment count.');
+    if (specific && !equipment && has(value, /\b(?:could(?:n['']?t| not)|did(?:n['']?t| not)|never|rarely|need(?:ed)?|find|draw|see|access)\b/))
+        add('specific_card_access', 7, 'You needed a particular piece rather than more cards generally.');
+    if (has(value, /\b(?:scry|surveil|loot|filter|selection|saw plenty|wrong cards?|quality of draws?|top of (?:my|the) library)\b/))
+        add('card_selection', 8, 'You described card quality or filtering, not hand quantity.');
+    if (has(value, /\b(?:empty hand|ran out of cards?|no cards? in hand|needed more cards?|not enough cards?|card advantage|couldn['’]?t refill)\b/) && notNear(value, 'cards?|draw'))
+        add('card_draw', 9, 'You described running out of usable cards.');
+    else if (has(value, /\b(?:draw|drew|cards? in hand)\b/) && notNear(value, 'draw|cards?'))
+        add('card_draw', 1, 'Card flow was mentioned without evidence that quantity was the issue.');
+    if (has(value, /\b(?:(?:after|following) (?:a |the )?(?:board )?wipe|couldn['’]?t rebuild|recover(?:y|ed)?|lost (?:my|the) board|reset the board)\b/))
+        add('board_wipe_recovery', 10, 'You described rebuilding after resources were lost.');
+    if (has(value, /\b(?:protect|protection|hexproof|indestructible|ward|phase out|commander (?:kept|was|got) removed|removed before)\b/) && notNear(value, 'protect|protection'))
+        add('early_protection', 7, 'You described preventing removal or keeping a key permanent in play.');
+    if (has(value, /\b(?:had removal|held (?:my |the )?(?:removal|counter)|used (?:it|removal) too (?:early|late)|wrong target|should have waited|timed (?:it|my))\b/))
+        add('interaction_timing', 10, 'You had interaction but questioned when or where it was used.');
+    else if (has(value, /\b(?:no answer|couldn['’]?t answer|couldn['’]?t stop|needed removal|needed interaction|combo went off|no response)\b/))
+        add('removal_vulnerability', 8, 'You lacked an answer at the relevant time.');
+    if (has(value, /\b(?:hexproof|shroud|ward|indestructible|protection from|target(?:ed|ing)?|priority|stack|trigger|replacement effect|state-based|commander tax)\b/) && has(value, /\b(?:thought|why|how|doesn['’]?t|didn['’]?t|still|rules?|work)\b/))
+        add('rules_interaction', 11, 'You appear to be asking why a rules interaction worked this way.');
+    if (has(value, /\b(?:curve|too expensive|hand full of expensive|couldn['’]?t cast my hand|all my spells cost|high mana value)\b/))
+        add('expensive_curve', 7, 'You described spell-cost pressure rather than only land count.');
+    if (has(value, /\b(?:did nothing early|slow start|early plays?|opening turns?|first few turns?)\b/))
+        add('early_game', 6, 'You described the opening turns.');
+    if (has(value, /\b(?:didn['’]?t work together|no synergy|pieces didn['’]?t connect|engine stalled|combo pieces)\b/))
+        add('synergy', 7, 'You described cards failing to work together.');
+    if (scores.mana_outlet || has(value, /\b(?:don['’]?t|do not|didn['’]?t) need (?:more )?(?:mana|mana producers?|ramp)|\b(?:plenty of|enough|lots of) (?:mana|lands?|ramp)\b/)) {
+        delete scores.mana_acceleration;
+        excluded.push('mana_acceleration');
+    }
+    if (has(value, /\b(?:drew|had|saw) (?:plenty|enough|lots) of cards?\b/)) {
+        delete scores.card_draw;
+        excluded.push('card_draw');
+    }
+    if (has(value, /\b(?:protection wasn['’]?t|protection was not|didn['’]?t need protection)\b/)) {
+        delete scores.early_protection;
+        excluded.push('early_protection');
+    }
+    if (has(value, /\b(?:removal wasn['’]?t|removal was not|had (?:plenty of )?removal)\b/) && !scores.interaction_timing) {
+        delete scores.removal_vulnerability;
+        excluded.push('removal_vulnerability');
+    }
+    const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]), primary = ranked[0]?.[0] || 'other', top = ranked[0]?.[1] || 0, categories = ranked.filter(([, score], index) => index === 0 || score >= 7 && score >= top - 4).map(([category]) => category).slice(0, 3), vague = raw.length < 12 || has(value, /^(?:it|this|the deck) (?:didn['’]?t work|was bad|failed)[.!]?$/);
+    return { raw, primary, categories: categories.length ? categories : ['other'], secondary: categories.slice(1), confidence: top >= 9 ? 'high' : top >= 6 ? 'medium' : 'low', source: 'player-language', reasons: reasons[primary] || [], excluded: unique(excluded), timing, correction, needsClarification: vague || primary === 'other', clarification: vague || primary === 'other' ? 'What specifically stopped your plan: too little mana, the wrong colors, no useful outlet for surplus mana, cards in hand, finding one piece, surviving removal, rebuilding, combat impact, or timing an answer?' : '', scores };
+}
+function classifyCoachOutput(text, observation = '') { const intent = analyzeObservationIntent(observation); let parsed = null; const match = String(text || '').match(/\{[\s\S]*?\}/); if (match)
     try {
         parsed = JSON.parse(match[0]);
     }
-    catch { } if (parsed && exports.COACH_CATEGORIES.includes(parsed.primary))
-    return { primary: parsed.primary, secondary: (Array.isArray(parsed.secondary) ? parsed.secondary : [parsed.secondary]).filter(value => exports.COACH_CATEGORIES.includes(value) && value !== parsed.primary).slice(0, 2), confidence: ['low', 'medium', 'high'].includes(parsed.confidence) ? parsed.confidence : 'low', source: 'model' }; const value = clean(observation).toLowerCase(); let primary = 'other'; if (/equipment|sword|boots|greaves|attach/.test(value) && /find|draw|access|consisten|never|rarely|need/.test(value))
-    primary = 'equipment_access';
-else if (/mana|land|ramp|cast|stuck/.test(value))
-    primary = 'mana_acceleration';
-else if (/protect|removed|dies|countered|commander/.test(value))
-    primary = 'early_protection';
-else if (/cards?|draw|empty hand|gas/.test(value))
-    primary = 'card_draw';
-else if (/wipe|board wipe|rebuild/.test(value))
-    primary = 'board_wipe_recovery';
-else if (/curve|expensive|slow/.test(value))
-    primary = 'expensive_curve';
-else if (/removal|answer|interaction/.test(value))
-    primary = 'removal_vulnerability';
-else if (/early|opening|first turns?/.test(value))
-    primary = 'early_game';
-else if (/synergy|work together|combo/.test(value))
-    primary = 'synergy'; return { primary, secondary: [], confidence: 'low', source: 'fallback' }; }
+    catch { } const modelPrimary = exports.COACH_CATEGORIES.includes(parsed?.primary) ? parsed.primary : null, modelSecondary = (Array.isArray(parsed?.secondary) ? parsed.secondary : [parsed?.secondary]).filter(value => typeof value === 'string' && exports.COACH_CATEGORIES.includes(value)); if (intent.needsClarification)
+    return { ...intent, modelPrimary, source: 'clarification' }; if (intent.primary !== 'other') {
+    const secondary = intent.secondary.slice(0, 2);
+    return { ...intent, secondary, categories: [intent.primary, ...secondary], modelPrimary, modelSummary: clean(parsed?.summary).slice(0, 240), modelUncertainty: clean(parsed?.uncertainty).slice(0, 240), source: modelPrimary === intent.primary ? 'player-language+model' : 'player-language' };
+} if (modelPrimary && parsed?.confidence !== 'low')
+    return { ...intent, primary: modelPrimary, secondary: modelSecondary.filter(value => value !== modelPrimary).slice(0, 2), categories: [modelPrimary, ...modelSecondary.filter(value => value !== modelPrimary).slice(0, 2)], confidence: ['medium', 'high'].includes(parsed.confidence) ? parsed.confidence : 'medium', needsClarification: Boolean(parsed.needs_clarification), clarification: clean(parsed.clarification) || intent.clarification, modelSummary: clean(parsed.summary).slice(0, 240), modelUncertainty: clean(parsed.uncertainty).slice(0, 240), source: 'model-assisted' }; return { ...intent, modelPrimary, source: parsed ? 'model-low-confidence' : 'deterministic-fallback' }; }
+function mentionedDeckCards(deck, observation) { const value = clean(observation).toLowerCase(), cards = [...(deck.cards || []), ...((deck.commanderCards || []).length ? deck.commanderCards : deck.commanderCard ? [deck.commanderCard] : [])]; return cards.filter(card => { const name = String(card.name || '').toLowerCase(); return name.length >= 4 && value.includes(name); }).slice(0, 6).map(card => ({ name: card.name, typeLine: card.typeLine || '', manaCost: card.manaCost || '', oracleText: clean(card.oracleText).slice(0, 700) })); }
+function relevantMetrics(balance, intent) { const metrics = {}; for (const category of intent.categories || []) {
+    if (['mana_outlet', 'combat_finisher', 'mana_acceleration', 'mana_fixing', 'mana_timing', 'expensive_curve', 'early_game'].includes(category))
+        Object.assign(metrics, { lands: balance?.landCount, ramp: balance?.rampCount, averageManaValue: balance?.averageCmc, creatures: balance?.creatureCount });
+    if (['card_draw', 'card_selection', 'specific_card_access', 'equipment_access', 'board_wipe_recovery'].includes(category))
+        metrics.draw = balance?.drawCount;
+    if (['early_protection', 'board_wipe_recovery'].includes(category))
+        metrics.protection = balance?.protectionCount;
+    if (['removal_vulnerability', 'interaction_timing'].includes(category))
+        metrics.removal = balance?.removalCount;
+} return metrics; }
+function rulesKnowledge(intent, observation = '') { const value = clean(observation).toLowerCase(), notes = []; if (intent.categories.includes('rules_interaction') && /hexproof|shroud|ward|target/.test(value))
+    notes.push({ id: 'targeting', text: 'A spell or ability targets only when its rules text uses “target” or a keyword rule defines targets. Hexproof stops an opponent from targeting that permanent; it does not stop a non-targeting “each” or “all” effect.', source: 'Magic Comprehensive Rules 115.1 and 702.11', url: 'https://magic.wizards.com/en/rules' }); if (intent.categories.includes('rules_interaction') && /indestructible|destroy|damage|toughness/.test(value))
+    notes.push({ id: 'indestructible', text: 'Indestructible prevents destruction by lethal damage and effects that say “destroy”; it does not prevent exile, sacrifice, or being put into a graveyard for toughness 0 or less.', source: 'Magic Comprehensive Rules 702.12 and 704.5f', url: 'https://magic.wizards.com/en/rules' }); if (/commander tax/.test(value))
+    notes.push({ id: 'commander-tax', text: 'Casting a commander from the command zone costs an additional {2} for each previous time that commander was cast from the command zone that game.', source: 'Official Commander format rules', url: 'https://magic.wizards.com/en/formats/commander' }); return notes.slice(0, 2); }
+function categoryIssue(category) { const map = { mana_outlet: ['mana_sink', 'Mana outlet'], combat_finisher: ['finisher', 'Late-game combat finisher'], equipment_access: ['equipment_access', 'Equipment access'], mana_acceleration: ['ramp', 'Mana quantity'], mana_fixing: ['mana', 'Color fixing'], mana_timing: ['low_curve', 'Mana timing'], card_draw: ['advantage', 'Card quantity'], card_selection: ['advantage', 'Card selection'], specific_card_access: ['commander_support', 'Specific-card access'], early_protection: ['protection', 'Protection'], board_wipe_recovery: ['advantage', 'Recovery'], removal_vulnerability: ['interaction', 'Interaction'], expensive_curve: ['low_curve', 'Mana curve'], early_game: ['low_curve', 'Early-game setup'], synergy: ['commander_support', 'Synergy support'] }; if (!map[category])
+    return null; const [candidateRole, label] = map[category]; return { id: 'coach-' + category, label, severity: 'medium', candidateRole, evidence: 'The player explicitly identified this game issue; the deck engine is checking only this focus.', recommendation: 'Review verified legal candidates; no card is changed automatically.' }; }
+function coachFallback(intent, metrics = {}, knowledge = []) { const reason = intent.reasons?.[0] || `Your note is about ${exports.COACH_LABELS[intent.primary].toLowerCase()}.`, metricText = Object.keys(metrics).length ? ` Relevant saved-deck evidence: ${Object.entries(metrics).filter(([, value]) => value !== undefined).map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1')} ${key === 'averageManaValue' ? Number(value).toFixed(2) : value}`).join(', ')}.` : '', rulesText = knowledge[0] ? ` Rules check: ${knowledge[0].text}` : ''; return `${reason} I’m keeping that stated issue separate from generic deck deficits.${metricText}${rulesText} One game can reveal a play pattern, but it does not by itself prove a structural deck weakness.`; }
+function safeExplanation(text, fallback, intent, allowedNames = []) { const value = String(text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<\/?(?:think|analysis)>/gi, '').replace(/```[a-z]*|```/gi, '').replace(/\*\*?|__?|`|^#{1,6}\s*/gm, '').replace(/^\s*(?:observation|classification|confidence|one-game uncertainty)\s*:\s*/gim, '').replace(/\n{3,}/g, '\n\n').trim(), keywords = { mana_outlet: /spend|use|outlet|payoff|surplus mana/i, combat_finisher: /attack|combat|finisher|late.game|close/i, equipment_access: /equipment|find|access/i, mana_acceleration: /mana|land/i, mana_fixing: /color|colour|source|mana/i, mana_timing: /timing|tapped|cost|mana/i, card_draw: /cards?|hand|draw/i, card_selection: /selection|scry|filter|cards?/i, specific_card_access: /specific|piece|find|access/i, early_protection: /protect|remov|keep/i, board_wipe_recovery: /rebuild|recover|wipe/i, removal_vulnerability: /answer|interaction|removal/i, interaction_timing: /timing|held|answer|interaction/i, rules_interaction: /rule|target|hexproof|indestructible/i }, proper = value.match(/\b[A-Z][A-Za-z'’-]+(?:\s+[A-Z][A-Za-z'’,-]+)+/g) || [], allowed = allowedNames.map(name => String(name).toLowerCase()), unknownProper = proper.some(phrase => !/^(One Game|Commander|Magic Comprehensive Rules|Official Commander)$/i.test(phrase) && !allowed.some(name => name.includes(phrase.toLowerCase()) || phrase.toLowerCase().includes(name))); if (!value || value.length > 1200 || unknownProper || /\bclassification\s*:|\bconfidence\s*:/i.test(value) || !value.toLowerCase().includes('one game') || keywords[intent?.primary] && !keywords[intent.primary].test(value))
+    return fallback; return value; }
 function snapshotDeck(deck) { const items = [...(deck.cards || []), ...((deck.commanderCards || []).length ? deck.commanderCards : deck.commanderCard ? [deck.commanderCard] : [])].map(card => ({ id: card.oracleId || card.id || '', name: clean(card.name).slice(0, 120), quantity: Math.max(1, Number(card.quantity) || 1) })); for (const [name, quantity] of Object.entries(deck.basicLands || {}))
     if (quantity)
         items.push({ id: 'basic:' + name, name, quantity: Number(quantity) }); return items.sort((a, b) => (a.id || a.name).localeCompare(b.id || b.name)).slice(0, 250); }
@@ -54020,7 +54130,5 @@ function writeCoachHistory(storage, scope, record) { let all = {}; try {
 }
 catch { } all[scope] = [...(all[scope] || []), record].slice(-5); const keys = Object.keys(all).sort((x, y) => (all[y].at(-1)?.at || '').localeCompare(all[x].at(-1)?.at || '')).slice(0, 50); storage.setItem(KEY, JSON.stringify(Object.fromEntries(keys.map(key => [key, all[key]])))); return all[scope]; }
 function updateCoachFeedback(storage, scope, id, outcome) { const rows = readCoachHistory(storage, scope).map(row => row.id === id ? { ...row, outcome } : row), all = JSON.parse(storage.getItem(KEY) || '{}'); all[scope] = rows; storage.setItem(KEY, JSON.stringify(all)); return rows; }
-function categoryIssue(category) { const map = { equipment_access: ['equipment_access', 'Equipment access'], mana_acceleration: ['ramp', 'Mana acceleration'], early_protection: ['protection', 'Early protection'], card_draw: ['advantage', 'Card draw'], removal_vulnerability: ['interaction', 'Interaction'], expensive_curve: ['low_curve', 'Mana curve'], early_game: ['low_curve', 'Early-game setup'], board_wipe_recovery: ['advantage', 'Board-wipe recovery'], synergy: ['commander_support', 'Synergy support'], other: ['interaction', 'Table adaptation'] }; const [candidateRole, label] = map[category] || map.other; return { id: 'coach-' + category, label, severity: 'medium', candidateRole, evidence: 'A play observation identified this area for a focused, deterministic card-library check.', recommendation: 'Review verified legal candidates; no card is changed automatically.' }; }
-function safeExplanation(text, fallback) { const value = String(text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<\/?(?:think|analysis)>/gi, '').trim(); return value && value.length <= 1400 ? value : fallback; }
 
 }};const cache={};function require(id){if(cache[id])return cache[id].exports;const module=cache[id]={exports:{}};modules[id](module,module.exports,require);return module.exports;}require(0);})();
