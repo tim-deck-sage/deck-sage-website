@@ -102,13 +102,16 @@ async function run() {
     await page.getByRole('heading', { name: 'Four Color Council', exact: true }).waitFor();
     pass('W/U/B/R/G/colorless, dominant mana, WUBRG tie-break, explicit primary, DFC, partner isolation, missing metadata, route switching, and Marwyn/Krenko comparison screenshots are deterministic');
 
-    const tabs = ['Cards', 'Balance', 'Sage rating', 'Strategy', 'Upgrades'];
+    const tabs = ['Cards', 'Balance', 'Sage rating', 'Strategy', 'Upgrades', 'Gameplay Coach'];
     for (const name of tabs.slice(1)) {
       await page.getByRole('tab', { name, exact: true }).click();
       assert.equal(await page.getByRole('tab', { name, exact: true }).getAttribute('aria-selected'), 'true');
     }
+    assert.equal(await page.getByText('Your game note stays in this browser.').count(), 1);
+    assert.equal(await page.getByRole('button', { name: 'Enable local AI', exact: true }).count(), 1);
+    await page.screenshot({ path: path.join(__dirname, 'gameplay-coach-desktop.png'), fullPage: true });
     await page.getByRole('tab', { name: 'Cards', exact: true }).click();
-    pass('All five preserved deck-analysis tabs switch into real tabpanels');
+    pass('All five preserved deck-analysis tabs and the opt-in Gameplay Coach switch into real tabpanels without starting the model');
 
     await page.getByRole('textbox', { name: 'Quick add a card', exact: true }).fill('Command Tower');
     await page.locator('.picker-results button').first().waitFor();

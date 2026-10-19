@@ -1,7 +1,8 @@
 // Publish an explicit static allowlist. Keep Next's existing legal/support exports.
 const fs=require('fs'),path=require('path'),crypto=require('crypto');
 const repo=path.resolve(__dirname,'../..'),publicRoot=path.join(repo,'preview/public'),out=path.join(repo,'out');
-const allowed=['account-config.js','ai-scan-config.js','news-config.js','publisher-config.js','index.html','app.js','styles.css','fantasy.css','news.css','news-snapshot.json','card-worker.js','card-facets.js','ramp-classification.js','THIRD-PARTY-NOTICES.txt','assets/original/arcane-library-v2.png','assets/original/deck-sage-sigil.svg'];
+const allowed=['account-config.js','ai-scan-config.js','news-config.js','publisher-config.js','coach-config.js','index.html','app.js','styles.css','fantasy.css','news.css','news-snapshot.json','card-worker.js','card-facets.js','ramp-classification.js','THIRD-PARTY-NOTICES.txt','assets/original/arcane-library-v2.png','assets/original/deck-sage-sigil.svg'];
+for(const name of ['worker.js','transformers.min.js','ort-wasm-simd-threaded.jsep.mjs','ort-wasm-simd-threaded.jsep.wasm','ort.bundle.min.mjs'])allowed.push('ai-coach/'+name);
 allowed.push('card-value/library.png');
 const songMedia=[
  ['assets/images/song.png','songs/background.png'],

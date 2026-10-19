@@ -8,6 +8,7 @@ out/
 *.log
 .DS_Store
 .edge-crop-qa/
+.tmp-ai-poc/
 preview/evidence/
 preview/tests/*.png
 preview/tests/*.json
