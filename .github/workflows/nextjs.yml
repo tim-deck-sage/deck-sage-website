@@ -43,6 +43,26 @@ jobs:
       - name: Test catalog filters and refresh guards
         run: node tests/regression/card-library-search.cjs && node tests/regression/card-catalog-refresh.cjs
 
+      # Restore the last validated daily snapshot, not just the older checked-in baseline.
+      - name: Restore last known good precon catalog
+        uses: actions/cache/restore@v4
+        with:
+          path: preview/public/precon-data
+          key: precon-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: precon-v1-
+
+      - name: Refresh and validate Commander precon catalog
+        run: node preview/tools/refresh-precon-catalog.cjs
+
+      - name: Test Commander precon refresh guards
+        run: node tests/regression/precon-catalog-refresh.cjs
+
+      - name: Preserve validated precon catalog
+        uses: actions/cache/save@v4
+        with:
+          path: preview/public/precon-data
+          key: precon-v1-${{ github.run_id }}-${{ github.run_attempt }}
+
       - name: Build static site
         run: npm run build
 

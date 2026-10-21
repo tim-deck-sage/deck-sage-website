@@ -12,7 +12,7 @@ export const emptyLands=()=>Object.fromEntries(LAND_NAMES.map(n=>[n,0]));
 export const uid=()=>crypto.randomUUID();
 export const positive=n=>Math.max(1,Math.min(9999,Math.floor(Number(n)||1)));
 export const visibleDecks=state=>(state?.decks||[]).filter(deck=>deck.status!=='deleted');
-export const countDeck=d=>(d.commanderCard?1:0)+d.cards.reduce((n,c)=>n+positive(c.quantity),0)+Object.values(d.basicLands).reduce((a,b)=>a+b,0);
+export const countDeck=d=>(Array.isArray(d.commanders)&&d.commanders.length?d.commanders.filter(card=>card.role!=='companion').length:d.commanderCard?1:0)+d.cards.reduce((n,c)=>n+positive(c.quantity),0)+Object.values(d.basicLands).reduce((a,b)=>a+b,0);
 export const expandCards=d=>d.cards.flatMap(c=>Array.from({length:Math.min(positive(c.quantity),200)},()=>c));
 export function baseState(){return {version:1,profile:{name:'Planeswalker',username:'',avatar:1,role:'Player',bio:''},decks:[],retainedDeckRecords:[],bulk:[],favorites:[],contacts:[],stores:[],notifications:[],settings:{theme:'forest',motion:true,images:true,notificationInbox:true}};}
 export function compactCard(card){const {raw,...rest}=card;return rest;}

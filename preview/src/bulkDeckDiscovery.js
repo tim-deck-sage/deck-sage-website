@@ -28,7 +28,7 @@ export function commanderCopyLimit(card){
 
 function partnerKind(card){
  const text=rulesOf(card),lower=text.toLowerCase(),type=typeOf(card).toLowerCase();
- const withMatch=text.match(/partner with ([^\n.]+)/i);
+ const withMatch=text.match(/partner with ([^\n.(]+)/i);
  const namedMatch=text.match(/partner\s*[—-]\s*([^\n.]+)/i);
  if(/\bchoose a background\b/i.test(text))return {kind:'background_lead'};
  if(/\bdoctor's companion\b/i.test(text))return {kind:'doctor_companion'};

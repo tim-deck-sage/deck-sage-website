@@ -1,7 +1,7 @@
 // Publish an explicit static allowlist. Keep Next's existing legal/support exports.
 const fs=require('fs'),path=require('path'),crypto=require('crypto');
 const repo=path.resolve(__dirname,'../..'),publicRoot=path.join(repo,'preview/public'),out=path.join(repo,'out');
-const allowed=['local-scan.css','account-config.js','ai-scan-config.js','news-config.js','publisher-config.js','coach-config.js','index.html','app.js','styles.css','fantasy.css','news.css','news-snapshot.json','card-worker.js','card-facets.js','ramp-classification.js','THIRD-PARTY-NOTICES.txt','assets/original/arcane-library-v2.png','assets/original/deck-sage-sigil.svg'];
+const allowed=['local-scan.css','precons.css','account-config.js','ai-scan-config.js','news-config.js','publisher-config.js','coach-config.js','index.html','app.js','styles.css','fantasy.css','news.css','news-snapshot.json','card-worker.js','card-facets.js','ramp-classification.js','THIRD-PARTY-NOTICES.txt','assets/original/arcane-library-v2.png','assets/original/deck-sage-sigil.svg'];
 for(const name of ['worker.js','transformers.min.js','ort-wasm-simd-threaded.jsep.mjs','ort-wasm-simd-threaded.jsep.wasm','ort.bundle.min.mjs'])allowed.push('ai-coach/'+name);
 allowed.push('card-value/library.png');
 for(let n=1;n<=19;n++)allowed.push('avatars/avatar'+n+'.webp');
@@ -22,6 +22,8 @@ for(const folder of ['assets/audio','card-data'])for(const name of fs.readdirSyn
 for(const name of fs.readdirSync(path.join(publicRoot,'local-scanner/v1')))allowed.push('local-scanner/v1/'+name);
 for(const name of fs.readdirSync(path.join(publicRoot,'local-scanner/licenses')))allowed.push('local-scanner/licenses/'+name);
 allowed.push('local-scanner/NOTICE.txt');
+allowed.push('precon-data/catalog.json','precon-data/LICENSE.txt');
+for(const name of fs.readdirSync(path.join(publicRoot,'precon-data/decks'))){if(!/^[a-z0-9-]+\.json$/.test(name))throw Error('Unexpected precon artifact');allowed.push('precon-data/decks/'+name);}
 const ledger=[];
 for(const relative of allowed){const src=path.join(publicRoot,relative),dest=path.join(out,relative);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.copyFileSync(src,dest);const bytes=fs.readFileSync(dest);ledger.push({path:relative,bytes:bytes.length,sha256:crypto.createHash('sha256').update(bytes).digest('hex')});}
 for(const [source,relative] of songMedia){const src=path.join(repo,'preview/source',source),dest=path.join(out,relative);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.copyFileSync(src,dest);const bytes=fs.readFileSync(dest);ledger.push({path:relative,bytes:bytes.length,sha256:crypto.createHash('sha256').update(bytes).digest('hex')});}

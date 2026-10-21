@@ -30,7 +30,8 @@
     "build:local-scanner": "node preview/tools/build-local-scanner.cjs",
     "test:local-scan-safety": "node tests/regression/image-memory-guard.cjs && node tests/regression/local-scan-worker-lifecycle.cjs",
     "test:avatars": "node tests/regression/profile-avatars.cjs",
-    "test:avatars:ui": "node tests/regression/profile-avatars-ui.cjs"
+    "test:avatars:ui": "node tests/regression/profile-avatars-ui.cjs",
+    "test:precons": "node tests/regression/precon-catalog-refresh.cjs && node tests/regression/precon-library.cjs && node tests/regression/precon-library-ui.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3",
