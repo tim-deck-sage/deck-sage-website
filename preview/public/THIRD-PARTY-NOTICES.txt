@@ -2,6 +2,8 @@ Deck Sage static family preview - third-party notices
 
 The library hero is original artwork generated for this website, and the geometric seals are original website graphics. Music, stories, and selected source engines are copied from Tim's local Deck Sage application for this authorized conversion. Their existing ownership and licenses are unchanged.
 
+The 19 profile avatars are the original Deck Sage app artwork from assets/images/avatars at release f2bc0805199e7c9293de3c5507743b82fa0fbd7d, optimized for the website under the owner-requested conversion. Existing ownership and license terms are unchanged; this notice grants no new rights.
+
 Magic: The Gathering card names, rules, and imagery belong to Wizards of the Coast. This project is not affiliated with or endorsed by Wizards of the Coast. Public card records and image references were sourced from Scryfall: https://scryfall.com/docs/api . Snapshot provenance is preserved in card-data/manifest.json.
 
 The following software license texts accompany the prebuilt React bundle and local development dependencies.

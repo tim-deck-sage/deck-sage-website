@@ -28,7 +28,9 @@
     "test:bulk-discovery:hosted-ui": "node tests/accounts/bulk-discovery-hosted-ui.cjs",
     "test:accounts:hardening": "node tests/accounts/legacy-hardening.cjs",
     "build:local-scanner": "node preview/tools/build-local-scanner.cjs",
-    "test:local-scan-safety": "node tests/regression/image-memory-guard.cjs && node tests/regression/local-scan-worker-lifecycle.cjs"
+    "test:local-scan-safety": "node tests/regression/image-memory-guard.cjs && node tests/regression/local-scan-worker-lifecycle.cjs",
+    "test:avatars": "node tests/regression/profile-avatars.cjs",
+    "test:avatars:ui": "node tests/regression/profile-avatars-ui.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3",

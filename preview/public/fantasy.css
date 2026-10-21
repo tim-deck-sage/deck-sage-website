@@ -390,3 +390,18 @@ html[data-motion=false] .sanctum-featured-art,html[data-motion=false] .sanctum-c
 @media(max-width:620px){.publisher-page{padding:14px}.publisher-shell{padding:25px 18px}.publisher-categories{grid-template-columns:1fr}.publisher-top{padding-top:4px}.story-dialog:has(.story-artwork){grid-template-columns:1fr}.story-artwork{max-height:330px}}
 .coach-shell{display:grid;gap:1.25rem;max-width:1180px;margin:0 auto}.coach-shell>header h2{font-family:Georgia,serif;font-size:clamp(2rem,5vw,3.4rem);margin:.25rem 0}.coach-privacy,.coach-result,.coach-history{background:rgba(9,27,25,.86);border:1px solid rgba(203,166,93,.3);border-radius:14px;padding:1.2rem;box-shadow:0 18px 42px rgba(0,0,0,.24)}.coach-privacy strong{color:#e8cb8b}.coach-status{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}.coach-status progress{width:min(430px,70vw);accent-color:#caa45d}.coach-observation{display:grid;gap:.55rem;font-weight:700}.coach-observation textarea{min-height:130px;resize:vertical}.coach-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}.coach-cards article{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:1rem}.coach-cards article>button:first-child{border:0;background:transparent;padding:0;cursor:pointer}.coach-history>article{display:grid;grid-template-columns:auto 1fr;gap:.3rem 1rem;border-top:1px solid rgba(255,255,255,.1);padding:1rem 0}.coach-history>article p,.coach-history>article small,.coach-history>article div{grid-column:1/-1}.coach-history button{border:1px solid rgba(255,255,255,.2);background:transparent;color:inherit;padding:.35rem .65rem;margin-right:.45rem;border-radius:999px}.coach-history button.active{background:#b98b3c;color:#101b17}@media(max-width:760px){.coach-cards{grid-template-columns:1fr}.coach-status{align-items:stretch}.coach-status progress{width:100%}}
 .coach-intents{display:flex;flex-wrap:wrap;gap:.5rem}.coach-clarification{border-color:rgba(222,184,92,.65)}.coach-rules-note{padding:.8rem 1rem;border-left:3px solid #b98b3c;background:rgba(255,255,255,.035)}.coach-rules-note a{color:#efd58e}.coach-cards article>small{display:block;margin:.55rem 0;color:#d8cba8}.coach-history strong small{font-weight:400;color:#c7b98f}
+
+/* Original Deck Sage avatar artwork; numeric profile IDs remain unchanged. */
+.avatar-mark.avatar-art{position:relative;overflow:hidden;padding:0;isolation:isolate}
+.avatar-mark.avatar-art>img{display:block;width:100%;height:100%;object-fit:cover;border:0;border-radius:inherit;position:relative;z-index:1}
+.avatar-mark.avatar-art>img[hidden]{display:none}
+.avatar-image-fallback{position:absolute;inset:15%;z-index:0}
+.avatar-picker{min-width:0;padding:0;margin:22px 0 0;border:0}
+.avatar-picker legend{font-weight:600;margin-bottom:9px}
+.avatar-picker .avatar-grid{grid-template-columns:repeat(auto-fit,minmax(68px,1fr));gap:10px}
+.avatar-picker .avatar-grid button{aspect-ratio:auto;min-height:100px;padding:7px;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative}
+.avatar-picker .avatar-grid .avatar-art{width:100%;max-width:84px;height:auto;aspect-ratio:1;padding:0}
+.avatar-choice-label{font-size:12px;line-height:18px;color:#203f30;font-weight:700}
+.avatar-picker .avatar-grid button.chosen{outline:2px solid #607d4f;outline-offset:1px}
+.avatar-picker .avatar-grid button:focus-visible{outline:3px solid #203f30;outline-offset:4px}
+.avatar-mark.avatar-art>img:not([hidden])~.avatar-image-fallback{display:none}

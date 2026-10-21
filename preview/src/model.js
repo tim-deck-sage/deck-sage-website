@@ -1,3 +1,4 @@
+import {normalizeAvatarNumber} from './avatars';
 export const STORAGE_KEY='deck-sage-web-v1';
 export const LAND_NAMES=['Plains','Island','Swamp','Mountain','Forest','Wastes'];
 export const DECK_PLAYSTYLES=[
@@ -40,7 +41,7 @@ export function validateState(input){
  output.decks=input.decks.map(d=>{if(!d||typeof d.name!=='string'||!Array.isArray(d.cards))throw Error('Backup contains an invalid deck.');return {...d,id:typeof d.id==='string'?d.id:uid(),name:d.name.slice(0,200),playstyle:normalizeDeckPlaystyle(d.playstyle),cards:d.cards.map(card),commanderCard:d.commanderCard?card(d.commanderCard):null,basicLands:Object.fromEntries(LAND_NAMES.map(n=>[n,Math.max(0,Math.min(9999,Math.floor(Number(d.basicLands?.[n])||0)))]))};});
  if(Array.isArray(input.retainedDeckRecords))output.retainedDeckRecords=input.retainedDeckRecords.slice(-1000).map(d=>{if(!d||typeof d.name!=='string'||!Array.isArray(d.cards))throw Error('Backup contains an invalid retained deck record.');return {...d,id:typeof d.id==='string'?d.id:uid(),name:d.name.slice(0,200),status:'deleted',cards:d.cards.map(card),commanderCard:d.commanderCard?card(d.commanderCard):null,basicLands:Object.fromEntries(LAND_NAMES.map(n=>[n,Math.max(0,Math.min(9999,Math.floor(Number(d.basicLands?.[n])||0)))]))};});
  output.bulk=input.bulk.map(card);
- output.profile={...output.profile,...(input.profile||{})};output.profile.avatar=Math.max(1,Math.min(19,Number(output.profile.avatar)||1));
+ output.profile={...output.profile,...(input.profile||{})};output.profile.avatar=normalizeAvatarNumber(output.profile.avatar);
  for(const key of ['favorites','contacts','stores','notifications'])if(Array.isArray(input[key]))output[key]=input[key];
  output.settings={...output.settings,...(input.settings||{})};return output;
 }

@@ -1,0 +1,219 @@
+{
+  "repository": "tim-deck-sage/deck-sage-app",
+  "ref": "f2bc0805199e7c9293de3c5507743b82fa0fbd7d",
+  "sourceBranch": "baseline/current-application-20260717",
+  "mappingSource": "app/utils/avatarAssets.ts",
+  "conversion": "Pillow: RGBA, thumbnail 256x256 LANCZOS, WebP quality 88 method 6; no generated/replacement artwork",
+  "rights": "Existing Deck Sage app artwork reused for the owner-requested website conversion. No separate artwork license was found in the inspected source tree; existing ownership and license terms remain unchanged. This is not an assertion of third-party clearance.",
+  "assets": [
+    {
+      "id": 1,
+      "source": "assets/images/avatars/avatar1.png",
+      "gitBlobSha": "24507b34e71ecc360ab2542205b4ecd1b16d02a7",
+      "sourceSha256": "fe3e54d3e4ae5f8b124d80ccbf9fa99f269a77e52d48c3fdebdce48f7f3da2c3",
+      "output": "avatars/avatar1.webp",
+      "sha256": "3673cd666438e6651c122d78bc3e4fece7ce4c0cc571f29336651d7ac7c1d613",
+      "bytes": 32922,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 2,
+      "source": "assets/images/avatars/avatar2.png",
+      "gitBlobSha": "f1468573bbd035fd980b41011294d7657180ad5d",
+      "sourceSha256": "d55359d09edc7ef71a3212dddf117e2dc3595a5dc9424bf4b183e8ed2e8f7033",
+      "output": "avatars/avatar2.webp",
+      "sha256": "5d19e9fae2666734b954701c1b80a7f0f2713b5a5765f0e811a98272d5acfc0c",
+      "bytes": 29454,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 3,
+      "source": "assets/images/avatars/avatar3.png",
+      "gitBlobSha": "31faf1698089d5b672b44ea30ca6ed393ecc273a",
+      "sourceSha256": "9ec41c9d5a0a0ec092f9e37fb30e69daddb0ea80d45900848515436331664ac4",
+      "output": "avatars/avatar3.webp",
+      "sha256": "6ff57036f686c90fce8910c8712208413578f0cba91b6c9b9b7997c531cdd515",
+      "bytes": 31262,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 4,
+      "source": "assets/images/avatars/avatar4.png",
+      "gitBlobSha": "4ccf718e6ed20dbe05ceefbccb07471ed363b2a7",
+      "sourceSha256": "21064d2cc5ee5a08920ea33df61c6084f19a8431303910118d03dc8179c03398",
+      "output": "avatars/avatar4.webp",
+      "sha256": "e86e6fb703992474e7cc4f781a3c9254d0a5bc0036e82eec4efd53c424c86d8b",
+      "bytes": 27374,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 5,
+      "source": "assets/images/avatars/avatar5.png",
+      "gitBlobSha": "82286c1a72ca7e09f52e45c1466cbeeb0713e9c7",
+      "sourceSha256": "56476ba47b49618b2debb38df49b23698cd4668e5eafc0dc3a5b9b4c58df3d8b",
+      "output": "avatars/avatar5.webp",
+      "sha256": "18961903a21ef4f3903b9cf0cc3a325d0c816ee5cf0332eddeaf74be105f3104",
+      "bytes": 34564,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 6,
+      "source": "assets/images/avatars/avatar6.png",
+      "gitBlobSha": "c5dd38d9ab8e1a01ccb8dcc1bf226ffeb1b71e11",
+      "sourceSha256": "db44a3c11256668053adf4d6e3baf20000923145c8992d7a3b958be95cca27ec",
+      "output": "avatars/avatar6.webp",
+      "sha256": "58c9bf9dfc556929eb0d73a70434e7169c82575982ad56a2ffaf5bc94c05dd1f",
+      "bytes": 36860,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 7,
+      "source": "assets/images/avatars/avatar7.png",
+      "gitBlobSha": "2ae8cc97034ed0534cbf91ecfd3fe363f0e2c757",
+      "sourceSha256": "f37b742e7b05716a41b979c9e8af633271afd5ea2216bf7113ccbf939d640d4b",
+      "output": "avatars/avatar7.webp",
+      "sha256": "844c0acc1fc5d879e7f75928b3dc6b10ca3799ad599d36dc435161dec4347ee3",
+      "bytes": 31918,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 8,
+      "source": "assets/images/avatars/avatar8.png",
+      "gitBlobSha": "55b7184bbfc8ed367a408481d2f85ab026f7dd2d",
+      "sourceSha256": "501b3fdf5b1a44807b000b323a5c3cc0c30ad170ea39c367c77ceaf5eabb1d40",
+      "output": "avatars/avatar8.webp",
+      "sha256": "1241092889d3cb428c5606c0afe3ea037278e349c8f561494debd89a2a000d6e",
+      "bytes": 25980,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 9,
+      "source": "assets/images/avatars/avatar9.png",
+      "gitBlobSha": "467c0b8300ce1c81a59075f95f932048cd1b33f2",
+      "sourceSha256": "7c3a8a9c3a83fc7e4dcd32987ca20b206bbbe76ab65b9dbcdbaa59b1dc71249b",
+      "output": "avatars/avatar9.webp",
+      "sha256": "b0302dad03c6b999e50f9d2ec3b228768ada8e645d2ef4ceeb95537f0d06fc88",
+      "bytes": 34686,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 10,
+      "source": "assets/images/avatars/avatar10.png",
+      "gitBlobSha": "7a421c891e584b8cf3beaf35fe1525251c8996a2",
+      "sourceSha256": "f96b3236d50027f463fed755a54637e2ece6bb290a013e89eafa3a52dfae11f4",
+      "output": "avatars/avatar10.webp",
+      "sha256": "89ca255f77293fba761beb742f7e8f28e96245c88d824e36df9c79f925b0f059",
+      "bytes": 30692,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 11,
+      "source": "assets/images/avatars/avatar11.png",
+      "gitBlobSha": "ae7c20378c400c82693c258e74d4da6b1067713a",
+      "sourceSha256": "cbfb8e7aa21f525bc205daba4176cb6217bae968728fa8b7b791849c44125097",
+      "output": "avatars/avatar11.webp",
+      "sha256": "391205d96b2063c994a0367a4e9021b3d2f92887dc2d230b800f53ccf528abcf",
+      "bytes": 33786,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 12,
+      "source": "assets/images/avatars/avatar12.png",
+      "gitBlobSha": "45a2ace47f5da113d9fee9f0ecec2ab81b73312f",
+      "sourceSha256": "32d3bb39482f93a1b1d77367582eca108b83ed825fd1508ba9c3bf990b214ff2",
+      "output": "avatars/avatar12.webp",
+      "sha256": "a3b457acd1790ed0e8844bf35808ff47fed07bc96e5044a886c7daf7e8420538",
+      "bytes": 31932,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 13,
+      "source": "assets/images/avatars/avatar13.png",
+      "gitBlobSha": "27f57fd0abffc740ef6c485af48287f6c2f605c9",
+      "sourceSha256": "2d18a07b9ca4a8e2a9b8c028c2809f055c324121102a69d0be4f20e280d7da14",
+      "output": "avatars/avatar13.webp",
+      "sha256": "9064a4edf2facc52bc180e5819a2d270749c8978e2f3d16a33921b3475e2388f",
+      "bytes": 31704,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 14,
+      "source": "assets/images/avatars/avatar14.png",
+      "gitBlobSha": "0d2077991845a0dfb443253f32323de938a8e6f4",
+      "sourceSha256": "8acebbd956746b5d3a9ab2ef52c1e20bd395d346a68feb3da2eac7e11900b7eb",
+      "output": "avatars/avatar14.webp",
+      "sha256": "52305b4dd0daa54f834a35a64b8aa05f5c134778e4ebc679d893abd1294c7a4e",
+      "bytes": 32008,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 15,
+      "source": "assets/images/avatars/avatar15.png",
+      "gitBlobSha": "89cc9976d556e4dd5bb6a70e6c529ac5fd3d5582",
+      "sourceSha256": "45bc70a92ed12e61b0b356f1b243caea0769cab80afed52d04dfca5424a3cfaa",
+      "output": "avatars/avatar15.webp",
+      "sha256": "216a891891878fe27c4a7794cf8c14d413108953e467bb9083d9b3c9e95a0f1f",
+      "bytes": 27422,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 16,
+      "source": "assets/images/avatars/avatar16.png",
+      "gitBlobSha": "52513d2abe58a8a038841b311a05a314b26c8e4b",
+      "sourceSha256": "bd2654b3b7ff40c1cfccf3a039745e3ace38fdcfd52265c5a81e25b6a5d155e3",
+      "output": "avatars/avatar16.webp",
+      "sha256": "7860c4059e3671562dc75eeaadc31331481b63e5334be042181acb62ec6ecd05",
+      "bytes": 26254,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 17,
+      "source": "assets/images/avatars/avatar17.png",
+      "gitBlobSha": "93173d190229be81baea8f9a42fff6c6c6ea3214",
+      "sourceSha256": "4bdff82107d5c8cfa4a76b0e5b3564b6900ca249538822c486107d6aa18fcb01",
+      "output": "avatars/avatar17.webp",
+      "sha256": "9f6898e027059c9d903e38abc5f5641493bb1e2e81c25ba4bd350dd66355841a",
+      "bytes": 25102,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 18,
+      "source": "assets/images/avatars/avatar18.png",
+      "gitBlobSha": "0b9332c466d142e3303838d22ed61e9009a851aa",
+      "sourceSha256": "834c11d6d6824b21c0ecb7630457df299f655ddfae890864c9839a3c2c995667",
+      "output": "avatars/avatar18.webp",
+      "sha256": "ee95fca207bed3dedc4646a4dee13f64c9f92ddc08252e8630b491eebf99d095",
+      "bytes": 32642,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": 19,
+      "source": "assets/images/avatars/avatar19.png",
+      "gitBlobSha": "2aa85b05ad6051633c770aa338c38ebb9e263cbc",
+      "sourceSha256": "06bd5fb9b63abd0c153467aefd97c2b378f34d4933dc6f7e4eb9a59afcc1d533",
+      "output": "avatars/avatar19.webp",
+      "sha256": "87cbdcd8ec219f7aec5a749b602122dee373185a939f66a4e1cf00826b18de10",
+      "bytes": 31702,
+      "width": 256,
+      "height": 256
+    }
+  ]
+}
