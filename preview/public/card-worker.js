@@ -141,14 +141,14 @@ const recommendationPool=[
  ['Cyclonic Rift',['wipe','interaction'],[], 'Spot bounce early or one-sided overload later; bounced cards can be replayed.'],
  ['Vandalblast',['wipe','interaction'],['artifacts'], 'A cheap artifact answer that can overload into a one-sided artifact reset.'],
  ['Bane of Progress',['wipe'],[], 'Clears artifacts and enchantments, including your own, then grows.'],
- ['Heroic Intervention',['protection','commander_support'],[], 'Protects your permanents from destruction and targeting, not exile, sacrifice, or -X/-X.'],
+ ['Heroic Intervention',['protection','commander_support'],[], 'A shield against destruction and targeting. It does not stop untargeted exile, sacrifice, or -X/-X.'],
  ["Tamiyo's Safekeeping",['protection','commander_support','low_curve'],[], 'One mana protects one permanent and gains life.'],
  ["Tyvar's Stand",['protection','commander_support','finisher','low_curve'],[], 'Protects one creature and can convert spare mana into power.'],
  ["Teferi's Protection",['protection'],[], 'Phases out your permanents and protects your life total for a turn cycle.'],
  ['Clever Concealment',['protection'],['tokens'], 'A wide board can convoke this and phase out any number of nonland permanents.'],
  ['Boros Charm',['protection','finisher','low_curve'],[], 'Protects permanents from destruction or supplies reach/double strike.'],
  ['Swiftfoot Boots',['protection','commander_support','low_curve'],[], 'Reusable commander protection and haste, but it still needs equip timing and mana.'],
- ['Lightning Greaves',['protection','commander_support','low_curve'],[], 'Free equip gives haste and shroud; shroud also blocks your own targeting.'],
+ ['Lightning Greaves',['protection','commander_support','low_curve'],[], 'A fine pair of boots for a commander in haste. Equipping costs no mana and grants haste and shroud; beware, shroud bars your own targeting too.'],
  ['Thousand-Year Elixir',['commander_support'],[], 'Lets a creature use tap abilities sooner and untaps one creature for a second activation.'],
  ["Magewright's Stone",['commander_support','low_curve'],[], 'Untaps a creature with a tap ability, but does not grant haste or protect it.'],
  ['Soul-Guide Lantern',['graveyard_hate','low_curve'],[], 'Exiles one card on entry, then can clear opposing graveyards or replace itself.'],
@@ -350,7 +350,14 @@ function suggestedCuts(profile,context,playstyle){
 }
 function attachStrongUpgrades(cutReview,groups){if(!cutReview?.strongCards?.cards?.length)return cutReview;return {...cutReview,strongCards:{...cutReview.strongCards,cards:cutReview.strongCards.cards.map(item=>{if(!item.weaknessId)return item;const group=groups.find(value=>value.issue.id===item.weaknessId),suggestion=group?.cards?.[0];return {...item,suggestedAddition:suggestion?{name:suggestion.card.name,manaCost:suggestion.card.manaCost,why:suggestion.why}:null};})}};}
 function rampProfile(profile){const rounded=value=>Number(value.toFixed(2));return {reliable:rounded(profile.stableRamp),conditional:rounded(profile.conditionalRamp),burst:rounded(profile.burstRamp),weightedTotal:rounded(profile.stableRamp+profile.conditionalRamp+profile.burstRamp)};}
-function candidateExplanation(card,meta,role,context,profile,fit,style){const labels={mana_sink:'a scalable mana outlet or payoff',equipment_access:'Equipment access or retrieval',ramp:'mana acceleration',mana:'mana-base support',advantage:'sustained advantage',interaction:'flexible interaction',wipe:'a reset button',protection:'plan protection',graveyard_hate:'graveyard counterplay',finisher:'a plan-aligned finisher',commander_support:'commander engine support',low_curve:'early-turn efficiency'};const evidence=fit.reasons.length?` Whole-deck fit: ${fit.reasons.join('; ')}.`:'',emphasis=style?.reason?` ${style.reason}`:'';return `${meta?.why||`${card.name} has verified rules text supporting ${labels[role]||role}.`}${evidence}${emphasis}`;}
+// Copy only: keep every fit fact and all separately rendered caveats intact.
+function candidateExplanation(card,meta,role,context,profile,fit,style){
+ const labels={mana_sink:'a scalable mana outlet or payoff',equipment_access:'Equipment access or retrieval',ramp:'mana acceleration',mana:'mana-base support',advantage:'sustained advantage',interaction:'flexible interaction',wipe:'a reset button',protection:'plan protection',graveyard_hate:'graveyard counterplay',finisher:'a plan-aligned finisher',commander_support:'commander engine support',low_curve:'early-turn efficiency'};
+ const key=`${card.oracleId||card.name}:${role}`,variant=Array.from(key).reduce((hash,char)=>(Math.imul(hash,31)+char.charCodeAt(0))>>>0,0)%3;
+ const introductions=['In this deck','The connection to your plan','What I see in your list'];
+ const evidence=fit.reasons.length?` ${introductions[variant]}: ${[...new Set(fit.reasons)].join('; ')}.`:'';
+ return `${meta?.why||`${card.name} offers ${labels[role]||role}, according to its rules text.`}${evidence}`;
+}
 async function recommendations(body){
  const snapshot=await manifest(),playstyle=PLAYSTYLES.has(body?.playstyle)?body.playstyle:'balanced',context={colors:Array.isArray(body?.colors)?body.colors.filter(color=>'WUBRG'.includes(color)):[],planSignals:Array.isArray(body?.planSignals)?body.planSignals:[],tribe:String(body?.tribe||''),issues:Array.isArray(body?.issues)?body.issues:[],roleTargets:body?.roleTargets&&typeof body.roleTargets==='object'?body.roleTargets:{},playstyle};
  const compactCardKey=card=>[deckField(card,'oracleId','oracle_id'),card?.name,typeOf(card),rulesOf(card),deckField(card,'manaCost','mana_cost'),Number(card?.cmc)||0,quantity(card),card?.role||'',cardLayout(card),card?.metadataComplete!==false,(card?.faces||[]).map(face=>[face?.name,face?.type_line||face?.typeLine,face?.oracle_text||face?.oracleText])];

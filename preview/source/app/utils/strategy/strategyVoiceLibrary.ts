@@ -702,3 +702,42 @@ export function composePilotCoaching(seed?: string): string {
     finishingAdvice: getRandomFinishingAdvice(seed),
   });
 }
+
+// Presentation only: the caller selects a supported reason before choosing its voice.
+// Stable keys keep a saved deck's advice steady across renders.
+const sageStrategyCopy = {
+  opening: [
+    'Let us read the shape of this deck.',
+    'Come, let us consider the cards before you.',
+    'There is a plan taking shape here.',
+  ],
+  early: [
+    'Lay your foundations first: mana, then the small pieces your greater spells depend on.',
+    'Begin with mana and modest setup. Even the grandest spell needs somewhere to stand.',
+    'Gather your mana and set your smaller pieces in place. The grand gestures can wait.',
+  ],
+  middle: [
+    'Now put your preparations to work. Begin turning setup into pressure.',
+    'The foundations are laid. Look for the turn when preparation can become a threat.',
+    'A plan cannot remain a promise forever. Start asking the table to answer your board.',
+  ],
+  closing: [
+    'When a sound finishing line appears, take it. Another flourish is not worth another turn for your rivals.',
+    'Recognize the opening, then commit. A winning line needs no ornament.',
+    'Once you have a real way to close, spend your resources on that finish rather than another display of strength.',
+  ],
+  protection: [
+    'Keep your wards for the pieces that hold the plan together, not a small early gain.',
+    'Your protection has important work ahead. Save it for the cards your plan depends on.',
+    'Guard the heart of the deck. A little early value is seldom worth spending its protection.',
+  ],
+  thinHand: [
+    'Your hand may be slow to refill. Keep a little in reserve unless committing it earns an immediate advantage.',
+    'Draw is scarce here. Do not empty your hand merely to make the battlefield look impressive.',
+    'With few ways to replenish your hand, spend each card with care. Commit fully only for a meaningful gain.',
+  ],
+} as const;
+
+export function getSageStrategyCopy(reason: keyof typeof sageStrategyCopy, seed: string): string {
+  return getVoiceEntry(sageStrategyCopy[reason], seed, `sage:${reason}`);
+}

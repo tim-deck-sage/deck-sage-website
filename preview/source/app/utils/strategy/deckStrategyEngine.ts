@@ -2,6 +2,7 @@ import { Deck, Card } from '../../context/DeckContext';
 import { analyzeDeck, DeckAnalysisResult } from '../commander/deckAnalysisCore';
 import {
   composeIdentityCoaching,
+  getSageStrategyCopy,
   getRandomFinishingAdvice,
   getRandomPilotWarning,
   getRandomTableWisdom,
@@ -66,6 +67,31 @@ export function generateDeckStrategy(deck: Deck): DeckStrategy {
   const signals = analyzeSignals(deck, enrichedCards);
 
   return buildStrategy(deck, enrichedCards, signals);
+}
+
+// Keep the original strategy output stable for comparison code that reads its
+// keywords. The website's display copy is a separate, deterministic projection.
+export function generateSageDeckStrategy(deck: Deck): DeckStrategy {
+  const cards = buildStrategyCards(deck);
+  const signals = analyzeSignals(deck, cards);
+  const strategy = buildStrategy(deck, cards, signals);
+  const seed = getStrategyVoiceSeed(deck);
+  const originalOpening = composeIdentityCoaching(getStrategyVoiceArchetype(deck, signals), seed);
+  return {
+    ...strategy,
+    identity: strategy.identity.replace(originalOpening, getSageStrategyCopy('opening', seed)),
+    earlyGame: strategy.earlyGame.map((line, index) => index === 0 ? getSageStrategyCopy('early', seed) : line),
+    midGame: strategy.midGame.map((line, index) => index === 0 ? getSageStrategyCopy('middle', seed) : line),
+    lateGame: strategy.lateGame.map(line => line === 'When you see a real closing line, commit with confidence. This is not the stage for half-measures.' ? getSageStrategyCopy('closing', seed) : line),
+    mistakes: strategy.mistakes.map(line => line === 'Because this build may not refill quickly, avoid dumping your whole hand unless it creates immediate advantage.' ? getSageStrategyCopy('thinHand', seed) : line),
+    liveAdvice: strategy.liveAdvice
+      .filter(line => line !== 'Your card draw is limited. Avoid overcommitting your hand unless it creates a strong board or puts you close to a win.')
+      .map(line => line === 'You have protection tools in this deck. Save them for your highest-impact pieces instead of using them early for small gains.'
+        ? getSageStrategyCopy('protection', seed)
+        : line === `Right now, your best path is to play around ${deck.commander}. This deck becomes much stronger once your commander is active and generating value.`
+          ? `Build your plans around ${deck.commander}. Give your commander a chance to do its work before risking the pieces that depend on it.`
+          : line),
+  };
 }
 
 /* ------------------ LOCAL CARD SNAPSHOT ------------------ */
