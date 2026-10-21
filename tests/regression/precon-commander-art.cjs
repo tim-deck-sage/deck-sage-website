@@ -1,0 +1,25 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const {eligible,selectPreferred,buildMap,faceImages,loadInputs}=require('../../preview/tools/refresh-commander-art.cjs');
+const id='fixture-oracle',uris=n=>({large:`https://cards.scryfall.io/large/${n}.jpg`,art_crop:`https://cards.scryfall.io/art_crop/${n}.jpg`});
+const normal={id:'standard',oracle_id:id,name:'Fixture',lang:'en',games:['paper'],legalities:{commander:'legal'},layout:'normal',image_status:'highres_scan',image_uris:uris('normal'),border_color:'black'};
+const extended={...normal,id:'extended',frame_effects:['extendedart']},borderless={...normal,id:'borderless',border_color:'borderless'},full={...normal,id:'full',full_art:true};
+assert.equal(selectPreferred([normal,extended],id,'Fixture').id,'extended');
+assert.equal(selectPreferred([normal,extended,borderless],id,'Fixture').id,'borderless');
+assert.equal(selectPreferred([normal,extended,borderless,full],id,'Fixture').id,'full');
+assert.equal(selectPreferred([normal],id,'Fixture'),null);
+for(const invalid of [{oracle_id:'wrong'},{oversized:true},{games:['mtgo'],digital:true},{lang:'ja'},{layout:'art_series'},{layout:'token'},{border_color:'gold'},{textless:true},{image_status:'placeholder'},{legalities:{commander:'not_legal'}},{set_type:'memorabilia'}])assert.equal(eligible({...full,...invalid},id),false,JSON.stringify(invalid));
+const dfc={...full,image_uris:undefined,card_faces:[{name:'Front',image_uris:uris('front')},{name:'Back',image_uris:uris('back')}]};
+assert.equal(faceImages(dfc,'Back').large,uris('back').large);assert.equal(faceImages(dfc,'Front // Back').large,uris('front').large);
+const canonical=new Map([[id,{oracleId:id,scryfallId:'stock-id',raw:normal}]]),commanders=[{name:'Fixture',oracleId:id,scryfallId:'unchanged-stock'}],before=JSON.stringify(commanders);
+const map=buildMap(commanders,new Map([[id,[full]]]),canonical);
+assert.equal(map.cards.Fixture.scryfallId,'stock-id');assert.equal(map.cards.Fixture.displayArt.printingId,'full');assert.equal(map.cards.Fixture.displayArt.oracleId,id);assert.equal(JSON.stringify(commanders),before);assert.equal(map.coverage.preferred,1);
+assert.equal(buildMap(commanders,new Map(),canonical).coverage.fallback,1);
+assert.throws(()=>buildMap(commanders,new Map(),new Map()),/Missing canonical/);
+assert.throws(()=>buildMap(commanders,new Map(),new Map([[id,{oracleId:id,imageUrl:'https://cards.scryfall.io/art_crop/not-card.jpg'}]])),/full-card/);
+const root=path.resolve(__dirname,'../../preview/public'),current=JSON.parse(fs.readFileSync(path.join(root,'precon-data/commander-art.json'))),inputs=loadInputs(path.join(root,'precon-data'),path.join(root,'card-data'));
+assert.equal(current.schemaVersion,1);assert.equal(current.coverage.uniqueCommanders,new Set(inputs.commanders.map(c=>c.oracleId)).size);assert.equal(current.coverage.preferred+current.coverage.fallback,current.coverage.uniqueCommanders);assert.equal(current.coverage.missingImages,0);
+for(const card of inputs.commanders){const c=current.cards[card.name];assert.equal(c.oracleId,card.oracleId);assert.ok(c.imageUrl);assert.equal(new URL(c.imageUrl).hostname,'cards.scryfall.io');if(c.displayArt){assert.equal(c.displayArt.oracleId,c.oracleId);assert.ok(c.displayArt.printingId);assert.ok(['full_art','extendedart','borderless'].includes(c.displayArt.treatment));assert.ok(!new URL(c.displayArt.imageUrl).pathname.startsWith('/art_crop/'));}}
+const workflow=fs.readFileSync(path.resolve(__dirname,'../../.github/workflows/nextjs.yml'),'utf8');
+assert.ok(workflow.indexOf('node preview/tools/refresh-commander-art.cjs')>workflow.indexOf('node preview/tools/refresh-precon-catalog.cjs'));
+console.log('PASS: Commander artwork identity, legal paper treatments, exclusions, DFC faces, fallback, immutability, static coverage and daily workflow');
+console.log(current.coverage);

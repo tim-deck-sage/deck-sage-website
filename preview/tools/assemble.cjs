@@ -22,7 +22,7 @@ for(const folder of ['assets/audio','card-data'])for(const name of fs.readdirSyn
 for(const name of fs.readdirSync(path.join(publicRoot,'local-scanner/v1')))allowed.push('local-scanner/v1/'+name);
 for(const name of fs.readdirSync(path.join(publicRoot,'local-scanner/licenses')))allowed.push('local-scanner/licenses/'+name);
 allowed.push('local-scanner/NOTICE.txt');
-allowed.push('precon-data/catalog.json','precon-data/LICENSE.txt');
+allowed.push('precon-data/catalog.json','precon-data/LICENSE.txt','precon-data/commander-art.json');
 for(const name of fs.readdirSync(path.join(publicRoot,'precon-data/decks'))){if(!/^[a-z0-9-]+\.json$/.test(name))throw Error('Unexpected precon artifact');allowed.push('precon-data/decks/'+name);}
 const ledger=[];
 for(const relative of allowed){const src=path.join(publicRoot,relative),dest=path.join(out,relative);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.copyFileSync(src,dest);const bytes=fs.readFileSync(dest);ledger.push({path:relative,bytes:bytes.length,sha256:crypto.createHash('sha256').update(bytes).digest('hex')});}

@@ -57,6 +57,9 @@ jobs:
       - name: Test Commander precon refresh guards
         run: node tests/regression/precon-catalog-refresh.cjs
 
+      - name: Resolve validated Commander display artwork
+        run: node preview/tools/refresh-commander-art.cjs && node tests/regression/precon-commander-art.cjs
+
       - name: Preserve validated precon catalog
         uses: actions/cache/save@v4
         with:
