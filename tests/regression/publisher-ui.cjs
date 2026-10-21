@@ -7,6 +7,8 @@ const {chromium}=require(path.join(runtime,'playwright'));
 const baseUrl=process.env.DECK_SAGE_PREVIEW_URL||'http://127.0.0.1:4184',endpoint=baseUrl+'/publisher-fixture';
 const report={browser:'Microsoft Edge (Core browser automation)',checks:[],errors:[],writes:[],startedAt:new Date().toISOString()},items=[];let publishCalls=0;
 const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64');
+// Valid silent PCM keeps native media error events from racing the playback stub.
+const audioFixture=Buffer.alloc(44+16000);audioFixture.write('RIFF');audioFixture.writeUInt32LE(audioFixture.length-8,4);audioFixture.write('WAVEfmt ',8);audioFixture.writeUInt32LE(16,16);audioFixture.writeUInt16LE(1,20);audioFixture.writeUInt16LE(1,22);audioFixture.writeUInt32LE(8000,24);audioFixture.writeUInt32LE(16000,28);audioFixture.writeUInt16LE(2,32);audioFixture.writeUInt16LE(16,34);audioFixture.write('data',36);audioFixture.writeUInt32LE(16000,40);
 function pass(name){report.checks.push(name);console.log('PASS',name);}
 async function prepare(context){
  await context.exposeBinding('__publisherFixture',async(_source,request)=>{
@@ -23,7 +25,7 @@ async function prepare(context){
   const request=route.request(),url=new URL(request.url());
   if(url.pathname.endsWith('/account-config.js'))return route.fulfill({status:200,contentType:'application/javascript',body:'window.DECK_SAGE_ACCOUNTS=null;'});
   if(url.pathname.endsWith('/publisher-config.js'))return route.fulfill({status:200,contentType:'application/javascript',body:`window.DECK_SAGE_PUBLISHER={enabled:true,endpoint:${JSON.stringify(endpoint)}};`});
-  if(url.hostname==='mihmykgxbneuhlcxolzm.supabase.co'&&url.pathname.includes('/storage/'))return url.pathname.endsWith('.mp3')?route.fulfill({status:200,contentType:'audio/mpeg',body:Buffer.from('ID3fixture')}):route.fulfill({status:200,contentType:'image/png',body:pixel});if(url.origin===new URL(baseUrl).origin)return route.continue();return route.abort();
+  if(url.hostname==='mihmykgxbneuhlcxolzm.supabase.co'&&url.pathname.includes('/storage/'))return url.pathname.endsWith('.mp3')?route.fulfill({status:200,contentType:'audio/wav',body:audioFixture}):route.fulfill({status:200,contentType:'image/png',body:pixel});if(url.origin===new URL(baseUrl).origin)return route.continue();return route.abort();
  });
 }
 

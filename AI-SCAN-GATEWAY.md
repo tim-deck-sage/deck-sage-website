@@ -1,48 +1,40 @@
-# Website AI Scan gateway
+# Retired website scan gateway
 
-The website AI Scan uses an isolated Supabase Edge Function in the authorized TEST project only:
+The old server-side scanner is replaced by an on-device scanner. Its Supabase URL is retained as a tombstone so cached website clients cannot use it to call a paid model.
 
 - Project: `mihmykgxbneuhlcxolzm` (`Deck Sage DB Integration Test`)
 - Function: `website-ai-batch-scan`
-- URL: `https://mihmykgxbneuhlcxolzm.supabase.co/functions/v1/website-ai-batch-scan`
-- Deployed version: 6
-- JWT verification: disabled intentionally because the website uses shared usernames rather than login accounts
+- Retired URL: `https://mihmykgxbneuhlcxolzm.supabase.co/functions/v1/website-ai-batch-scan`
+- Retirement deployed: version 9 on 2026-10-21 at 16:00 UTC
+- Deployment SHA-256: `852b7e985b10aad09391bca3e57d35757b7a7bf7a79f80845ef3c0f28e70ff75`
+- Previous live version: 8, inspected on 2026-10-21
+- JWT verification: unchanged (`false`); the tombstone has no protected service behavior
 
-The gateway accepts requests only from `https://deck-sage.com`, validates one JPEG of at most 6 MB, applies HMAC-hashed-IP and global quotas, and calls OpenAI from the server. It does not log images or extracted names. The browser never receives the OpenAI key. Server processing also requires `AI_SCAN_ENABLED` to equal exactly `true`; a missing, false, or differently cased value keeps the gateway disabled even when `OPENAI_API_KEY` exists.
+## Retirement behavior
 
-## Current release candidate
+The function accepts only the existing `https://deck-sage.com` origin. Valid `OPTIONS` preflights receive 204 with the existing POST/content-type CORS contract. Valid-origin POST requests receive 410 with `code: SCANNER_RETIRED`, a request to refresh the site, and `Cache-Control: no-store`. Other origins receive 403 without an allow-origin header; unsupported valid-origin methods receive 405.
 
-`preview/public/ai-scan-config.js` contains the deployed endpoint and sets `enabled: true` for the next reviewed website release. It becomes public only when that candidate is published. The independent server-side switch must also equal exact lowercase `true` before requests are admitted. No mock extraction is presented as live behavior.
+The function never reads uploaded bodies, accesses secrets or feature flags, logs image data, consumes quota, queries the database, or makes outbound requests. It therefore cannot incur OpenAI inference charges, even for old clients or when old project secrets still exist. Supabase's normal request/platform metering still applies.
 
-## One-time secret setup
+The new website must not contain the retired URL in its active scan configuration. Image recognition runs on the user's device instead. The ordinary card-name/catalog lookup path is separate from image processing.
 
-Tim should add the secret directly in the Supabase dashboard; never paste it into the website, repository, issue, or chat:
+## Verification
 
-1. Open <https://supabase.com/dashboard/project/mihmykgxbneuhlcxolzm/functions/secrets>.
-2. Add a secret named `OPENAI_API_KEY`.
-3. Paste the key value and save it. Do not add or enable `AI_SCAN_ENABLED` yet.
+Run `node tests/regression/ai-scan-gateway.cjs`. It checks the deployed entrypoint, tests allowed and rejected origins, verifies preflight and method behavior, and proves POST bodies are not accessed. It also forbids model/network/secret/quota code in the function.
 
-Supabase makes saved Edge Function secrets available without a function redeploy. Adding `OPENAI_API_KEY` alone does not activate requests because the server gate remains default-off.
+Live source and behavior were verified after deployment on 2026-10-21 at 16:01 UTC. Recheck after any future deployment:
 
-## Activation
+1. POST with `Origin: https://deck-sage.com` returns 410 and `SCANNER_RETIRED`.
+2. OPTIONS from the same origin returns 204 with the expected CORS headers.
+3. A POST from another origin returns 403 without an allow-origin header.
+4. Unrelated Edge Functions are unchanged.
 
-When ready to test and activate:
+Do not upload real user images to perform these checks. The handler ignores its body, so an empty POST is sufficient.
 
-1. Confirm `OPENAI_API_KEY` is saved without reading or exposing its value.
-2. Add `AI_SCAN_ENABLED` with the exact value `true`. This immediately admits origin-valid gateway requests; there is no private bypass mode.
-3. Run one isolated real fixture scan while the public client remains `enabled: false`.
-4. If the fixture succeeds, change `enabled: false` to `enabled: true` in `preview/public/ai-scan-config.js`.
-5. Rebuild, run the complete regression set, publish through the GitHub Pages `main` workflow, and verify the exact deployed commit.
-6. To stop server processing at any time, change `AI_SCAN_ENABLED` to any value other than exact lowercase `true`, or remove it.
+## Preserved resources and rollback
 
-## Database objects
+Unrelated functions were checked after deployment: `website-daily-news` remains version 5 (`c33e8f5c036c4f3055311d93a4277eb5411dc041cdfab1ac686ebaa75e4b4ece`), and `website-publisher` remains version 1 (`24bcc18495bd91f9426d803f6d1a7dc2a300488fbc8a553a0ca3f9373164a06a`). Their deployment timestamps are unchanged.
 
-The following TEST-project migrations provide the quota ledger and service-role-only quota function:
+No shared project secrets are removed or changed. In particular, `OPENAI_API_KEY` may still be used by the separate daily-news function; this scanner retirement does not authorize disabling unrelated news behavior. The scanner quota tables and migrations remain untouched and unused.
 
-- `supabase/migrations/20261013120000_ai_scan_rate_limits.sql`
-- `supabase/migrations/20261013123000_ai_scan_quota_ordering.sql`
-- `supabase/migrations/20261013214500_ai_scan_quota_headroom.sql`
-
-The quota table lives in the private schema with RLS enabled and no anonymous or authenticated privileges. Only the Edge Function service role can execute `public.consume_ai_scan_quota(text)`.
-
-One uploaded image is one quota admission. The active limits are 24 admissions per IP per 10 minutes, 30 per IP per UTC day, and 250 globally per UTC day. A 20-photo batch therefore has four same-window retry admissions. These quotas are abuse guardrails, not a guaranteed spending cap. Configure OpenAI project budgets and usage alerts separately before public activation.
+The previous implementation is preserved in Git at commit `fa937b3` under `supabase/functions/website-ai-batch-scan/`. A deliberate redeploy can restore it, but doing so would reintroduce the paid model connection and requires new authorization. Rolling the website back must not automatically roll this tombstone back. Changing old enable flags alone cannot reactivate scanning.

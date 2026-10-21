@@ -14,7 +14,8 @@ async function routeOffline(context) {
     const request = route.request(), url = new URL(request.url());
     if (request.url().endsWith('/account-config.js')) return route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.DECK_SAGE_ACCOUNTS=null;' });
     if (url.origin === 'https://api.scryfall.com') return route.fulfill({ status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' }, body: JSON.stringify({ data: [], has_more: false }) });
-    if (url.origin === 'https://cards.scryfall.io' && request.method() === 'GET') return route.continue();
+    // This isolated UI suite must not depend on Scryfall CDN availability.
+    if (url.origin === 'https://cards.scryfall.io' && request.method() === 'GET') return route.fulfill({ status: 200, contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64') });
     if (request.url().startsWith(baseUrl)) return route.continue();
     if (request.method() !== 'GET') report.externalWrites.push(request.url());
     return route.abort();
@@ -191,9 +192,9 @@ async function run() {
     const scan = await (await browser.newContext()).request.get(`${baseUrl}/ai-scan-config.js`);
     const scanConfig = await scan.text();
     assert.equal(scan.status(), 200);
-    assert.match(scanConfig, /enabled\s*:\s*true|"enabled"\s*:\s*true/);
-    assert.match(scanConfig, /mihmykgxbneuhlcxolzm\.supabase\.co\/functions\/v1\/website-ai-batch-scan/);
-    pass('Scanner release candidate is enabled only through the authorized TEST gateway');
+    assert.match(scanConfig, /enabled\s*:\s*false|"enabled"\s*:\s*false/);
+    assert.doesNotMatch(scanConfig, /https:\/\/|website-ai-batch-scan/);
+    pass('Legacy paid scanner configuration is disabled and contains no endpoint');
     assert.deepEqual(report.errors, []); assert.deepEqual(report.externalWrites, []);
     pass('No browser runtime errors or external write requests were observed');
   } finally {

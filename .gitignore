@@ -18,3 +18,8 @@ tests/**/*.png
 tests/**/*-report.json
 supabase/.temp/
 tests/**/*-backup.json
+
+*.tsbuildinfo
+
+# Rebuilt deterministically by postbuild; never hand-publish private inputs.
+preview/public/local-scanner/v1/
