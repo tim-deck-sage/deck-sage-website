@@ -34,7 +34,13 @@ function engineFit(zone,rows,balance){
   if(/whenever (?:you cast an? artifact|an? artifact[^.]*enters)/i.test(text))addRelation('artifact triggers',rows.filter(r=>/artifact/i.test(r.card.typeLine)),5);
   for(const [label,demand,support,weight] of RELATIONS){
    if(!demand.some(x=>profile.strategyFeatures.includes(x)))continue;
+   // A self-contained or restricted cost is not a general-purpose shell engine.
+   // For example sacrificing Toggo's Rock cannot consume creature-token fodder.
+   if(label==='sacrifice / death engine'&&!/sacrifice (?:a|another|one or more|any number of) creatures?|(?:creature|creatures)[^.\n]*\bdies\b|whenever[^.\n]*creature[^.\n]*put into[^.\n]*graveyard/i.test(text))continue;
+   if(label==='token conversion'&&!/creature tokens?|amass|create[^.\n]*\d+\/\d+/i.test(text))continue;
+   if(label==='graveyard engine'&&!/your graveyard|from (?:a|your) graveyard|discard a card/i.test(text))continue;
    let hits=rows.filter(r=>support.some(x=>r.features.strategyFeatures.includes(x)));
+   if(label==='activated engine')hits=hits.filter(r=>/untap (?:target|another|all|each|enchanted|up to)|creatures you control (?:have|gain) haste|target creature gains haste/i.test(r.card.oracleText));
    // Counter polarities are not interchangeable.
    if(label==='counter engine')hits=hits.filter(r=>r.features.strategyFeatures.includes('proliferate')||profile.strategyFeatures.includes('proliferate')||['plus_counters','minus_counters'].some(x=>profile.strategyFeatures.includes(x)&&r.features.strategyFeatures.includes(x)));
    const distinct=[...new Map(hits.map(r=>[functionalId(r.card),r])).values()];
