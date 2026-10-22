@@ -66,6 +66,25 @@ jobs:
           path: preview/public/precon-data
           key: precon-v1-${{ github.run_id }}-${{ github.run_attempt }}
 
+      - name: Restore last known good Commander combo archive
+        uses: actions/cache/restore@v4
+        with:
+          path: preview/public/combo-data
+          key: combos-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: combos-v1-
+
+      - name: Refresh and validate Commander combo archive
+        run: node preview/tools/refresh-commander-combos.cjs
+
+      - name: Test Commander combo rules and ownership
+        run: node tests/regression/commander-combos.cjs
+
+      - name: Preserve validated Commander combo archive
+        uses: actions/cache/save@v4
+        with:
+          path: preview/public/combo-data
+          key: combos-v1-${{ github.run_id }}-${{ github.run_attempt }}
+
       - name: Build static site
         run: npm run build
 
