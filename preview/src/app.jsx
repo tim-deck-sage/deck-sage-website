@@ -29,6 +29,7 @@ import {BulkDeckDiscoveryPage} from './BulkDeckDiscoveryPage';
 import {NewsPage} from './NewsPage';
 import {PreconLibraryPage} from './PreconLibraryPage';
 import CommanderCombosPage from './CommanderCombosPage';
+import CommanderSwapPage from './CommanderSwapPage';
 import {PublisherDesk} from './PublisherDesk';
 import {loadPublishedContent} from './publishedContent';
 import {GameplayCoach} from './GameplayCoach';
@@ -133,6 +134,7 @@ function App(){
  if(page==='home')content=<Home {...context}/>;
  else if(page==='cards')content=<CardLibrary {...context}/>;
  else if(page==='precons')content=<PreconLibraryPage {...context} preconId={routeContext} ui={{Icon,Button,CardThumb}}/>;
+ else if(page==='commander-swap')content=<CommanderSwapPage state={state}/>;
  else if(page==='combos')content=<CommanderCombosPage {...context} commanderId={routeContext} ui={{Modal}}/>;
  else if(page==='decks')content=deckId?<WarTableDetail {...context} id={deckId}/>:<Decks {...context}/>;
  else if(page==='bulk')content=<><BatchUploadEntry go={go} path="batch-upload/bulk"/><Bulk {...context}/></>;
@@ -168,7 +170,7 @@ function Home({state,status,go}){
  return <div className="home-page" data-home-background={HOME_BACKGROUND} style={{'--home-background':`url(${HOME_BACKGROUND})`}}>
   <HomeHeader state={state} unread={unread}/>
   <section className="home-hero" aria-labelledby="home-title"><div className="home-hero-copy"><span className="home-kicker"><i/>THE ART OF THE NEXT DECK<i/></span><h1 id="home-title">Welcome back,<br/><em>{name}.</em></h1><p>Your decks. Your collection. A deeper strategy.<br/>Same magic, bigger horizons.</p></div></section>
-  <section className="home-stats" aria-label="Your Deck Sage library at a glance"><div><span className="home-stat-icon"><Sigil/></span><span><strong>{digits(state.decks.length)}</strong><small>Decks in your sanctum</small><a className="home-precon-link" href="#/precons">Explore the Precon Vault →</a></span></div><div><Icon name="archive" size={29}/><span><strong>{digits(totalBulk)}</strong><small><a href="#/bulk">Cards in your bulk</a></small><a className="home-precon-link" href="#/combos">Explore Commander combos →</a></span></div><HomeLibraryLink go={go}/><div><Icon name="chart" size={29}/><span><strong>Local data</strong><small>Yours to keep.</small></span></div></section>
+  <section className="home-stats" aria-label="Your Deck Sage library at a glance"><div><span className="home-stat-icon"><Sigil/></span><span><strong>{digits(state.decks.length)}</strong><small>Decks in your sanctum</small><a className="home-precon-link" href="#/precons">Explore the Precon Vault →</a></span></div><div><Icon name="archive" size={29}/><span><strong>{digits(totalBulk)}</strong><small><a href="#/bulk">Cards in your bulk</a></small><a className="home-precon-link" href="#/combos">Explore Commander combos →</a></span></div><HomeLibraryLink go={go}/><div><Icon name="chart" size={29}/><span><strong>Local data</strong><small>Yours to keep.</small><a className="home-precon-link" href="#/commander-swap">Explore Commander Swap →</a></span></div></section>
   <section className="home-features" aria-label="Deck Sage features"><div className="home-primary-grid">{HOME_FEATURES.filter(feature=>feature.featured).map((feature,index)=><HomeFeatureLink key={feature.route} feature={feature} go={go} index={index}/>)}</div><div className="home-secondary-grid">{HOME_FEATURES.filter(feature=>!feature.featured).map((feature,index)=><HomeFeatureLink key={feature.route} feature={feature} go={go} index={index+3}/>)}</div></section>
  </div>;
 }

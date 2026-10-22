@@ -14,8 +14,8 @@ function CardArt({card,preferred=false}){
  const [failed,setFailed]=useState([]),primary=preferred?card?.displayArt?.imageUrl:'',fallback=card?.imageLarge||card?.imageUrl||'',source=[primary,fallback].find(url=>url&&!failed.includes(url));
  return source?<img src={source} alt={card?.name||'Card'} loading="lazy" decoding="async" width="488" height="680" onError={()=>setFailed(old=>[...old,source])}/>:<span className="precon-art-placeholder">✧<small>{card?.name||'Card art unavailable'}</small><small>Art unavailable · open for details</small></span>;
 }
-function ArtButton({card,onZoom,preferred=false,label,children}){return <button type="button" className="precon-card-image" onClick={()=>onZoom({card,preferred})} aria-label={'Enlarge '+card.name}><CardArt card={card} preferred={preferred}/><span className="precon-art-affordance">{label||'⤢ Enlarge card'}</span>{children}</button>;}
-function ArtZoom({selection,onClose}){
+export function ArtButton({card,onZoom,preferred=false,label,children}){return <button type="button" className="precon-card-image" onClick={()=>onZoom({card,preferred})} aria-label={'Enlarge '+card.name}><CardArt card={card} preferred={preferred}/><span className="precon-art-affordance">{label||'⤢ Enlarge card'}</span>{children}</button>;}
+export function ArtZoom({selection,onClose}){
  const ref=useRef(null),{card,preferred}=selection;
  useEffect(()=>{const prior=document.activeElement,dialog=ref.current;dialog.showModal();return()=>{dialog.close();prior?.focus();};},[]);
  return <dialog ref={ref} className="precon-art-dialog" aria-label={card.name+' card image'} onCancel={event=>{event.preventDefault();onClose();}} onClick={event=>{if(event.target===event.currentTarget)onClose();}}><div className="precon-art-dialog-content"><button type="button" className="button outline" onClick={onClose} autoFocus>Close card image</button><h2>{card.name}</h2><CardArt card={card} preferred={preferred}/><p>{preferred&&card.displayArt?'Display artwork · ':''}Display reference only. Stock edition, ownership, and saved card data are unchanged.</p>{card.oracleText&&<p className="precon-zoom-rules">{card.oracleText}</p>}</div></dialog>;
