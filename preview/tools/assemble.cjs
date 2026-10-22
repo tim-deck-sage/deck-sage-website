@@ -24,6 +24,8 @@ for(const name of fs.readdirSync(path.join(publicRoot,'local-scanner/licenses'))
 allowed.push('local-scanner/NOTICE.txt');
 allowed.push('precon-data/catalog.json','precon-data/LICENSE.txt','precon-data/commander-art.json');
 for(const name of fs.readdirSync(path.join(publicRoot,'precon-data/decks'))){if(!/^[a-z0-9-]+\.json$/.test(name))throw Error('Unexpected precon artifact');allowed.push('precon-data/decks/'+name);}
+for(const name of fs.readdirSync(path.join(publicRoot,'home/editorial')))allowed.push('home/editorial/'+name);
+allowed.push('home-editorial.css');
 const ledger=[];
 allowed.push('commander-swap.css');
 allowed.push('combos.css','combo-data/manifest.json');

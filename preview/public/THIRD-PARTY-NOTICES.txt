@@ -308,3 +308,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 Transformers.js 3.8.1 — Apache License 2.0 — https://github.com/huggingface/transformers.js
 Qwen3-0.6B / onnx-community Qwen3-0.6B-ONNX — Apache License 2.0 — https://huggingface.co/onnx-community/Qwen3-0.6B-ONNX
+
+Editorial homepage artwork (2026-10-22): scanner.webp, vault.webp, combos.webp, and swap.webp are original generated fantasy illustrations created for Deck Sage with the built-in imagegen tool. They depict an archivist, vault keeper, cooperating mages, and a commander considering two banners; they do not reproduce Riot artwork, logos, or fonts. Other homepage scenes are optimized crops of existing owner-provided Deck Sage art, with existing ownership and licenses unchanged. Typography uses Georgia / Times New Roman / system sans-serif already available on the visitor's device; no font files are redistributed.
