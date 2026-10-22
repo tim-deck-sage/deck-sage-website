@@ -41,7 +41,7 @@ function Avatar({number=1,className=''}){const avatar=normalizeAvatarNumber(numb
 const dollars=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
 const digits=n=>(n||0).toLocaleString();
 const colorNames={W:'White',U:'Blue',B:'Black',R:'Red',G:'Green',C:'Colorless'};
-const NAV=[['home','Home','home'],['decks','My decks','layers'],['precons','Precon Vault','book'],['bulk','My bulk','archive'],['cards','Card library','search'],['sage','Sage tools','spark'],['value','Card value','chart'],['lore','Commander lore','book'],['songs','Theme songs','music'],['news','Latest news','book'],['stores','My store','store'],['friends','Friends','people']];
+const NAV=[['home','Home','home'],['decks','My decks','layers'],['precons','Precon Vault','book'],['bulk','My bulk','archive'],['cards','Card library','search'],['sage','Sage tools','spark'],['value','Card value','chart'],['lore','Commander lore','book'],['songs','Theme songs','music'],['news','Latest news','book'],['advertise','Advertise on Deck Sage','store'],['friends','Friends','people']];
 const HOME_BACKGROUNDS=[1,2,3,4,5].map(number=>`/home/background-${number}.webp`);
 const HOME_BACKGROUND=HOME_BACKGROUNDS[Math.floor(Math.random()*HOME_BACKGROUNDS.length)];
 const commanderDisplayCards=new WeakSet();

@@ -33,7 +33,7 @@ The old soft angel and wing-only crop are removed from the homepage art director
 
 The hero is slightly shorter, preserving content height and typography while showing the next section below. The explicit scroll-to-explore hint is hidden. Existing continuous backgrounds, approved controls and restrained motion remain.
 
-The homepage and its Explore/mobile navigation now label the former store area Advertise on Deck Sage. It opens #/advertise, a plain coming-soon placeholder with no forms, payments, tracking or publishing actions. The old #/stores draft tool remains available by its existing route so existing data and functionality are preserved. No advertising infrastructure was added.
+The homepage, Explore/mobile menu and general sidebar navigation now label the former store area Advertise on Deck Sage. It opens #/advertise, a plain coming-soon placeholder with no forms, payments, tracking or publishing actions. The old #/stores draft tool remains available by its existing route so existing data and functionality are preserved. No advertising infrastructure was added.
 
 ## Generation briefs
 
