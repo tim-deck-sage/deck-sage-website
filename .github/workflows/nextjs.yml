@@ -79,6 +79,9 @@ jobs:
       - name: Test Commander combo rules and ownership
         run: node tests/regression/commander-combos.cjs
 
+      - name: Test read-only Commander Swap analysis and legality
+        run: node tests/regression/commander-swap.cjs
+
       - name: Preserve validated Commander combo archive
         uses: actions/cache/save@v4
         with:

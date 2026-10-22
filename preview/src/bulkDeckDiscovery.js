@@ -26,36 +26,40 @@ export function commanderCopyLimit(card){
  return 1;
 }
 
-function partnerKind(card){
- const text=rulesOf(card),lower=text.toLowerCase(),type=typeOf(card).toLowerCase();
- const withMatch=text.match(/partner with ([^\n.(]+)/i);
- const namedMatch=text.match(/partner\s*[—-]\s*([^\n.]+)/i);
- if(/\bchoose a background\b/i.test(text))return {kind:'background_lead'};
- if(/\bdoctor's companion\b/i.test(text))return {kind:'doctor_companion'};
- if(/\bfriends forever\b/i.test(text)||card?.keywords?.some(value=>String(value).toLowerCase()==='friends forever'))return {kind:'friends_forever'};
- if(/\blegendary\b/.test(type)&&/\bbackground\b/.test(type))return {kind:'background'};
- if(/\blegendary\b/.test(type)&&/\btime lord doctor\b/.test(type)&&!/\btime lord doctor\s+\w+/i.test(type))return {kind:'doctor'};
- if(withMatch)return {kind:'with',value:normalized(withMatch[1])};
- if(namedMatch)return {kind:'named',value:normalized(namedMatch[1])};
- if(/(?:^|\n)partner(?:\s|$|\()/i.test(text)||card?.keywords?.some(value=>String(value).toLowerCase()==='partner'))return {kind:'partner'};
- return {kind:'none'};
+// Official Comprehensive Rules 702.124: distinct abilities do not mix.
+// A card may offer several abilities (for example Amy Pond); test each pair.
+function partnerKinds(card){
+ const text=rulesOf(card).replace(/[’]/g,"'"),type=typeOf(card),kinds=[];
+ for(const match of text.matchAll(/(?:^|\n)partner with ([^\n.(]+)/gi))kinds.push({kind:'with',value:normalized(match[1])});
+ for(const match of text.matchAll(/(?:^|\n)partner\s*[—–-]\s*([^\n.(]+)/gi))kinds.push({kind:'named',value:normalized(match[1])});
+ if(/\bchoose a background\b/i.test(text))kinds.push({kind:'background_lead'});
+ if(/\bdoctor's companion\b/i.test(text))kinds.push({kind:'doctor_companion'});
+ if(/(?:^|\n)friends forever\b/i.test(text)||card?.keywords?.some(v=>String(v).toLowerCase()==='friends forever'))kinds.push({kind:'named',value:'friends forever'});
+ if(/\blegendary\b/i.test(type)&&/\bbackground\b/i.test(type))kinds.push({kind:'background'});
+ const subtypes=type.split(/[—–-]/).slice(1).join(' ').trim().toLowerCase();
+ if(/\blegendary\b/i.test(type)&&/\bcreature\b/i.test(type)&&subtypes==='time lord doctor')kinds.push({kind:'doctor'});
+ if(/(?:^|\n)partner(?:\s*\(|\s*$)/im.test(text)||card?.keywords?.some(v=>String(v).toLowerCase()==='partner')&&!/partner\s*(?:with|[—–-])/i.test(text))kinds.push({kind:'partner'});
+ return kinds;
 }
-
 export function validateCommandZone(cards){
  const zone=(cards||[]).filter(Boolean);
  if(zone.length<1||zone.length>2)return {ok:false,reason:'Choose one commander or one legal two-card command zone.'};
- if(zone.some(card=>!isCommanderCard(card)&&partnerKind(card).kind!=='background'))return {ok:false,reason:'Every command-zone card must be eligible to be a commander.'};
+ if(new Set(zone.map(functionalId)).size!==zone.length||new Set(zone.map(c=>normalized(c.name))).size!==zone.length)return {ok:false,reason:'Two copies of the same commander cannot form a command zone.'};
+ const options=zone.map(partnerKinds);
+ if(zone.some((card,i)=>!isCommanderCard(card)&&!options[i].some(k=>k.kind==='background')))return {ok:false,reason:'Every command-zone card must be eligible to be a commander.'};
  if(zone.some(card=>!commanderLegal(card)))return {ok:false,reason:'A command-zone card is not Commander legal in the local rules snapshot.'};
- if(zone.length===1){if(partnerKind(zone[0]).kind==='background')return {ok:false,reason:'A Background needs a commander with Choose a Background.'};return {ok:true,identity:identityOf(zone[0]),roles:['primary']};}
- const [left,right]=zone,a=partnerKind(left),b=partnerKind(right);let ok=false,roles=['primary','partner'];
- if(a.kind==='partner'&&b.kind==='partner')ok=true;
- if(a.kind==='friends_forever'&&b.kind==='friends_forever')ok=true;
- if(a.kind==='named'&&b.kind==='named'&&a.value===b.value)ok=true;
- if(a.kind==='with'&&b.kind==='with'&&a.value===normalized(right.name)&&b.value===normalized(left.name))ok=true;
- if((a.kind==='background_lead'&&b.kind==='background')||(b.kind==='background_lead'&&a.kind==='background')){ok=true;roles=a.kind==='background_lead'?['primary','background']:['background','primary'];}
- if((a.kind==='doctor_companion'&&b.kind==='doctor')||(b.kind==='doctor_companion'&&a.kind==='doctor')){ok=true;roles=a.kind==='doctor_companion'?['companion','doctor']:['doctor','companion'];}
- if(!ok)return {ok:false,reason:'These cards do not share a compatible Partner, Background, or Doctor pairing rule.'};
- return {ok:true,identity:Array.from(new Set([...identityOf(left),...identityOf(right)])).sort(),roles};
+ if(zone.length===1){if(options[0].some(k=>k.kind==='background'))return {ok:false,reason:'A Background needs a commander with Choose a Background.'};return {ok:true,identity:identityOf(zone[0]),roles:['primary']};}
+ const [left,right]=zone;
+ for(const a of options[0])for(const b of options[1]){
+  let ok=false,roles=['primary','partner'];
+  if(a.kind==='partner'&&b.kind==='partner')ok=true;
+  if(a.kind==='named'&&b.kind==='named'&&a.value===b.value)ok=true;
+  if(a.kind==='with'&&b.kind==='with'&&a.value===normalized(right.name)&&b.value===normalized(left.name))ok=true;
+  if((a.kind==='background_lead'&&b.kind==='background')||(b.kind==='background_lead'&&a.kind==='background')){ok=true;roles=a.kind==='background_lead'?['primary','background']:['background','primary'];}
+  if((a.kind==='doctor_companion'&&b.kind==='doctor')||(b.kind==='doctor_companion'&&a.kind==='doctor')){ok=true;roles=a.kind==='doctor_companion'?['companion','doctor']:['doctor','companion'];}
+  if(ok)return {ok:true,identity:Array.from(new Set([...identityOf(left),...identityOf(right)])).sort(),roles};
+ }
+ return {ok:false,reason:'These cards do not share a compatible Partner, Background, or Doctor pairing rule.'};
 }
 
 function inventoryRows(bulk){

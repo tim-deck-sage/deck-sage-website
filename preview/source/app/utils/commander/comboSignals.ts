@@ -81,7 +81,7 @@ const KNOWN_COMBOS: Omit<ComboSignal, 'detected'>[] = [
   },
 ];
 
-function detectKnownCombos(normalizedDeckSet: Set<string>): ComboSignal[] {
+export function detectKnownCombos(normalizedDeckSet: Set<string>): ComboSignal[] {
   return KNOWN_COMBOS.map((combo) => {
     const piecesFound = combo.pieces.every((piece) =>
       normalizedDeckSet.has(normalize(piece)),

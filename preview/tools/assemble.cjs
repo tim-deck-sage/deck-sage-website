@@ -25,6 +25,7 @@ allowed.push('local-scanner/NOTICE.txt');
 allowed.push('precon-data/catalog.json','precon-data/LICENSE.txt','precon-data/commander-art.json');
 for(const name of fs.readdirSync(path.join(publicRoot,'precon-data/decks'))){if(!/^[a-z0-9-]+\.json$/.test(name))throw Error('Unexpected precon artifact');allowed.push('precon-data/decks/'+name);}
 const ledger=[];
+allowed.push('commander-swap.css');
 allowed.push('combos.css','combo-data/manifest.json');
 const comboManifest=JSON.parse(fs.readFileSync(path.join(publicRoot,'combo-data/manifest.json')));if(!/^catalog-[a-f0-9]{16}\.json\.gz$/.test(comboManifest.file))throw Error('Invalid combo index');allowed.push('combo-data/'+comboManifest.file);
 for(const name of fs.readdirSync(path.join(publicRoot,'combo-data/shards'))){if(!/^[a-f0-9-]{36}-[a-f0-9]{16}\.json\.gz$/.test(name))throw Error('Unexpected combo artifact');allowed.push('combo-data/shards/'+name);}
