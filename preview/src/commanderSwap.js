@@ -95,6 +95,7 @@ export function recommendCommanderSwaps(deck,catalog,{limit=12,mode='all'}={}){
  const balance=analyzeDeckBalance({name:deck.name,cards:shell,commanders:[],basicLands:deck.basicLands||{},targetSize:100}),analysis=analyzeDeck(expanded);
  const rows=shell.filter(c=>!isLand(c)).map(card=>({card,features:classifyCandidateCard({...card,functionalId:functionalId(card)})}));
  const baseline=engineFit(old,rows,balance),named=rows.length;
+ const comparisonComplete=old.every(c=>baseline.evidence.some(e=>e.commander===c.name));
  const commanderSignals=detectKnownCombos(new Set([...old,...expanded].map(c=>c.name.trim().toLowerCase()))).filter(signal=>signal.pieces.some(name=>old.some(c=>c.name===name)));
  const summary={namedCards:named,total:expanded.length+Object.values(deck.basicLands||{}).reduce((n,v)=>n+(Number(v)||0),0),averageCmc:balance.averageCmc,ramp:balance.rampCount,draw:balance.drawCount,engines:baseline.evidence,winConditions:analysis.taggedCards.filter(c=>c.tags.includes('finisher')||c.tags.includes('comboPiece')).map(c=>c.name).slice(0,8),planSignals:balance.planSignals};
  if(named<20)return {notice:'Sage needs at least 20 named nonland shell cards before comparing commanders. Complete the list for a meaningful estimate.',summary,recommendations:[],baseline};
@@ -123,10 +124,11 @@ export function recommendCommanderSwaps(deck,catalog,{limit=12,mode='all'}={}){
   if(!costKnown)tradeoffs.push('Command-zone mana costs are incomplete in this snapshot; casting speed is not verified.');
   if(deploymentPenalty)tradeoffs.push('Deploying the whole proposed command zone costs '+mana.reduce((n,v)=>n+v,0)+' mana versus '+oldMana.reduce((n,v)=>n+v,0)+' now; the comparison deducts '+deploymentPenalty+' points for that delay.');
   if(zone.length===2)tradeoffs.push('Two commanders offer two sources of value, but deploying both takes mana and each tracks its own commander tax.');
-  recommendations.push({zone,plan,delta,fitScore:fit.score,evidence:fit.evidence,lost,tradeoffs,retainsCurrent:zone.some(c=>oldIds.has(functionalId(c))),label:delta>=6&&plan.dropIn?'Plausible upgrade estimate':delta>=6?'Promising fit; deck edits required':'Alternative; no clear upgrade'});
+  if(!comparisonComplete)tradeoffs.unshift('Sage cannot fully model your current commander\'s engine. A larger shell-fit index does not establish that replacing it makes this deck stronger.');
+  recommendations.push({zone,plan,delta,fitScore:fit.score,evidence:fit.evidence,lost,tradeoffs,retainsCurrent:zone.some(c=>oldIds.has(functionalId(c))),label:!comparisonComplete?'Shell fit; current engine comparison uncertain':delta>=6&&plan.dropIn?'Plausible upgrade estimate':delta>=6?'Promising fit; deck edits required':'Alternative; no clear upgrade'});
  }
  recommendations.sort((a,b)=>b.delta-a.delta||Number(b.plan.dropIn)-Number(a.plan.dropIn)||a.zone.map(c=>c.name).join().localeCompare(b.zone.map(c=>c.name).join()));
- const clear=recommendations.some(r=>r.delta>=6&&r.plan.dropIn);
+ const clear=comparisonComplete&&recommendations.some(r=>r.delta>=6&&r.plan.dropIn);
  const filtered=mode==='pairs'?recommendations.filter(r=>r.zone.length===2):mode==='dropIn'?recommendations.filter(r=>r.plan.dropIn):recommendations;
  return {summary,baseline,recommendations:filtered.slice(0,limit),noClearUpgrade:!clear,notice:clear?'Sage sees plausible improvements to test. These estimates compare demonstrated shell support, not proven win rates.':'No clear drop-in upgrade. Your current commander may already serve this shell well; alternatives below are experiments, not promises.',method:'Deterministic shell evidence v1. Capped engine support minus lost commander support, color-invalid copies, added colors and required count edits. No popularity, price, creature-type-only, or win-rate score. Narrow mechanic recognition may miss stronger choices.'};
 }
