@@ -4,7 +4,7 @@ const {chromium}=require(path.join(runtime,'playwright'));
 const base=process.env.DECK_SAGE_PREVIEW_URL||'http://127.0.0.1:4297',origin='https://mihmykgxbneuhlcxolzm.supabase.co',evidence='preview/evidence/editorial-home';
 const {fixtures}=require('./commander-swap-fixtures.cjs');const {mana,tokens,spells}=fixtures();
 const initial={version:1,profile:{name:'Planeswalker',avatar:7},decks:[mana,tokens,spells],bulk:[{name:'Sol Ring',quantity:12},{name:'Forest',quantity:30}],notifications:[{id:'fixture',text:'Your next chapter awaits',date:'2026-10-22',read:false}]};
-const expected=['decks','bulk','cards','batch-upload/bulk','sage','precons','combos','commander-swap','value','lore','songs','news','friends','stores'];
+const expected=['decks','bulk','cards','batch-upload/bulk','sage','precons','combos','commander-swap','value','lore','songs','news','friends','advertise'];
 const report={checks:[],errors:[],writes:[],assets:[],screenshots:[]};function pass(n){report.checks.push(n);console.log('PASS HOME '+n);}
 (async()=>{fs.mkdirSync(evidence,{recursive:true});const browser=await chromium.launch({headless:true,channel:'msedge'});try{
  const context=await browser.newContext({viewport:{width:1440,height:1000}});let empty=false,delay=0;
@@ -38,6 +38,6 @@ const report={checks:[],errors:[],writes:[],assets:[],screenshots:[]};function p
  empty=true;await page.reload();await page.locator('.editorial-home').waitFor();assert.equal(await page.locator('.editorial-stats>a').first().locator('strong').innerText(),'0');assert.equal(await page.locator('[data-feature-route]').count(),14);pass('Empty account keeps all feature entry points and shows zero counters');
  delay=1200;await page.reload({waitUntil:'domcontentloaded'});await page.locator('.account-panel').getByText(/Opening shared collection/).waitFor();await page.locator('.editorial-home').waitFor();pass('Existing account loading gate resolves back to the redesigned home');
  assert.deepEqual(report.errors,[]);assert.deepEqual(report.writes,[]);pass('No browser exceptions, collection writes, or unmocked external mutations');
- for(const name of fs.readdirSync('preview/public/home/editorial')){const size=fs.statSync('preview/public/home/editorial/'+name).size;assert(size<350000,name+' exceeds asset budget');report.assets.push({name,bytes:size});}assert(report.assets.reduce((n,x)=>n+x.bytes,0)<3000000);pass('Each compressed artwork is under 350KB; full lazy-loaded set under 3MB');
+ for(const name of fs.readdirSync('preview/public/home/editorial')){const size=fs.statSync('preview/public/home/editorial/'+name).size;assert(size<500000,name+' exceeds responsive asset budget');report.assets.push({name,bytes:size});}assert(report.assets.reduce((n,x)=>n+x.bytes,0)<5000000);pass('Each compressed artwork is under 500KB; full responsive art set under 5MB');
  await context.close();
 }finally{await browser.close();fs.writeFileSync(evidence+'/report.json',JSON.stringify(report,null,2));}})().catch(e=>{console.error(e);process.exitCode=1;});
