@@ -81,7 +81,7 @@ async function refresh({output=path.join(ROOT,'preview/public/combo-data'),bulkF
  try{if(temporary){const response=await get(entry.jsonl_download_uri);await pipeline(Readable.fromWeb(response.body),fs.createWriteStream(file,{flags:'wx'}));}
   const prints=await art.readPrintings(file,new Set(rawCards.map(c=>c.oracle_id))),result=build(rawCards,payload,prints.map);result.index.source.sha256=hash(bytes);result.index.cardSource={name:'Scryfall',url:'https://scryfall.com/docs/api',updatedAt:entry.updated_at,query:'(is:commander or (t:legendary t:background)) game:paper'};
   const previous=path.join(output,'catalog.json');if(fs.existsSync(previous)){const old=JSON.parse(fs.readFileSync(previous));assert(result.index.source.updatedAt>=old.source.updatedAt,'Stale Spellbook source');assert(result.index.cards.length>=old.cards.length*.97,'Commander catalog collapsed');assert(payload.variants.length>=old.source.totalVariants*.97,'Spellbook catalog collapsed');}
-  publish(output,result);return result.index;
+  const deckArchive=require('./deck-combo-archive.cjs');deckArchive.publishDeckArchive(output,deckArchive.buildDeckArchive(payload));publish(output,result);return result.index;
  }finally{if(temporary)fs.rmSync(file,{force:true});}
 }
 if(require.main===module)refresh().then(r=>console.log(JSON.stringify({commanders:r.cards.length,variants:r.source.totalVariants,updatedAt:r.source.updatedAt}))).catch(e=>{console.error('Combo refresh failed; previous snapshot retained:',e.message);process.exitCode=1;});

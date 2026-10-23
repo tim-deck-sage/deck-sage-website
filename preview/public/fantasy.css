@@ -405,3 +405,6 @@ html[data-motion=false] .sanctum-featured-art,html[data-motion=false] .sanctum-c
 .avatar-picker .avatar-grid button.chosen{outline:2px solid #607d4f;outline-offset:1px}
 .avatar-picker .avatar-grid button:focus-visible{outline:3px solid #203f30;outline-offset:4px}
 .avatar-mark.avatar-art>img:not([hidden])~.avatar-image-fallback{display:none}
+
+/* Shared deck evidence: readable source conditions on every commander palette. */
+.deck-combo-evidence summary{color:#eee9db;cursor:pointer;padding:12px 0;font-size:1rem;line-height:1.6}.deck-combo-evidence summary:focus-visible{outline:2px solid #dfcb92;outline-offset:4px}.deck-combo-evidence .pattern strong,.deck-combo-evidence .pattern a{color:#dfcb92}.deck-combo-evidence .pattern p{line-height:1.7;overflow-wrap:anywhere}

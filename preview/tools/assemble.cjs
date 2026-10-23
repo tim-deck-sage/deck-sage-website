@@ -31,7 +31,8 @@ for(const name of fs.readdirSync(path.join(publicRoot,'bulk-model'))){if(!/^(rel
 allowed.push('canonical-evidence.js');
 const ledger=[];
 allowed.push('commander-swap.css');
-allowed.push('combos.css','combo-data/manifest.json');
+allowed.push('combo-completion.js','combos.css','combo-data/manifest.json');
+const deckComboManifest=JSON.parse(fs.readFileSync(path.join(publicRoot,'combo-data/deck-manifest.json')));if(!/^deck-index-[a-f0-9]{16}\.json\.gz$/.test(deckComboManifest.file))throw Error('Invalid deck combo index');allowed.push('combo-data/deck-manifest.json','combo-data/'+deckComboManifest.file);for(const name of fs.readdirSync(path.join(publicRoot,'combo-data/deck-shards'))){if(!/^[a-f0-9]{2}-[a-f0-9]{16}\.json\.gz$/.test(name))throw Error('Invalid deck combo detail');allowed.push('combo-data/deck-shards/'+name);}
 const comboManifest=JSON.parse(fs.readFileSync(path.join(publicRoot,'combo-data/manifest.json')));if(!/^catalog-[a-f0-9]{16}\.json\.gz$/.test(comboManifest.file))throw Error('Invalid combo index');allowed.push('combo-data/'+comboManifest.file);
 for(const name of fs.readdirSync(path.join(publicRoot,'combo-data/shards'))){if(!/^[a-f0-9-]{36}-[a-f0-9]{16}\.json\.gz$/.test(name))throw Error('Unexpected combo artifact');allowed.push('combo-data/shards/'+name);}
 for(const relative of allowed){const src=path.join(publicRoot,relative),dest=path.join(out,relative);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.copyFileSync(src,dest);const bytes=fs.readFileSync(dest);ledger.push({path:relative,bytes:bytes.length,sha256:crypto.createHash('sha256').update(bytes).digest('hex')});}
