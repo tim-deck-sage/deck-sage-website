@@ -136,7 +136,7 @@ function App(){
  if(page==='home')content=<Home {...context}/>;
  else if(page==='cards')content=<CardLibrary {...context}/>;
  else if(page==='precons')content=<PreconLibraryPage {...context} preconId={routeContext} ui={{Icon,Button,CardThumb}}/>;
- else if(page==='commander-swap')content=<CommanderSwapPage state={state}/>;
+ else if(page==='commander-swap')content=<CommanderSwapPage state={state} accountSnapshot={accountSnapshot} brand={<Sigil/>} avatar={<Avatar number={state.profile.avatar}/>}/>;
  else if(page==='combos')content=<CommanderCombosPage {...context} commanderId={routeContext} ui={{Modal}}/>;
  else if(page==='decks')content=deckId?<WarTableDetail {...context} id={deckId}/>:<Decks {...context}/>;
  else if(page==='bulk')content=<><BatchUploadEntry go={go} path="batch-upload/bulk"/><Bulk {...context}/></>;
