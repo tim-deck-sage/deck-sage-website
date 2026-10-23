@@ -13,3 +13,25 @@ const envelope={timestamp:'2026-10-21T12:00:00Z',version:'test',variants:[{...v,
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'deck-sage-combo-test-'));try{generator.publish(dir,{index:{schemaVersion:1},contents:{'fixture.gz':Buffer.from('immutable')}});assert.equal(JSON.parse(fs.readFileSync(path.join(dir,'catalog.json'))).schemaVersion,1);assert.equal(fs.readFileSync(path.join(dir,'shards/fixture.gz'),'utf8'),'immutable');}finally{fs.rmSync(dir,{recursive:true,force:true});}
 const catalogFile='preview/public/combo-data/catalog.json';if(fs.existsSync(catalogFile)){const c=JSON.parse(fs.readFileSync(catalogFile));assert(c.cards.length>3000);assert(c.source.totalVariants>10000);for(const card of c.cards){assert(card.oracleId&&card.name);for(const f of card.comboFiles){const b=fs.readFileSync(path.join('preview/public/combo-data/shards',f.file));assert.equal(require('node:crypto').createHash('sha256').update(b).digest('hex'),f.sha256);const shard=JSON.parse(zlib.gunzipSync(b));assert.equal(shard.oracleId,card.oracleId);assert(shard.combos.every(v=>v.uses.some(u=>u.card.oracleId===card.oracleId)));assert.deepEqual([...shard.combos].sort(generator.compare),shard.combos);}}console.log('Verified real catalog, every shard checksum, direct membership and ranking.');}
 console.log('PASS Commander combo ownership, quantities, Oracle identity, templates, command zones, legality, ranking, parser and publication guards.');
+
+(async()=>{
+ const cards=Array.from({length:3001},(_,i)=>({oracle_id:'oracle-'+i,id:'printing-'+i,name:'Commander '+i}));
+ assert.equal(generator.validateCommanderCatalog(cards,3001),cards);
+ assert.throws(()=>generator.validateCommanderCatalog(cards,3002),/Incomplete commander catalog/);
+ assert.throws(()=>generator.validateCommanderCatalog(cards.slice(0,3000),3000),/Incomplete commander catalog/);
+ const duplicate=[...cards];duplicate[3000]={...cards[0],id:'alternate-printing'};
+ assert.throws(()=>generator.validateCommanderCatalog(duplicate,3001,duplicate.map((_,i)=>i<175?1:2)),e=>e.message.startsWith('Duplicate Oracle identities:')&&e.message.includes('oracle-0')&&e.message.includes('alternate-printing')&&e.message.includes('"page":2'));
+ const previous=global.fetch,requests=[];
+ try{
+  global.fetch=async url=>{requests.push(new URL(url));return {ok:true,json:async()=>requests.length===1?{data:cards.slice(0,175),total_cards:3001,has_more:true,next_page:'https://api.scryfall.com/cards/search?page=2&dir=asc'}:{data:cards.slice(175),total_cards:3001,has_more:false}};};
+  const fetched=await generator.commanders();assert.deepEqual(fetched,cards);assert.equal(requests[0].searchParams.get('dir'),'asc');assert.equal(requests[0].searchParams.get('unique'),'cards');assert.equal(requests[0].searchParams.get('order'),'name');assert.equal(requests.length,2);assert(requests[0].searchParams.get('_ds_refresh'));assert.equal(requests[0].searchParams.get('_ds_refresh'),requests[1].searchParams.get('_ds_refresh'));
+  requests.length=0;
+  global.fetch=async url=>{requests.push(new URL(url));return {ok:true,json:async()=>requests.length===1?{data:duplicate.slice(0,175),total_cards:3001,has_more:true,next_page:'https://api.scryfall.com/cards/search?page=2&dir=asc'}:{data:duplicate.slice(175),total_cards:3001,has_more:false}};};
+  await assert.rejects(generator.commanders(),e=>e.message.includes('oracle-0')&&e.message.includes('"page":1')&&e.message.includes('"page":2'));
+  let page=0;global.fetch=async()=>({ok:true,json:async()=>++page===1?{data:cards.slice(0,175),total_cards:3001,has_more:true,next_page:'https://api.scryfall.com/cards/search?page=2'}:{data:cards.slice(175),total_cards:3002,has_more:false}});
+  await assert.rejects(generator.commanders(),/total changed across pages/);
+  global.fetch=async()=>({ok:true,json:async()=>({data:cards.slice(0,175),total_cards:3001,has_more:true,next_page:'https://example.com/cards'})});
+  await assert.rejects(generator.commanders(),/Untrusted next page/);
+ }finally{global.fetch=previous;}
+ console.log('PASS explicit ascending source pagination, unchanged rows/count guards and actionable duplicate rejection.');
+})().catch(e=>{console.error(e);process.exitCode=1;});
