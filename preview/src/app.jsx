@@ -144,7 +144,7 @@ function App(){
  else if(page==='combos')content=<CommanderCombosPage {...context} commanderId={routeContext} ui={{Modal}}/>;
  else if(page==='decks')content=deckId?<WarTableDetail {...context} id={deckId}/>:<Decks {...context}/>;
  else if(page==='bulk')content=<Bulk {...context}/>;
- else if(page==='batch-upload')content=<AiBatchUpload {...context} ui={{Icon,Button,PageHeader,Empty}} originType={routeContext} originId={routeId}/>;
+ else if(page==='batch-upload')content=<div className="editorial-deck-page scanner-editorial-page"><DecksHeader state={state} accountSnapshot={accountSnapshot}/><AiBatchUpload {...context} ui={{Icon,Button,PageHeader,Empty}} originType={routeContext} originId={routeId}/></div>;
  else if(page==='sage')content=<Sage {...context}/>;
  else if(page==='value')content=<CardValuePage {...context}/>;
  else if(page==='lore')content=<Lore {...context}/>;

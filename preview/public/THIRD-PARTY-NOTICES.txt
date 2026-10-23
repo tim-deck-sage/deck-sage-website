@@ -318,3 +318,5 @@ Commander Swap hero (2026-10-23): swap-guard-*.webp are responsive reductions/cr
 My Bulk gathered-company hero: original generated fantasy artwork, 2026-10-23. Supported Runway task 45e5fb0a-ef7f-45f0-88f2-dffdf065d938. Native 5504x3072 source; responsive WebP derivatives in /bulk/. No named franchise characters or copied card compositions.
 
 My Bulk learned relationship vectors: nishtahir/MTG-GloVe-Commander, MIT declared in pinned model card. Derived static data and attribution: /bulk-model/NOTICE.txt.
+
+Batch Upload sorting-table hero (2026-10-23): original generated fantasy illustration created for Deck Sage with the built-in imagegen tool. Native source 1672x941, 2,383,659 bytes. Responsive WebP reductions and mobile crop in /scanner/; no upscaling. No named franchise character, logos or readable card text. The exact 20-card guide is original deterministic SVG/React artwork. Typography uses existing Georgia/system fonts.
