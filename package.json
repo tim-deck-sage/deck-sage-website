@@ -21,7 +21,7 @@
     "test:coach": "node tests/regression/gameplay-coach-policy.cjs && node tests/regression/gameplay-coach-ui.cjs",
     "test:value": "node tests/regression/card-value-pricing.cjs && node tests/regression/card-value.cjs",
     "test:batch-upload": "node tests/regression/batch-upload.cjs",
-    "test:bulk-discovery": "node tests/regression/bulk-deck-discovery.cjs && node tests/regression/bulk-deck-discovery-ui.cjs",
+    "test:bulk-discovery": "node tests/regression/bulk-deck-discovery.cjs && node tests/regression/bulk-relations.cjs && node tests/regression/bulk-editorial-ui.cjs && node tests/regression/bulk-learned-ui.cjs",
     "test:news": "node tests/regression/daily-news.cjs && node tests/regression/daily-news-ui.cjs",
     "test:ai-scan": "node tests/regression/ai-scan-gateway.cjs && node tests/regression/image-memory-guard.cjs && node tests/regression/local-scan-worker-lifecycle.cjs && node tests/regression/local-scan-matcher.cjs && node tests/regression/ai-scan.cjs",
     "test:songs": "node tests/regression/commander-theme-player.cjs && node tests/regression/songs.cjs",

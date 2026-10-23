@@ -1,4 +1,4 @@
-const esbuild=require('esbuild'),fs=require('fs'),path=require('path');
+const esbuild=require('esbuild'),fs=require('fs'),path=require('path'),crypto=require('crypto');
 const repo=path.resolve(__dirname,'../..'),root=path.join(repo,'preview');
 const aliases={
  [path.join(root,'source/app/utils/mtgCardApi.ts')]:path.join(root,'src/adapters/mtgCardApi.ts'),
@@ -24,7 +24,10 @@ if(!/media-src[^;]*blob:/.test(html))html=html.replace("media-src 'self'","media
 if(!/img-src[^;]*mihmykgxbneuhlcxolzm/.test(html))html=html.replace("img-src 'self'","img-src 'self' "+publicOrigin);
 if(!/media-src[^;]*mihmykgxbneuhlcxolzm/.test(html))html=html.replace("media-src 'self'","media-src 'self' "+publicOrigin);
 fs.writeFileSync(path.join(root,'public/index.html'),html);
-esbuild.build({entryPoints:[path.join(root,'src/app.jsx')],bundle:true,minify:true,legalComments:'eof',platform:'browser',format:'iife',target:'es2020',outfile:path.join(root,'public/app.js'),define:{'process.env.NODE_ENV':'"production"'},plugins:[{name:'original-adapters',setup(build){
+const worker=esbuild.buildSync({entryPoints:[path.join(root,'src/bulkRelations.worker.js')],bundle:true,minify:true,platform:'browser',format:'esm',target:'es2020',write:false}).outputFiles[0].contents;
+const workerName='worker-'+crypto.createHash('sha256').update(worker).digest('hex').slice(0,16)+'.js';
+fs.writeFileSync(path.join(root,'public/bulk-model',workerName),worker);
+esbuild.build({entryPoints:[path.join(root,'src/app.jsx')],bundle:true,minify:true,legalComments:'eof',platform:'browser',format:'iife',target:'es2020',outfile:path.join(root,'public/app.js'),define:{'process.env.NODE_ENV':'"production"',__BULK_RELATIONS_WORKER__:JSON.stringify('/bulk-model/'+workerName)},plugins:[{name:'original-adapters',setup(build){
  build.onResolve({filter:/.*/},args=>{if(!args.path.startsWith('.'))return;let file=path.resolve(args.resolveDir,args.path);for(const candidate of [file,file+'.ts'])if(aliases[candidate])return {path:aliases[candidate]};});
  build.onLoad({filter:/\.(png|jpe?g|webp|gif|mp3)$/},args=>{const relative=args.path.slice(args.path.indexOf(path.sep+'assets'+path.sep)+1).replace(/\\/g,'/').replace(/\.(png|jpe?g)$/i,'.webp');return {contents:'module.exports='+JSON.stringify('/'+relative),loader:'js'};});
 }}]}).then(()=>{const file=path.join(root,'public/app.js');fs.writeFileSync(file,fs.readFileSync(file,'utf8').replace(/[ \t]+$/gm,''));}).catch(error=>{console.error(error);process.exitCode=1;});

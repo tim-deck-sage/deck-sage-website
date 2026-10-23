@@ -314,3 +314,7 @@ Editorial homepage artwork (2026-10-22): scanner.webp, vault.webp, combos.webp, 
 Homepage artwork refinement (2026-10-22): the battle panorama, replacement angel, and whole-dragon painting are original generated fantasy artwork. Generation outputs were 5504x3072 (battle) and 4800x3584 (angel and dragon). Responsive WebP exports are reductions/crops of those generation outputs; no local upscaling was performed. Source generation used the connected image service after the primary generator returned an undersized draft and failed other requests. Existing franchise ownership notices remain unchanged; these original scenes contain no franchise logos or named character reproductions.
 
 Commander Swap hero (2026-10-23): swap-guard-*.webp are responsive reductions/crops of an original generated changing-of-the-guard scene created for Deck Sage. Native generation output: 5504x3072, 19,825,728 bytes. The scene depicts a ceremonial transfer of a command sigil with a potential partner, with no named franchise characters, logos or text. No local upscaling was performed; existing ownership notices remain unchanged.
+
+My Bulk gathered-company hero: original generated fantasy artwork, 2026-10-23. Supported Runway task 45e5fb0a-ef7f-45f0-88f2-dffdf065d938. Native 5504x3072 source; responsive WebP derivatives in /bulk/. No named franchise characters or copied card compositions.
+
+My Bulk learned relationship vectors: nishtahir/MTG-GloVe-Commander, MIT declared in pinned model card. Derived static data and attribution: /bulk-model/NOTICE.txt.
