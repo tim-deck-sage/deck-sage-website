@@ -16,7 +16,8 @@ async function knowledge(retry){
  return {lookup,vectors:decodeRelationshipVectors(table,manifest.rows,manifest.dimensions),dimensions:manifest.dimensions,revision:manifest.revision};
  })().catch(error=>{knowledgePromise=null;throw error;});return knowledgePromise;
 }
-self.onmessage=async({data})=>{const {id,bulk,catalog,queryZones,retry}=data;try{
+self.onmessage=async({data})=>{const {id,bulk,catalog,queryZones,retry,action,context,candidates}=data;try{
+ if(action==='rank'){const model=await knowledge(retry),unique=[...new Map((context||[]).filter(c=>c?.oracleId&&c.legalities?.commander==='legal'&&!/\bLand\b/.test((c.typeLine||'').split(' // ')[0])).map(c=>[c.oracleId,c])).values()],known=unique.filter(c=>model.lookup[c.oracleId]),scores={};for(const c of candidates||[]){const row=model.lookup[c.oracleId],peers=known.filter(p=>p.oracleId!==c.oracleId);if(!row||!peers.length)continue;let total=0;for(const peer of peers){let sum=0;for(let j=0;j<model.dimensions;j++)sum+=model.vectors[row*model.dimensions+j]*model.vectors[model.lookup[peer.oracleId]*model.dimensions+j];total+=sum;}scores[c.oracleId]=total/peers.length;}self.postMessage({id,type:'result',data:{scores,recognized:known.length,total:unique.length,version:bulkModelManifestSha256,source:'learned_association'}});return;}
  self.postMessage({id,type:'progress',text:"Opening the Sage's learned card library."});const model=await knowledge(retry),inventory=relationshipInventory(bulk),zones=queryZones||ownedRelationshipZones(inventory.cards,catalog),top=[];
  const allowed=new Set(catalog.filter(c=>c.legalities?.commander==='legal'&&c.status!=='unreleased').map(c=>c.oracleId));
  for(const zone of zones)if(zone.some(c=>!allowed.has(c.oracleId))||!validateCommandZone(zone).ok)throw Error('A command zone is not verified by the current card catalog and pairing rules.');

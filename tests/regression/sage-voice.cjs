@@ -38,9 +38,9 @@ assert(ui.includes('Each card and cut is an independently evaluated alternative'
 console.log('PASS Sage voice: stable variants, one wisdom line, preserved mechanics and fit facts, clear swap caution');
 
 const strategySource=fs.readFileSync(path.join(root,'preview/source/app/utils/strategy/compareCardToDecks.ts'),'utf8');
-assert(strategySource.includes('generateDeckStrategy(deck)'),'comparison still consumes unchanged analysis wording, not display copy');
-// The comparison engine historically reads strategy keywords. Exercise its full
-// outputs with a local card resolver so a voice edit cannot alter fit scoring.
+assert(strategySource.includes('planFacts'),'comparison consumes typed canonical plan facts');
+assert(!strategySource.includes('strategyText.includes'),'display wording cannot drive comparison scores');
+// Exercise full outputs while changing only deck naming/voice seeds.
 async function comparisonRegression(){
  const sourcePath=path.join(root,'preview/source/app/utils/strategy/compareCardToDecks.ts');
  const localSource=fs.readFileSync(sourcePath,'utf8').replace("import { fetchCardByName, ScryfallCardData } from '../mtgCardApi';",'const fetchCardByName = async (name: string): Promise<any> => JSON.parse(name);');
@@ -49,8 +49,10 @@ async function comparisonRegression(){
  const decks=fixtures.map(deck=>({...deck,commanderCard:{...deck.commanderCard,colorIdentity:deck.id==='tokens'?['R']:['U']}}));
  const candidates=[{name:'Token Test',oracle_text:'Create two 1/1 red Goblin creature tokens.',type_line:'Sorcery',color_identity:['R'],cmc:2},{name:'Draw Test',oracle_text:'Draw two cards.',type_line:'Sorcery',color_identity:['U'],cmc:2},{name:'Artifact Test',oracle_text:'{T}: Add {C}.',type_line:'Artifact',color_identity:[],cmc:2},{name:'Ward Test',oracle_text:'Target creature gains indestructible until end of turn.',type_line:'Instant',color_identity:['R'],cmc:1}];
  const results=[];for(const candidate of candidates)results.push(await module.exports.compareCardToDecks(JSON.stringify(candidate),decks));
- const digest=require('node:crypto').createHash('sha256').update(JSON.stringify(results)).digest('hex');
- assert.equal(digest,'52630332830da72473b305fbe7963f5adfa031a40233059a09781d217acf011e','comparison scores, ordering, verdicts, reasoning and candidates remain unchanged');
- console.log('PASS unchanged full comparison outputs for four candidates across two decks');
+ const renamed=decks.map(deck=>({...deck,name:'A different wizardly title'}));
+ const repeated=[];for(const candidate of candidates)repeated.push(await module.exports.compareCardToDecks(JSON.stringify(candidate),renamed));
+ const normalize=value=>JSON.parse(JSON.stringify(value).replaceAll('The Ember Host','A different wizardly title').replaceAll('Quiet Council','A different wizardly title'));
+ assert.deepEqual(normalize(results),normalize(repeated),'voice-seed changes preserve scores, ordering, verdicts, reasons and candidates');
+ console.log('PASS typed comparison outputs are independent of deck title and voice seed');
 }
 comparisonRegression().catch(error=>{console.error(error);process.exitCode=1;});

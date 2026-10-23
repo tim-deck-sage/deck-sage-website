@@ -1,6 +1,6 @@
 const fs=require('fs'),z=require('zlib');
 const cards=new Map();for(const file of fs.readdirSync('preview/public/card-data').filter(x=>/^cards-/.test(x))){for(const card of Object.values(JSON.parse(z.gunzipSync(fs.readFileSync('preview/public/card-data/'+file))))){const prior=cards.get(card.name);if(!prior||prior.legalities?.commander!=='legal'&&card.legalities?.commander==='legal')cards.set(card.name,card);}}
-const catalog=JSON.parse(fs.readFileSync('preview/public/combo-data/catalog.json'));
+const comboManifest=JSON.parse(fs.readFileSync('preview/public/combo-data/manifest.json'));const catalog=JSON.parse(z.gunzipSync(fs.readFileSync('preview/public/combo-data/'+comboManifest.file)));
 const card=name=>{const c=cards.get(name);if(!c)throw Error('Fixture card missing: '+name);return {...c,quantity:1};};
 const commander=name=>({...catalog.cards.find(c=>c.name===name),quantity:1});
 function precon(fragment,id){const file=fs.readdirSync('preview/public/precon-data/decks').find(f=>f.includes(fragment));const source=JSON.parse(fs.readFileSync('preview/public/precon-data/decks/'+file));const deck={id,name:source.name,format:'Commander',cards:[],basicLands:{Plains:0,Island:0,Swamp:0,Mountain:0,Forest:0,Wastes:0},commanders:source.cards.filter(c=>c.role==='commander').map(c=>commander(c.name))};for(const row of source.cards.filter(c=>c.role!=='commander')){if(Object.hasOwn(deck.basicLands,row.name))deck.basicLands[row.name]+=row.quantity;else deck.cards.push({...card(row.name),quantity:row.quantity});}deck.commanderCard=deck.commanders[0];return deck;}

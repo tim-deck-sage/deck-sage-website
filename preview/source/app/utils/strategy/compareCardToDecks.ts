@@ -1,3 +1,4 @@
+import {planFacts,tokenLoopEvidence} from '../../../../public/canonical-evidence';
 import { Deck, Card } from '../../context/DeckContext';
 import { fetchCardByName, ScryfallCardData } from '../mtgCardApi';
 import { generateDeckStrategy, DeckStrategy } from './deckStrategyEngine';
@@ -33,6 +34,7 @@ export type CompareCardToDecksResult = {
 };
 
 type EnrichedDeckSnapshot = {
+  facts: ReturnType<typeof planFacts>;
   strategy: DeckStrategy;
   commanderColorIdentity: string[];
   cardNames: string[];
@@ -96,11 +98,13 @@ export async function compareCardToDecks(
   };
 }
 
-async function compareCardToSingleDeck(
+export async function compareCardToSingleDeck(
   candidateCard: ScryfallCardData,
   deck: Deck
 ): Promise<CardDeckFitResult> {
   const strategy = await generateDeckStrategy(deck);
+  const commanders = deck.commanders?.length ? deck.commanders : deck.commanderCard ? [deck.commanderCard] : [];
+  strategy.combos = tokenLoopEvidence([...commanders, ...deck.cards]).map(line=>({pieces:line.pieces,description:line.description,kind:'engine',priority:'medium'}));
   const snapshot = buildDeckSnapshot(deck, strategy);
 
   const alreadyInDeck = snapshot.cardNames.some(
@@ -153,18 +157,7 @@ async function compareCardToSingleDeck(
 
   let score = 20;
 
-  const strategyText = normalize(
-    [
-      strategy.identity,
-      strategy.primaryPlan,
-      ...strategy.earlyGame,
-      ...strategy.midGame,
-      ...strategy.lateGame,
-      ...strategy.mistakes,
-      ...strategy.liveAdvice,
-    ].join(' ')
-  );
-
+  const facts = snapshot.facts;
   const commanderName = normalize(deck.commander);
   const candidateText = normalize(candidateCard.oracle_text);
   const candidateName = normalize(candidateCard.name);
@@ -174,35 +167,35 @@ async function compareCardToSingleDeck(
     whyItFits.push(`It directly references or supports ${deck.commander}.`);
   }
 
-  if (strategyText.includes('token') && candidateSignals.isTokenMaker) {
+  if (facts.tokens && candidateSignals.isTokenMaker) {
     score += 18;
     whyItFits.push('It supports the deck’s token plan.');
   }
 
-  if (strategyText.includes('wide') && (candidateSignals.isTokenMaker || candidateSignals.isAnthem)) {
+  if (facts.goWide && (candidateSignals.isTokenMaker || candidateSignals.isAnthem)) {
     score += 16;
     whyItFits.push('It helps a go-wide deck create or reward a larger board.');
   }
 
-  if (strategyText.includes('sacrifice') && candidateSignals.isSacOutlet) {
+  if (facts.sacrifice && candidateSignals.isSacOutlet) {
     score += 18;
     whyItFits.push('It adds another sacrifice outlet, which fits the deck’s resource engine.');
   }
 
-  if (strategyText.includes('sacrifice') && candidateSignals.isDeathPayoff) {
+  if (facts.sacrifice && candidateSignals.isDeathPayoff) {
     score += 15;
     whyItFits.push('It rewards creatures dying, which fits a sacrifice-value strategy.');
   }
 
   if (
-    (strategyText.includes('damage') || strategyText.includes('combat')) &&
+    (facts.damage || facts.combat) &&
     candidateSignals.isDamagePayoff
   ) {
     score += 16;
     whyItFits.push('It gives the deck another way to convert board presence into damage.');
   }
 
-  if (candidateSignals.isProtection && strategyText.includes('commander')) {
+  if (candidateSignals.isProtection && facts.commander) {
     score += 16;
     whyItFits.push('It can help protect the commander or another high-impact engine piece.');
   }
@@ -261,7 +254,7 @@ async function compareCardToSingleDeck(
 
   if (
     candidateSignals.isArtifact &&
-    !strategyText.includes('artifact') &&
+    !facts.artifacts &&
     !candidateSignals.isRamp &&
     !candidateSignals.isProtection &&
     !candidateSignals.isComboLike
@@ -307,6 +300,7 @@ function buildDeckSnapshot(deck: Deck, strategy: DeckStrategy): EnrichedDeckSnap
 
   return {
     strategy,
+    facts: planFacts(deck),
     commanderColorIdentity,
     cardNames: cards.map((card) => card.name),
     cardTexts: cards.map((card) => normalize(card.oracleText)),
@@ -425,7 +419,7 @@ function detectDeckStrengths(snapshot: EnrichedDeckSnapshot): string[] {
   }
 
   if (snapshot.strategy.combos.length > 0) {
-    strengths.push('Known combo or burst-finish lines');
+    strengths.push('A conditional package with explicit starting prerequisites');
   }
 
   return uniqueOrFallback(strengths, ['Synergy-driven game plan']);
@@ -460,7 +454,7 @@ function detectDeckWeaknesses(snapshot: EnrichedDeckSnapshot): string[] {
     weaknesses.push('Limited protection for key pieces');
   }
 
-  if (snapshot.strategy.identity.toLowerCase().includes('wide')) {
+  if (snapshot.facts.goWide) {
     weaknesses.push('Can overextend into board wipes');
   }
 
