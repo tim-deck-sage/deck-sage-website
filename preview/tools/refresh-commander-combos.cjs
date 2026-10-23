@@ -8,10 +8,28 @@ const ROOT=path.resolve(__dirname,'../..'),UA='DeckSageCombos/1.0 (https://deck-
 const assert=(ok,message)=>{if(!ok)throw Error(message);},hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const image=c=>c.image_uris||c.card_faces?.find(f=>f.image_uris)?.image_uris||{};
 async function get(url){const r=await fetch(url,{headers:{Accept:'application/json','User-Agent':UA},signal:AbortSignal.timeout(600000)});assert(r.ok,'Source HTTP '+r.status);return r;}
+function validateCommanderCatalog(cards,total,pages=[]){
+ assert(cards.length===total&&total>3000,'Incomplete commander catalog');
+ const identities=new Map();
+ for(let i=0;i<cards.length;i++){const c=cards[i],rows=identities.get(c.oracle_id)||[];rows.push({name:c.name,printingId:c.id,page:pages[i]});identities.set(c.oracle_id,rows);}
+ const duplicates=[...identities].filter(([,rows])=>rows.length>1);
+ assert(!duplicates.length,'Duplicate Oracle identities: '+JSON.stringify({duplicateIdentities:duplicates.length,records:duplicates.slice(0,10).map(([oracleId,rows])=>({oracleId,rows}))}));
+ return cards;
+}
+// Each refresh uses one cache namespace: mixed-age source pages can shift pagination boundaries.
 async function commanders(){
- let url='https://api.scryfall.com/cards/search?'+new URLSearchParams({q:'(is:commander or (t:legendary t:background)) game:paper',unique:'cards',order:'name'}),cards=[],total=0;
- while(url){assert(/^https:\/\/api\.scryfall\.com\/cards\/search\?/.test(url),'Untrusted next page');const page=await (await get(url)).json();assert(Array.isArray(page.data),'Invalid commander page');total=page.total_cards;cards.push(...page.data);url=page.has_more?page.next_page:null;if(url)await new Promise(r=>setTimeout(r,550));}
- assert(cards.length===total&&total>3000,'Incomplete commander catalog');assert(new Set(cards.map(c=>c.oracle_id)).size===cards.length,'Duplicate Oracle identities');return cards;
+ let url='https://api.scryfall.com/cards/search?'+new URLSearchParams({q:'(is:commander or (t:legendary t:background)) game:paper',unique:'cards',order:'name',dir:'asc'}),cards=[],total=0,pageNumber=0,pages=[],refreshToken=crypto.randomUUID();
+ while(url){
+  assert(/^https:\/\/api\.scryfall\.com\/cards\/search\?/.test(url),'Untrusted next page');
+  const request=new URL(url);request.searchParams.set('_ds_refresh',refreshToken);
+  const page=await (await get(request.href)).json();
+  assert(Array.isArray(page.data),'Invalid commander page');
+  assert(!pageNumber||page.total_cards===total,'Commander catalog total changed across pages: '+total+' -> '+page.total_cards+' on page '+(pageNumber+1));
+  total=page.total_cards;pageNumber++;cards.push(...page.data);pages.push(...page.data.map(()=>pageNumber));
+  url=page.has_more?page.next_page:null;
+  if(url)await new Promise(r=>setTimeout(r,550));
+ }
+ return validateCommanderCatalog(cards,total,pages);
 }
 function normalizeCard(c){const im=image(c);return {oracleId:c.oracle_id,id:c.oracle_id,name:c.name,cmc:c.cmc,manaCost:c.mana_cost||c.card_faces?.[0]?.mana_cost||'',typeLine:c.type_line,oracleText:c.oracle_text||(c.card_faces||[]).map(f=>f.oracle_text||'').join('\n'),keywords:c.keywords||[],colorIdentity:c.color_identity,legalities:c.legalities,power:c.power,releasedAt:c.released_at,imageUrl:im.large||im.normal||im.png||'',scryfallUrl:c.scryfall_uri,artist:c.artist||c.card_faces?.[0]?.artist||'',background:/\bBackground\b/.test(c.type_line),faces:(c.card_faces||[]).filter(f=>f.image_uris).map(f=>({name:f.name,imageUrl:f.image_uris.large||f.image_uris.normal}))};}
 function normalizeVariant(v){
@@ -67,4 +85,4 @@ async function refresh({output=path.join(ROOT,'preview/public/combo-data'),bulkF
  }finally{if(temporary)fs.rmSync(file,{force:true});}
 }
 if(require.main===module)refresh().then(r=>console.log(JSON.stringify({commanders:r.cards.length,variants:r.source.totalVariants,updatedAt:r.source.updatedAt}))).catch(e=>{console.error('Combo refresh failed; previous snapshot retained:',e.message);process.exitCode=1;});
-module.exports={normalizeCard,normalizeVariant,parseBulk,strength,compare,loadImages,hydrateImages,build,publish,refresh};
+module.exports={commanders,validateCommanderCatalog,normalizeCard,normalizeVariant,parseBulk,strength,compare,loadImages,hydrateImages,build,publish,refresh};
