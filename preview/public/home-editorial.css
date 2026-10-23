@@ -71,3 +71,39 @@ html[data-motion=false] .editorial-home .editorial-action:hover,html[data-motion
 .editorial-home .editorial-hero-picture{position:absolute;inset:0;z-index:-3;display:block}.editorial-home .editorial-hero-picture>img{display:block;width:100%;height:100%;object-fit:cover;object-position:66% 32%}
 .editorial-flow .editorial-chapter[data-feature-route=decks] .editorial-scene>img,.editorial-flow .editorial-chapter[data-feature-route=songs] .editorial-scene>img{object-position:50% 50%;mask-image:radial-gradient(ellipse 78% 85% at 50% 48%,#000 48%,transparent 83%),linear-gradient(transparent,#000 5%,#000 88%,transparent)}
 @media(max-width:600px){.editorial-home .editorial-hero-picture>img{object-position:50% 30%}}
+
+/* Shared editorial navigation: homepage, My Decks and Deck Details only. */
+:is(.editorial-home,.editorial-deck-page)>.editorial-header{position:sticky;top:0;z-index:60;background:#061012;border-bottom:1px solid #c9ad7040;box-shadow:none;backdrop-filter:none}
+:is(.editorial-home,.editorial-deck-page) .editorial-header{--ed-gold:#c9ad70;color:#f3f0e7;font-family:'Segoe UI',Arial,sans-serif;text-shadow:none}
+:is(.editorial-home,.editorial-deck-page) .editorial-header :is(a,button,summary):focus-visible{outline:3px solid #e5a827;outline-offset:5px}
+.editorial-header .editorial-explore>div{max-height:calc(100dvh - 115px);overflow:auto;overscroll-behavior:contain}
+.editorial-deck-page .editorial-header .editorial-brand>span{font:700 21px/1 Georgia,serif;letter-spacing:2px}
+.editorial-deck-page .editorial-header .editorial-brand small{font:8px/1.2 'Segoe UI',sans-serif;letter-spacing:2px}
+.editorial-deck-page{--sanctum-gold:#c9ad70;--sanctum-cream:#f3f0e7;--war-gold:#c9ad70;--war-cream:#f3f0e7;font-family:'Segoe UI',Arial,sans-serif}
+.editorial-deck-page :is(h1,h2,h3){font-family:Georgia,serif;font-weight:700;text-shadow:none}
+.editorial-deck-page .sanctum-title h1{font-size:clamp(52px,5.8vw,84px);line-height:1.02;letter-spacing:-2px;margin:12px 0 10px;color:#f3f0e7}
+.editorial-deck-page .sanctum-title h2{font-size:24px;line-height:1.2;color:#dfc58a}
+.editorial-deck-page .sanctum-title p{font-size:15px;line-height:1.8;max-width:620px;margin-top:10px;color:#d5ddd3}
+.editorial-deck-page .sanctum-title>span{letter-spacing:2.5px;color:#c9ad70}
+.editorial-deck-page .sanctum-featured-copy h2{font-size:23px;line-height:1.15;overflow-wrap:anywhere}
+.editorial-deck-page .sanctum-create-card strong{font:700 23px/1.15 Georgia,serif}
+.editorial-deck-page .sanctum-library-header h2{font-size:32px;line-height:1.1}
+.editorial-deck-page .sanctum-library-copy strong{font:700 16px/1.25 Georgia,serif}
+.editorial-deck-page .sanctum-featured-copy p,.editorial-deck-page .sanctum-library-copy small{font-size:12px;line-height:1.5}
+.editorial-deck-page .sanctum-filters select,.editorial-deck-page .sanctum-search{font-size:13px;min-height:44px}
+.editorial-deck-page .sanctum-search input{min-height:42px}
+.editorial-deck-page .war-table-summary h1{font-size:clamp(38px,4vw,62px);font-weight:700;line-height:1.08;letter-spacing:-1.5px;overflow-wrap:anywhere;color:#f3f0e7}
+.editorial-deck-page .war-table-summary>p{font:italic 18px/1.5 Georgia,serif;color:#e2d4b2}
+.editorial-deck-page .war-table-panel h2{font-size:28px;line-height:1.2}
+.editorial-deck-page :is(.war-table-actions .button,.war-table-back,.sanctum-library-empty>button){border-radius:0;border:1px solid #c9ad7080;font-size:12px;font-weight:700;letter-spacing:.6px;min-height:44px;box-shadow:none}
+.editorial-deck-page .war-table-actions .button:not(.outline):not(.danger){background:#c9ad70;color:#102a2b;border-color:#dfc58a}
+.editorial-deck-page .war-table-back{color:#f3f0e7;background:#102a2b}
+.editorial-deck-page :is(.war-table-actions .button,.war-table-back,.sanctum-library-empty>button):focus-visible{outline:3px solid #e5a827;outline-offset:4px}
+.editorial-deck-page .war-table-tabs{scroll-margin-top:110px}
+.editorial-deck-page :is(h1,h2,h3,[id],a,button,input,select,textarea){scroll-margin-top:115px}
+@media(max-width:1150px){.editorial-deck-page .editorial-header .editorial-brand>span{font-size:18px}}
+@media(max-width:600px){.editorial-deck-page .editorial-header .editorial-brand>span{font-size:16px;letter-spacing:1.6px}.editorial-deck-page .editorial-header .editorial-brand small{font-size:6px;letter-spacing:1.5px}.editorial-deck-page .sanctum-title h1{font-size:clamp(44px,12vw,64px)}.editorial-deck-page .sanctum-title h2{font-size:22px}.editorial-deck-page .sanctum-title p{font-size:14px}.editorial-deck-page .war-table-summary h1{font-size:clamp(32px,9vw,44px)}.editorial-deck-page .war-table-summary>p{font-size:16px}.editorial-deck-page .war-table-panel h2{font-size:25px}.editorial-deck-page :is(h1,h2,h3,[id],a,button,input,select,textarea){scroll-margin-top:95px}}
+.editorial-deck-page .war-table-actions .button{--button-edge:#c9ad70;--button-fill:#102a2b;position:relative;isolation:isolate;border:0!important;background:transparent!important;color:#f3f0e7;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;letter-spacing:1px;text-transform:uppercase}
+.editorial-deck-page .war-table-actions .button:not(.outline):not(.danger){--button-edge:#f1dba3;--button-fill:#d1b679;color:#102a2b}
+.editorial-deck-page .war-table-actions .button:before,.editorial-deck-page .war-table-actions .button:after{content:'';position:absolute;pointer-events:none;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.editorial-deck-page .war-table-actions .button:before{inset:0;z-index:-2;background:var(--button-edge)}.editorial-deck-page .war-table-actions .button:after{inset:1px;z-index:-1;background:var(--button-fill)}

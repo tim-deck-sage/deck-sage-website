@@ -10,6 +10,7 @@
     "preview:homepage": "node preview/tools/serve.cjs --port 4184",
     "test:homepage": "node tests/regression/homepage-redesign.cjs",
     "test:homepage:art": "node tests/regression/homepage-art-refinement.cjs",
+    "test:decks:editorial": "node tests/regression/deck-editorial-consistency.cjs",
     "test:cards": "node tests/regression/card-library-search.cjs && node tests/regression/card-catalog-refresh.cjs && node tests/regression/card-library-ui.cjs",
     "test:publisher": "node tests/regression/publisher-policy.cjs && node tests/regression/publisher-ui.cjs",
     "test:publisher:hosted": "node tests/regression/publisher-hosted.cjs",
