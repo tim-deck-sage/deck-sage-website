@@ -29,6 +29,7 @@ allowed.push('home-editorial.css','bulk-editorial.css');
 for(const name of ['muster-1920.webp','muster-3840.webp','muster-mobile-780.webp','muster-mobile-1170.webp'])allowed.push('bulk/'+name);
 for(const name of fs.readdirSync(path.join(publicRoot,'bulk-model'))){if(!/^(relations-[a-f0-9]{16}\.f16|(?:oracle|manifest)-[a-f0-9]{16}\.json|worker-[a-f0-9]{16}\.js|NOTICE\.txt)$/.test(name))throw Error('Unexpected bulk model artifact');allowed.push('bulk-model/'+name);}
 allowed.push('canonical-evidence.js');
+allowed.push('scanner-editorial.css','scanner/sorting-1280.webp','scanner/sorting-1672.webp','scanner/sorting-mobile.webp');
 const ledger=[];
 allowed.push('commander-swap.css');
 allowed.push('combo-completion.js','combos.css','combo-data/manifest.json');

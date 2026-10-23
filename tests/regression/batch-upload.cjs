@@ -134,7 +134,7 @@ async function run() {
     await deckPage.getByRole('button', { name: 'Batch upload cards', exact: true }).click();
     await deckPage.getByRole('heading', { name: 'Batch upload cards', exact: true }).waitFor();
     assert.equal(new URL(deckPage.url()).hash, '#/batch-upload/deck/batch-deck');
-    assert.match(await deckPage.locator('.page-heading p').textContent(), /for Fixture Deck/);
+    assert.match(await deckPage.locator('.scanner-hero small').textContent(), /for Fixture Deck/);
     await deckPage.getByRole('button', { name: '← Back to Fixture Deck', exact: true }).click();
     await deckPage.getByRole('heading', { name: 'Fixture Deck', exact: true }).waitFor();
     pass('Deck Details passes its deck context and provides exact return navigation');
