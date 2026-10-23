@@ -281,7 +281,7 @@ async function browserFixtures() {
     assert(coldMs < 8000, `cold worker recommendation should remain interactive; took ${coldMs}ms`);
     const names = value => value.groups.map(group => [group.issue.id, group.cards.map(item => item.card.name)]);
     assert.deepEqual(names(first), names(second));
-    assert.equal(first.cacheStatus, 'miss'); assert.equal(second.cacheStatus, 'hit'); assert.equal(styleMiss.cacheStatus, 'miss'); assert.equal(shapeMiss.cacheStatus, 'miss'); assert.equal(targetMiss.cacheStatus, 'miss'); assert.equal(first.algorithmVersion, '2026-10-23.1');
+    assert.equal(first.cacheStatus, 'miss'); assert.equal(second.cacheStatus, 'hit'); assert.equal(styleMiss.cacheStatus, 'miss'); assert.equal(shapeMiss.cacheStatus, 'miss'); assert.equal(targetMiss.cacheStatus, 'miss'); assert.equal(first.algorithmVersion, '2026-10-23.3');
     pass('Recommendation cache hits only for the same full deck, card faces/costs, commander, style, contextual targets, algorithm, and data snapshot');
     assert(['Sol Ring','Arcane Signet','Mind Stone'].includes(first.groups.find(group => group.issue.id === 'ramp').cards[0].card.name), `a reliable ramp shortage should prioritize repeatable acceleration over sacrifice or combat-dependent burst mana; received ${JSON.stringify(names(first))}`);
     assert(first.groups.find(group => group.issue.id === 'finishers').cards.some(item => ['Impact Tremors', 'Purphoros, God of the Forge', 'Shared Animosity', 'Goblin Bombardment', 'Thornbite Staff'].includes(item.card.name)));

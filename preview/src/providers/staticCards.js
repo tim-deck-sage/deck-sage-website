@@ -3,7 +3,7 @@ let worker,sequence=0;
 const pending=new Map();
 function getWorker(){
  if(worker)return worker;
- worker=new Worker('/card-worker.js?v=2026-10-23.1');
+ worker=new Worker('/card-worker.js?v=2026-10-23.3');
  worker.onmessage=({data})=>{const task=pending.get(data.id);if(!task)return;pending.delete(data.id);data.error?task.reject(Error(data.error)):task.resolve(data.result);};
  worker.onerror=()=>{for(const task of pending.values())task.reject(Error('The card library could not start. Refresh this page to retry.'));pending.clear();worker?.terminate();worker=null;};
  return worker;
