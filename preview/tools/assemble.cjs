@@ -35,6 +35,7 @@ allowed.push('sage-workshop.css','sage/workshop-hero.png');
 const ledger=[];
 allowed.push('commander-swap.css');
 allowed.push('combo-completion.js','combos.css','combo-data/manifest.json');
+allowed.push('commander-combos/convergence-hero-desktop.webp','commander-combos/convergence-hero-mobile.webp');
 const deckComboManifest=JSON.parse(fs.readFileSync(path.join(publicRoot,'combo-data/deck-manifest.json')));if(!/^deck-index-[a-f0-9]{16}\.json\.gz$/.test(deckComboManifest.file))throw Error('Invalid deck combo index');allowed.push('combo-data/deck-manifest.json','combo-data/'+deckComboManifest.file);for(const name of fs.readdirSync(path.join(publicRoot,'combo-data/deck-shards'))){if(!/^[a-f0-9]{2}-[a-f0-9]{16}\.json\.gz$/.test(name))throw Error('Invalid deck combo detail');allowed.push('combo-data/deck-shards/'+name);}
 const comboManifest=JSON.parse(fs.readFileSync(path.join(publicRoot,'combo-data/manifest.json')));if(!/^catalog-[a-f0-9]{16}\.json\.gz$/.test(comboManifest.file))throw Error('Invalid combo index');allowed.push('combo-data/'+comboManifest.file);
 for(const name of fs.readdirSync(path.join(publicRoot,'combo-data/shards'))){if(!/^[a-f0-9-]{36}-[a-f0-9]{16}\.json\.gz$/.test(name))throw Error('Unexpected combo artifact');allowed.push('combo-data/shards/'+name);}

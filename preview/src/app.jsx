@@ -142,7 +142,7 @@ function App(){
  else if(page==='cards')content=<CardLibrary {...context}/>;
  else if(page==='precons')content=<div className="precon-vault-route editorial-deck-page"><EditorialHeader state={state} accountSnapshot={accountSnapshot} brand={<Sigil/>} avatar={<Avatar number={state.profile.avatar}/>} current="precons"/><PreconLibraryPage {...context} preconId={routeContext} ui={{Icon,Button,CardThumb}}/></div>;
  else if(page==='commander-swap')content=<CommanderSwapPage state={state} accountSnapshot={accountSnapshot} brand={<Sigil/>} avatar={<Avatar number={state.profile.avatar}/>}/>;
- else if(page==='combos')content=<CommanderCombosPage {...context} commanderId={routeContext} ui={{Modal}}/>;
+ else if(page==='combos')content=<div className="commander-combos-route editorial-deck-page"><EditorialHeader state={state} accountSnapshot={accountSnapshot} brand={<Sigil/>} avatar={<Avatar number={state.profile.avatar}/>} current="combos"/><CommanderCombosPage {...context} commanderId={routeContext} ui={{Modal}}/></div>;
  else if(page==='decks')content=deckId?<WarTableDetail {...context} id={deckId}/>:<Decks {...context}/>;
  else if(page==='bulk')content=<Bulk {...context}/>;
  else if(page==='batch-upload')content=<div className="editorial-deck-page scanner-editorial-page"><DecksHeader state={state} accountSnapshot={accountSnapshot}/><AiBatchUpload {...context} ui={{Icon,Button,PageHeader,Empty}} originType={routeContext} originId={routeId}/></div>;
