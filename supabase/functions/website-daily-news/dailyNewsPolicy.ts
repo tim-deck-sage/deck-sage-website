@@ -12,9 +12,24 @@ export async function claimDailyAttempt(dispatchDate:string,dependencies:{findAt
  return runId?{claimed:true as const,runId}:{claimed:false as const,reason:'A concurrent refresh already claimed this UTC day.'};
 }
 
-export async function validSchedulerEnvelope(request:Request){
+async function constantTimeEqual(left:string,right:string){
+ const encoder=new TextEncoder();
+ const [leftHash,rightHash]=await Promise.all([
+  crypto.subtle.digest('SHA-256',encoder.encode(left)),
+  crypto.subtle.digest('SHA-256',encoder.encode(right)),
+ ]);
+ const leftBytes=new Uint8Array(leftHash),rightBytes=new Uint8Array(rightHash);
+ let difference=0;
+ for(let index=0;index<leftBytes.length;index++)difference|=leftBytes[index]^rightBytes[index];
+ return difference===0;
+}
+
+export async function validSchedulerEnvelope(request:Request,expectedSecret:string){
+ if(new TextEncoder().encode(expectedSecret).byteLength<32)return false;
+ const authorization=request.headers.get('authorization')||'';
+ const match=/^Bearer ([^\s]+)$/.exec(authorization);
+ if(!match||!await constantTimeEqual(match[1],expectedSecret))return false;
  if(request.headers.get('origin'))return false;
- if(request.headers.get('x-deck-sage-scheduler')!=='daily')return false;
  if(!/^application\/json(?:\s*;|$)/i.test(request.headers.get('content-type')||''))return false;
  const declared=Number(request.headers.get('content-length')||0);
  if(Number.isFinite(declared)&&declared>MAX_SCHEDULER_BODY_BYTES)return false;

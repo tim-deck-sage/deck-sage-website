@@ -106,7 +106,8 @@ Deno.serve(async(req:Request)=>{
   catch{return respond(503,{error:'The daily dispatch is temporarily unavailable.'},origin);}
  }
  if(req.method==='POST'){
-   if(!await validSchedulerEnvelope(req))return respond(403,{error:'Scheduled refresh authorization required.'},origin);
+  const schedulerSecret=Deno.env.get('DAILY_NEWS_SCHEDULER_SECRET')||'';
+  if(!await validSchedulerEnvelope(req,schedulerSecret))return respond(403,{error:'Scheduled refresh authorization required.'},origin);
   try{return respond(200,await refresh());}catch(error){console.error('DAILY NEWS REFRESH ERROR',error instanceof Error?error.message:String(error));return respond(502,{error:'The daily refresh failed; the previous active dispatch was kept.'});}
  }
  return respond(405,{error:'Use GET.'},origin);
