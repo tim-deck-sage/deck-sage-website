@@ -3,6 +3,7 @@ import {applyDeckComboEvidence} from './deckComboArchive';
 import {canonicalAnalysis} from './canonicalAnalysis';
 import {requestDeckRecommendations} from './analysisRecommendations';
 import {EditorialHome,EditorialHeader,AdvertisingPlaceholder} from './EditorialHome';
+import {HelpPage} from './HelpPage';
 import {AnalysisIntro} from './AnalysisEditorial';
 import {AVATAR_NUMBERS,normalizeAvatarNumber,avatarImagePath} from './avatars';
 import {cardRequest} from './providers/staticCards';
@@ -158,7 +159,7 @@ function App(){
  else if(page==='friends')content=<Friends {...context}/>;
  else if(page==='settings')content=<><AccountPanel key={accountSnapshot.epoch} accounts={accounts} backend={backend} snapshot={accountSnapshot} exportBackup={()=>download(accountSnapshot.mode==='account'?'deck-sage-shared-backup.json':'deck-sage-browser-backup.json',JSON.stringify(state,null,2))}/>{accountSnapshot.mode==='account'&&<Settings {...context}/>}</>;
  else if(page==='notifications')content=<Notifications {...context}/>;
- else if(page==='help')content=<Help {...context}/>;
+ else if(page==='help')content=<HelpPage {...context} brand={<Sigil/>} avatar={<Avatar number={state.profile.avatar}/>}/>;
  else content=<Home {...context}/>;
  if((accountSnapshot.recovery||!['guest','account'].includes(accountSnapshot.mode))&&!['settings','publish'].includes(page))content=<AccountPanel key={accountSnapshot.epoch} accounts={accounts} backend={backend} snapshot={accountSnapshot} exportBackup={()=>download('deck-sage-pending-backup.json',JSON.stringify(state,null,2))}/>;
  else if(backend&&accountSnapshot.mode==='guest'&&!['settings','publish'].includes(page))content=<AccountPanel key={accountSnapshot.epoch} accounts={accounts} backend={backend} snapshot={accountSnapshot} exportBackup={()=>download('deck-sage-browser-backup.json',JSON.stringify(state,null,2))}/>;
