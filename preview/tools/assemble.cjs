@@ -26,6 +26,7 @@ allowed.push('precon-data/catalog.json','precon-data/LICENSE.txt','precon-data/c
 for(const name of fs.readdirSync(path.join(publicRoot,'precon-data/decks'))){if(!/^[a-z0-9-]+\.json$/.test(name))throw Error('Unexpected precon artifact');allowed.push('precon-data/decks/'+name);}
 for(const name of fs.readdirSync(path.join(publicRoot,'home/editorial')))allowed.push('home/editorial/'+name);
 allowed.push('home-editorial.css','card-library.css','bulk-editorial.css','card-library/archive-hero-1672.webp','card-library/archive-hero-mobile-780.webp');
+allowed.push('precon-vault/vault-hero-desktop.webp','precon-vault/vault-hero-mobile.webp');
 for(const name of ['muster-1920.webp','muster-3840.webp','muster-mobile-780.webp','muster-mobile-1170.webp'])allowed.push('bulk/'+name);
 for(const name of fs.readdirSync(path.join(publicRoot,'bulk-model'))){if(!/^(relations-[a-f0-9]{16}\.f16|(?:oracle|manifest)-[a-f0-9]{16}\.json|worker-[a-f0-9]{16}\.js|NOTICE\.txt)$/.test(name))throw Error('Unexpected bulk model artifact');allowed.push('bulk-model/'+name);}
 allowed.push('canonical-evidence.js');
