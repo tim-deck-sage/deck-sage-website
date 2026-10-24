@@ -140,7 +140,7 @@ function App(){
  let content;
  if(page==='home')content=<Home {...context}/>;
  else if(page==='cards')content=<CardLibrary {...context}/>;
- else if(page==='precons')content=<PreconLibraryPage {...context} preconId={routeContext} ui={{Icon,Button,CardThumb}}/>;
+ else if(page==='precons')content=<div className="precon-vault-route editorial-deck-page"><EditorialHeader state={state} accountSnapshot={accountSnapshot} brand={<Sigil/>} avatar={<Avatar number={state.profile.avatar}/>} current="precons"/><PreconLibraryPage {...context} preconId={routeContext} ui={{Icon,Button,CardThumb}}/></div>;
  else if(page==='commander-swap')content=<CommanderSwapPage state={state} accountSnapshot={accountSnapshot} brand={<Sigil/>} avatar={<Avatar number={state.profile.avatar}/>}/>;
  else if(page==='combos')content=<CommanderCombosPage {...context} commanderId={routeContext} ui={{Modal}}/>;
  else if(page==='decks')content=deckId?<WarTableDetail {...context} id={deckId}/>:<Decks {...context}/>;
