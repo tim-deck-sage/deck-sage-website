@@ -21,20 +21,31 @@ export function commanderPrintingImage(print,commanderName=''){
 
 function treatment(print){
  if(print?.full_art===true)return 'full_art';
+ if(print?.border_color==='borderless')return 'borderless';
  return Array.isArray(print?.frame_effects)&&print.frame_effects.includes('extendedart')?'extendedart':'';
+}
+
+function eligible(print,identity,commanderName){
+ const wanted=normalized(identity),layout=normalized(print?.layout),setType=normalized(print?.set_type),border=normalized(print?.border_color);
+ const names=[print?.name,...(Array.isArray(print?.card_faces)?print.card_faces.map(face=>face?.name):[])].map(normalized).filter(Boolean),requested=normalized(commanderName);
+ return (!wanted||normalized(print?.oracle_id)===wanted)&&(!requested||names.includes(requested)||normalized(print?.name)===requested)
+  &&Array.isArray(print?.games)&&print.games.includes('paper')&&print?.digital!==true&&print?.oversized!==true&&print?.textless!==true
+  &&(!print?.lang||print.lang==='en')&&(!print?.legalities||print.legalities.commander==='legal')
+  &&!['gold','silver','yellow'].includes(border)&&!['token','double_faced_token','art_series','emblem','planar','scheme','vanguard'].includes(layout)
+  &&!['memorabilia','token'].includes(setType)&&!['missing','placeholder'].includes(normalized(print?.image_status));
 }
 
 function score(print){
  const kind=treatment(print),paper=Array.isArray(print?.games)&&print.games.includes('paper'),highres=print?.highres_image===true||print?.image_status==='highres_scan';
- return (kind==='full_art'?2000:kind==='extendedart'?1000:0)+(paper?100:0)+(highres?10:0)+(Date.parse(print?.released_at||'')||0)/1e15;
+ return (kind==='full_art'?3000:kind==='borderless'?2000:kind==='extendedart'?1000:0)+(paper?100:0)+(highres?10:0)+(Date.parse(print?.released_at||'')||0)/1e15;
 }
 
 export function selectPreferredCommanderPrinting(printings,identity,commanderName){
- const wanted=normalized(identity),eligible=(Array.isArray(printings)?printings:[]).filter(print=>(!wanted||normalized(print?.oracle_id)===wanted)&&treatment(print)&&commanderPrintingImage(print,commanderName));
- eligible.sort((a,b)=>score(b)-score(a));
- const printing=eligible[0];
+ const candidates=(Array.isArray(printings)?printings:[]).filter(print=>eligible(print,identity,commanderName)&&treatment(print)&&commanderPrintingImage(print,commanderName));
+ candidates.sort((a,b)=>score(b)-score(a)||String(a?.id||'').localeCompare(String(b?.id||'')));
+ const printing=candidates[0];
  if(!printing)return null;
- return {imageUrl:commanderPrintingImage(printing,commanderName),printingId:printing.id||'',oracleId:printing.oracle_id||'',treatment:treatment(printing)};
+ return {imageUrl:commanderPrintingImage(printing,commanderName),printingId:printing.id||'',oracleId:printing.oracle_id||'',treatment:treatment(printing),sourceUrl:printing.scryfall_uri||'',artist:printing.artist||printing.card_faces?.find(face=>normalized(face?.name)===normalized(commanderName))?.artist||printing.card_faces?.[0]?.artist||''};
 }
 
 export function createCommanderArtLookup({fetchImpl=globalThis.fetch,spacingMs=SCRYFALL_REQUEST_SPACING_MS,now=()=>Date.now(),wait=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds)),timeoutMs=8000}={}){

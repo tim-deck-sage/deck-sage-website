@@ -40,8 +40,9 @@
     "test:commander-swap": "node tests/regression/commander-swap.cjs && node tests/regression/commander-swap-ui.cjs",
     "test:analysis:shared": "node tests/regression/shared-analysis-evidence.cjs && node tests/regression/shared-recommendations.cjs && node tests/regression/analysis-release-contract.cjs",
     "test:analysis:combos": "node tests/regression/deck-combo-evidence.cjs && node tests/regression/combo-completion-recommendations.cjs && node tests/regression/upgrade-identity-boundary.cjs && node tests/regression/commander-combos.cjs",
-    "test:analysis:combos:ui": "node tests/regression/deck-combo-ui.cjs"
-    ,"test:sage-workshop": "node tests/regression/sage-workshop.cjs",
+    "test:analysis:combos:ui": "node tests/regression/deck-combo-ui.cjs",
+    "test:lore": "node tests/regression/commander-display-art.cjs && node tests/regression/commander-lore-ui.cjs",
+    "test:sage-workshop": "node tests/regression/sage-workshop.cjs",
     "test:sage-workshop:ui": "node tests/regression/sage-workshop-ui.cjs"
   },
   "dependencies": {
