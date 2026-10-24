@@ -36,7 +36,7 @@ export function CardValuePage({state,setModal,go}){
  return <div className="value-app-page">
   <div className="value-app-background" aria-hidden="true"/>
   <header className="value-app-bar"><button type="button" onClick={()=>go('home')} className="value-home-button">← <span>Home</span></button><div><span>DECK SAGE</span><strong>Card Value</strong></div><button type="button" className="value-update-button" onClick={refresh} disabled={phase==='loading'||phase==='refreshing'}>{phase==='loading'||phase==='refreshing'?'Updating…':'Update Market Prices'}</button></header>
-  <main className="value-app-content">
+  <div className="value-app-content">
    <aside className="value-disclaimer" role="note"><strong>Broad estimate, not an appraisal.</strong><span>Scryfall provides daily USD market estimates. Card condition, exact printing, language, finish or card type, grading, availability, fees, and local demand can change what a card is actually worth—a lot.</span></aside>
    {(phase==='loading'||(phase==='refreshing'&&!snapshot))&&<section className="value-loading" aria-live="polite"><span className="value-orbit">✦</span><h1>Checking Collection Value</h1><p>Reviewing every saved printing against today’s Scryfall market estimate. You can leave this page and return while the check continues.</p>{progress.total>0&&<strong>{count(progress.completed)} of {count(progress.total)} card identities checked</strong>}</section>}
    {snapshot&&items.length>0&&<>
@@ -52,6 +52,6 @@ export function CardValuePage({state,setModal,go}){
    {phase==='error'&&<section className="value-loading value-error" role="alert"><span>!</span><h1>Current prices are unavailable</h1><p>{error} Nothing has been assigned a zero price, and no older catalog price is being shown as current.</p><button type="button" className="value-update-button" onClick={refresh}>Try Again</button></section>}
    {empty&&phase!=='error'&&<section className="value-loading"><span className="value-orbit">✦</span><h1>Your vault is waiting</h1><p>Add cards to My Decks or My Bulk, then return here for a broad current-value estimate.</p><button type="button" className="value-update-button" onClick={()=>go('bulk')}>Open My Bulk</button></section>}
    <aside className="value-disclaimer value-disclaimer-bottom" role="note"><strong>How this estimate works</strong><span>Deck Sage uses the saved Scryfall printing when one is available. Normal and foil copies use their separate USD fields; "Full Art" requires explicit full-art, extended-art, or borderless metadata and a nonfoil USD price. Replacement and name-only matches are labeled approximate. Missing prices stay unavailable and are excluded from totals.</span></aside>
-  </main>
+  </div>
  </div>;
 }

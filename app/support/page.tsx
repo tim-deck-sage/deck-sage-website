@@ -6,7 +6,7 @@ export default function SupportPage() {
       <PageHero />
       <section className="page-content">
         <article className="legal-content">
-          <h2>Support</h2>
+          <h1>Support</h1>
 
           <section>
             <h3>Need help with Deck Sage?</h3>

@@ -22,7 +22,7 @@
     "test:value": "node tests/regression/card-value-pricing.cjs && node tests/regression/card-value.cjs",
     "test:batch-upload": "node tests/regression/batch-upload.cjs",
     "test:bulk-discovery": "node tests/regression/bulk-deck-discovery.cjs && node tests/regression/bulk-relations.cjs && node tests/regression/bulk-editorial-ui.cjs && node tests/regression/bulk-learned-ui.cjs",
-    "test:news": "node tests/regression/daily-news.cjs && node tests/regression/daily-news-ui.cjs",
+    "test:news": "node tests/regression/daily-news.cjs && node tests/regression/daily-news-scheduler-policy.cjs && node tests/regression/daily-news-ui.cjs",
     "test:ai-scan": "node tests/regression/ai-scan-gateway.cjs && node tests/regression/image-memory-guard.cjs && node tests/regression/local-scan-worker-lifecycle.cjs && node tests/regression/local-scan-matcher.cjs && node tests/regression/ai-scan.cjs",
     "test:songs": "node tests/regression/commander-theme-player.cjs && node tests/regression/songs.cjs",
     "test:accounts": "node tests/accounts/shared-sql.cjs && node tests/accounts/shared-controller.cjs && node tests/accounts/bulk-atomic-persistence.cjs && node tests/accounts/legacy-hardening.cjs",
@@ -43,28 +43,29 @@
     "test:analysis:combos:ui": "node tests/regression/deck-combo-ui.cjs",
     "test:lore": "node tests/regression/commander-display-art.cjs && node tests/regression/commander-lore-ui.cjs",
     "test:help": "node tests/regression/help-guide-ui.cjs",
+    "test:hardening": "node tests/regression/hardening-contracts.cjs",
     "test:sage-workshop": "node tests/regression/sage-workshop.cjs",
     "test:sage-workshop:ui": "node tests/regression/sage-workshop-ui.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3",
     "next": "16.4.2",
-    "react": "latest",
-    "react-dom": "latest"
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
     "@huggingface/transformers": "3.8.1",
     "@paddleocr/paddleocr-js": "0.4.2",
-    "@tailwindcss/postcss": "latest",
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
+    "@tailwindcss/postcss": "4.3.2",
+    "@types/node": "26.1.0",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
     "brotli-dec-wasm": "2.3.2",
     "esbuild": "0.28.2",
     "onnxruntime-web": "1.30.0",
     "supabase": "2.120.0",
-    "tailwindcss": "latest",
-    "typescript": "latest"
+    "tailwindcss": "4.3.2",
+    "typescript": "6.0.3"
   }
 }

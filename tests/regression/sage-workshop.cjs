@@ -20,6 +20,9 @@ const artifactProfile=buildOpponentProfile({commanders:[commander('Forge Sage')]
 const graveProfile=buildOpponentProfile({commanders:[commander('Grave Sage','Return target creature card from your graveyard to the battlefield.')]});assert(graveProfile.axes.some(axis=>axis.id==='graveyard'));
 const unknown=buildOpponentProfile({commanders:[commander('Vanilla Sage','Vigilance')]});assert.equal(unknown.status,'insufficient');
 const falseAirProfile=buildOpponentProfile({commanders:[commander('Grounded Sage',"This creature can't block creatures with flying.")]});assert.equal(falseAirProfile.status,'insufficient');
+const incompatible=buildOpponentProfile({commanders:[commander('First Sage','Whenever you attack, create two 1/1 creature tokens.'),commander('Second Sage','Artifacts you control have ward {1}.')]});assert.equal(incompatible.status,'insufficient');assert.match(incompatible.reason,/compatible Partner, Background, or Doctor/);
+const background=card('Study the Past','','Legendary Enchantment — Background',{legalities:{commander:'legal'}});assert.equal(buildOpponentProfile({commanders:[background]}).status,'insufficient');
+const partners=buildOpponentProfile({commanders:[commander('Partner One','Partner\nWhenever you attack, create two 1/1 creature tokens.'),commander('Partner Two','Partner')]});assert.equal(partners.status,'ready');
 
 // Holding the opponent fixed, relevant answer quality changes the ranking.
 const wipe=card('Cleanse the Muster','Destroy all creatures.','Sorcery'),murder=card('Plain Murder','Destroy target creature.','Instant'),tokenReady=deck('Token-ready',[wipe]),tokenWeak=deck('Token-weak',[murder]);

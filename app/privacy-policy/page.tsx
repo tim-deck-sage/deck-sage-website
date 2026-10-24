@@ -62,6 +62,12 @@ export default function PrivacyPolicyPage() {
               device after the username is entered. They remain separate from
               authenticated mobile-app accounts and private app records.
             </p>
+            <p>
+              Each website sync sends the complete shared workspace record,
+              including website profile fields, decks, bulk, favorites, local
+              contacts, store drafts, notifications, and settings. It is not
+              limited to decks and bulk.
+            </p>
           </section>
 
           <section>

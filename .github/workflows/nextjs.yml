@@ -10,8 +10,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: "pages"
@@ -42,6 +40,9 @@ jobs:
 
       - name: Test catalog filters and refresh guards
         run: node tests/regression/card-library-search.cjs && node tests/regression/card-catalog-refresh.cjs
+
+      - name: Test hardening contracts
+        run: node tests/regression/hardening-contracts.cjs
 
       # Restore the last validated daily snapshot, not just the older checked-in baseline.
       - name: Restore last known good precon catalog
@@ -97,6 +98,10 @@ jobs:
           path: ./out
 
   deploy:
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

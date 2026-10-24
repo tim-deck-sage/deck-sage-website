@@ -1,4 +1,5 @@
 import {cardFacts,planFacts,normalizeCanonicalCard} from '../public/canonical-evidence';
+import {validateCommandZone} from './bulkDeckDiscovery';
 
 const clean=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const count=value=>Math.max(0,Math.floor(Number(value)||0));
@@ -51,6 +52,7 @@ const axes={
 export function buildOpponentProfile({commanders=[],seedDeck=null,seedCards=[],generatedAt=new Date().toISOString()}){
  const zone=commanders.filter(Boolean).map(normalizeCanonicalCard),resolved=seedCards.filter(Boolean).map(normalizeCanonicalCard),cards=resolved.length?resolved:zone;
  if(!zone.length)return {status:'insufficient',reason:'Choose at least one opposing commander.'};
+ const validation=validateCommandZone(zone);if(!validation.ok)return {status:'insufficient',commanders:zone,reason:validation.reason};
  const indestructibleCommanders=zone.filter(card=>/\bindestructible\b/.test(textOf(card))).map(card=>card.name),synthetic={commanders:zone,cards:resolved.filter(card=>!zone.some(commander=>sameCard(commander,card)))},plans=planFacts(synthetic),detected=Object.entries(axes).filter(([,axis])=>axis.detect(cards,plans,zone[0])).map(([id,axis])=>({id,...axis,answer:id==='air'&&indestructibleCommanders.length?`${axis.answer} Destruction alone does not answer an indestructible commander.`:axis.answer}));
  const source=seedDeck?{type:'official-example',label:`Official example list: ${seedDeck.name}`,date:seedDeck.releaseDate||seedDeck.sourceDate||generatedAt.slice(0,10),dateLabel:seedDeck.releaseDate?'Deck release date':seedDeck.sourceDate?'Catalog checked':'Profile checked',url:seedDeck.officialSourceUrl||seedDeck.sourceUrl,catalogUrl:seedDeck.sourceUrl,confidence:'Example-backed, not a metagame claim'}:{type:'commander-rules',label:'Commander rules-text inference',date:generatedAt.slice(0,10),dateLabel:'Card snapshot checked',url:'https://magic.wizards.com/en/formats/commander',confidence:'Low confidence — many different 99-card builds are possible'};
  if(!detected.length)return {status:'insufficient',commanders:zone,source,reason:'The available commander rules and example-list evidence do not establish a specific plan. Sage will not invent one.'};

@@ -19,9 +19,10 @@ async function routeOffline(context, preferredImage) {
     if (request.url().endsWith('/account-config.js')) return route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.DECK_SAGE_ACCOUNTS=null;' });
     if (new URL(request.url()).origin === 'https://api.scryfall.com') {
       const query = new URL(request.url()).searchParams.get('q') || '';
+      const requestedName = /!\"([^\"]+)\"/.exec(query)?.[1] || 'Fixture Commander';
       const commanderIndex = ['Krenko, Mob Boss', 'Talrand, Sky Summoner', 'Marwyn, the Nurturer', 'Shorikai, Genesis Engine', 'Ayara, First of Locthwain', 'Karn, Legacy Reforged'].findIndex((name) => query.includes(name));
       const oracleId = query.includes('Bruse Tarl') ? 'partner-oracle-3' : `oracle-${Math.max(0, commanderIndex)}`;
-      return route.fulfill({ status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' }, body: JSON.stringify({ data: [{ id: `preferred-${oracleId}`, oracle_id: oracleId, name: 'Fixture Commander', full_art: true, games: ['paper'], highres_image: true, image_status: 'highres_scan', released_at: '2026-01-01', image_uris: { large: preferredImage } }], has_more: false }) });
+      return route.fulfill({ status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' }, body: JSON.stringify({ data: [{ id: `preferred-${oracleId}`, oracle_id: oracleId, name: requestedName, full_art: true, games: ['paper'], highres_image: true, image_status: 'highres_scan', released_at: '2026-01-01', image_uris: { large: preferredImage } }], has_more: false }) });
     }
     if (request.url().endsWith('/missing-card-reference.png')) return route.fulfill({ status: 404, body: '' });
     if (request.url().startsWith(baseUrl)) return route.continue();
@@ -78,12 +79,17 @@ async function run() {
     await pick(page, 'Choose your commander', 'Krenko, Mob Boss');
     await page.locator('.command-zone-patterns').getByRole('button', { name: 'Partner', exact: true }).click();
     await pick(page, 'Choose commander 2', 'Rograkh, Son of Rohgahh');
+    await page.getByRole('button', { name: 'Create deck', exact: true }).click();
+    await page.getByRole('alert').getByText(/do not share a compatible Partner/).waitFor();
+    assert.equal((await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '{"decks":[]}').decks.length, storageKey)), 0);
+    await page.getByRole('button', { name: 'Clear Krenko, Mob Boss', exact: true }).click();
+    await pick(page, 'Choose your commander', 'Bruse Tarl, Boorish Herder');
     await page.getByRole('button', { name: 'Create deck', exact: true }).dblclick();
     await page.getByRole('heading', { name: 'Core Pair', exact: true }).waitFor();
     let state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
     assert.equal(state.decks.length, 1);
     assert.deepEqual(state.decks[0].commanders.map((card) => card.role), ['primary', 'partner']);
-    pass('Multi-partner creation validates exact cards and ignores repeated submit');
+    pass('Illegal pairing is rejected; a legal Partner pair saves derived roles and ignores repeated submit');
 
     await page.getByRole('button', { name: /All decks/ }).click();
     await page.getByRole('heading', { name: 'My Decks', exact: true }).waitFor();
@@ -110,7 +116,7 @@ async function run() {
     assert.equal(await page.getByRole('button', { name: /^Delete / }).count(), 0);
     const cardCss = await page.locator('.sanctum-featured-art .card-thumb').first().evaluate((el) => { const style = getComputedStyle(el); return { objectFit: style.objectFit, clipPath: style.clipPath }; });
     assert.equal(cardCss.objectFit, 'contain'); assert.equal(cardCss.clipPath, 'none');
-    assert(await page.locator('[data-commander-art-treatment="full_art"]').first().isVisible());
+    await page.locator('[data-commander-art-treatment="full_art"]').first().waitFor({state:'visible'});
     const brokenReference = page.locator('.sanctum-library-card').filter({ hasText: 'Broken Oracle' }).locator('img.card-thumb');
     await brokenReference.evaluate((image) => image.dispatchEvent(new Event('error')));
     await page.locator('.sanctum-library-card').filter({ hasText: 'Broken Oracle' }).locator('.card-thumb.placeholder').waitFor({ state: 'visible' });
@@ -137,10 +143,13 @@ async function run() {
     await page.getByRole('button', { name: 'Edit deck', exact: true }).click();
     await page.getByText('Remove this deck', { exact: true }).click();
     await page.getByRole('button', { name: 'Review deletion options', exact: true }).click();
-    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-    assert(await page.getByRole('heading', { name: 'Alphabet Keep', exact: true }).isVisible());
-    await page.getByRole('button', { name: /All decks/ }).click();
-    pass('Keyboard navigation opens detail and edit/delete choices remain safely in management UI');
+    await page.getByRole('button', { name: /Move Cards to Bulk/ }).click();
+    const afterDelete=await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
+    assert.equal(afterDelete.decks.some((deck) => deck.name==='Alphabet Keep'),false);
+    assert.equal(afterDelete.bulk.find((card) => card.name==='Marwyn, the Nurturer')?.quantity,1);
+    assert.equal(afterDelete.bulk.find((card) => card.name==='Fixture Card 2')?.quantity,2);
+    await openDecks(page);
+    pass('Keyboard management preserves the commander and named cards when a physical deck moves to bulk');
 
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     await page.screenshot({ path: path.join(__dirname, 'my-decks-desktop.png'), fullPage: true });

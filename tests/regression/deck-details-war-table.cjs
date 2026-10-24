@@ -45,8 +45,8 @@ async function run() {
     const page = await desktop.newPage(); watch(page);
     await page.goto(`${baseUrl}/#/home`);
     const original = await readState(page) || { version: 1, profile: { name: 'Planeswalker', username: '', avatar: 1, role: 'Player', bio: '' }, decks: [], retainedDeckRecords: [], bulk: [], favorites: [], contacts: [], stores: [], notifications: [], settings: { theme: 'forest', motion: true, images: true, notificationInbox: true } };
-    const primary = card('Tymna the Weaver', ['W', 'B'], { role: 'primary', typeLine: 'Legendary Creature - Human Cleric', manaCost: '{1}{W}{B}', imageUrl: '' });
-    const partner = card('Kraum, Ludevic’s Opus', ['U', 'R'], { role: 'partner', typeLine: 'Legendary Creature — Zombie Horror', imageUrl: '' });
+    const primary = card('Tymna the Weaver', ['W', 'B'], { role: 'primary', typeLine: 'Legendary Creature - Human Cleric', oracleText: 'Partner', manaCost: '{1}{W}{B}', imageUrl: '' });
+    const partner = card('Kraum, Ludevic’s Opus', ['U', 'R'], { role: 'partner', typeLine: 'Legendary Creature — Zombie Horror', oracleText: 'Partner', imageUrl: '' });
     const mainDeck = { ...themedDeck('war-table-fixture', 'Four Color Council', primary, partner), cards: [card('Arcane Signet', []), card('Sol Ring', [], { quantity: 2, cmc: 1, manaCost: '{1}', prices: { usd: '2.10' } })], basicLands: { Plains: 1, Island: 2, Swamp: 3, Mountain: 4, Forest: 5, Wastes: 6 }, notes: 'Opening plan' };
     const themeCases = [
       ['theme-white', 'White Theme', card('White Lead', ['W'], { manaCost: '{2}{W}{W}' }), 'W'],

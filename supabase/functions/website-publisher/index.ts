@@ -5,6 +5,7 @@ import {MAX_ARTWORK_BYTES,MAX_AUDIO_BYTES,SESSION_MS,audioKind,cleanLine,constan
 const SITE_ORIGINS=new Set(['https://deck-sage.com','https://www.deck-sage.com']);
 const BUCKET='deck-sage-published-media';
 const MAX_REQUEST_BYTES=11*1024*1024;
+const MAX_JSON_BYTES=2048;
 const encoder=new TextEncoder();
 
 function allowedOrigin(origin:string){return SITE_ORIGINS.has(origin)||(Deno.env.get('PUBLISHER_ALLOW_LOCAL')==='true'&&/^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(origin));}
@@ -48,13 +49,15 @@ async function session(req:Request){
 }
 async function logout(req:Request,origin:string){const active=await session(req);if(active)await active.client.from('ds_publisher_sessions').delete().eq('token_hash',active.tokenHash);return respond(200,{ok:true},origin);}
 async function bytes(file:File){return new Uint8Array(await file.arrayBuffer());}
+async function requestBytes(req:Request,limit:number){const declared=Number(req.headers.get('content-length')||0);if(Number.isFinite(declared)&&declared>limit)throw Error('REQUEST_TOO_LARGE');if(!req.body)return new Uint8Array();const reader=req.body.getReader(),chunks:Uint8Array[]=[];let total=0;try{while(true){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>limit)throw Error('REQUEST_TOO_LARGE');chunks.push(value);}const output=new Uint8Array(total);let offset=0;for(const chunk of chunks){output.set(chunk,offset);offset+=chunk.byteLength;}return output;}catch(error){await reader.cancel().catch(()=>{});throw error;}}
+async function limitedForm(req:Request){const body=await requestBytes(req,MAX_REQUEST_BYTES);return new Response(body,{headers:{'Content-Type':req.headers.get('content-type')||''}}).formData();}
+async function limitedJson(req:Request){const body=await requestBytes(req,MAX_JSON_BYTES);return JSON.parse(new TextDecoder().decode(body));}
 async function rollback(client:any,paths:string[]){if(paths.length)try{await client.storage.from(BUCKET).remove(paths);}catch{}}
 
 async function publish(req:Request,origin:string){
  if(!configured())return respond(503,{error:'Publishing is not configured.'},origin);
  const active=await session(req);if(!active)return respond(401,{error:'Your publisher session expired. Enter the PIN again.'},origin);
- const contentLength=Number(req.headers.get('content-length')||0);if(contentLength>MAX_REQUEST_BYTES)return respond(413,{error:'The selected files are too large.'},origin);
- let form:FormData;try{form=await req.formData();}catch{return respond(400,{error:'The publishing form could not be read.'},origin);}
+ let form:FormData;try{form=await limitedForm(req);}catch(error){return error instanceof Error&&error.message==='REQUEST_TOO_LARGE'?respond(413,{error:'The selected files are too large.'},origin):respond(400,{error:'The publishing form could not be read.'},origin);}
  const operationId=cleanLine(form.get('operationId'),36);if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId))return respond(400,{error:'Start a fresh publication and try again.'},origin);
  let categories:unknown=[];try{categories=JSON.parse(String(form.get('categories')||'[]'));}catch{return respond(400,{error:'Song categories could not be read.'},origin);}
  const checked=validateFields({kind:form.get('kind'),title:form.get('title'),commanderName:form.get('commanderName'),body:form.get('body'),categories});if(checked.error)return respond(400,{error:checked.error},origin);const value=checked.value;
@@ -80,7 +83,7 @@ Deno.serve(async(req:Request)=>{
   if(req.method==='GET')return await publicFeed(origin);
   if(req.method!=='POST')return respond(405,{error:'Use GET or POST.'},origin,'no-store',{Allow:'GET, POST, OPTIONS'});
   const type=req.headers.get('content-type')||'';
-  if(type.includes('application/json')){let body:any;try{body=await req.json();}catch{return respond(400,{error:'The request could not be read.'},origin);}if(body?.action==='login')return await login(req,origin,body.pin);if(body?.action==='logout')return await logout(req,origin);return respond(400,{error:'Unknown publisher action.'},origin);}
+   if(type.includes('application/json')){let body:any;try{body=await limitedJson(req);}catch(error){return error instanceof Error&&error.message==='REQUEST_TOO_LARGE'?respond(413,{error:'The request is too large.'},origin):respond(400,{error:'The request could not be read.'},origin);}if(body?.action==='login')return await login(req,origin,body.pin);if(body?.action==='logout')return await logout(req,origin);return respond(400,{error:'Unknown publisher action.'},origin);}
   if(type.includes('multipart/form-data'))return await publish(req,origin);
   return respond(415,{error:'Use JSON to unlock or a publishing form to upload.'},origin);
  }catch(error){console.error('PUBLISHER REQUEST FAILED',error instanceof Error?error.message:'unknown');return respond(503,{error:'The publisher is temporarily unavailable.'},origin);}

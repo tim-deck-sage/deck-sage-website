@@ -6,7 +6,7 @@ export default function TermsOfUsePage() {
       <PageHero />
       <section className="page-content">
         <article className="legal-content">
-          <h2>Terms of Use</h2>
+          <h1>Terms of Use</h1>
           <p className="effective-date">
             <strong>Effective Date</strong>
             <span>July 4, 2026</span>

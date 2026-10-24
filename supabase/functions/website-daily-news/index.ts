@@ -1,9 +1,12 @@
 // @ts-nocheck -- Supabase Edge Functions run on Deno, outside the Next.js type environment.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import {claimDailyAttempt,utcDispatchDate,validSchedulerEnvelope} from './dailyNewsPolicy.ts';
 
 const SITE_ORIGINS=new Set(['https://deck-sage.com','https://www.deck-sage.com']);
 const MODEL='gpt-4o-mini';
 const REQUEST_TIMEOUT_MS=12000;
+const MAX_SOURCE_BYTES=2_000_000;
+const MAX_SOURCE_REDIRECTS=3;
 const FRESHNESS_WINDOW_DAYS=21;
 const MAX_RAW_CANDIDATES=110;
 const AI_CANDIDATE_LIMIT=10;
@@ -33,11 +36,13 @@ const respond=(status:number,body:unknown,origin='',cache='no-store')=>new Respo
 const clean=(value:unknown,max=4000)=>String(value||'').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]*>/g,' ').replace(/<!\[CDATA\[|\]\]>/g,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#0?39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#x([0-9a-f]+);/gi,(_,hex)=>String.fromCodePoint(Number.parseInt(hex,16))).replace(/&#(\d+);/g,(_,decimal)=>String.fromCodePoint(Number.parseInt(decimal,10))).replace(/Magic: The Gatheringr/g,'Magic: The Gathering®').replace(/Star TrekT/g,'Star Trek™').replace(/\s+/g,' ').trim().slice(0,max);
 const iso=(value:unknown,fallback=new Date().toISOString())=>{const date=new Date(String(value||''));return Number.isFinite(date.getTime())?date.toISOString():fallback;};
 const normalizedUrl=(value:unknown,base?:string)=>{try{const url=new URL(String(value||''),base);if(url.protocol!=='https:')return '';url.hash='';return url.toString().replace(/\/$/,'');}catch{return '';}};
+const sourceUrlAllowed=(source:any,value:unknown)=>{const normalized=normalizedUrl(value,source?.url);if(!normalized)return false;try{const candidate=new URL(normalized),configured=new URL(source.url);return !candidate.username&&!candidate.password&&(!candidate.port||candidate.port==='443')&&candidate.hostname===configured.hostname;}catch{return false;}};
 const safeImage=(value:unknown,base?:string)=>{const url=normalizedUrl(value,base);if(!url)return null;const parsed=new URL(url),host=parsed.hostname,allowed=['magic.wizards.com','media.wizards.com','magic.gg','www.mtgo.com','edhrec.com','articles.edhrec.com','blog.cardkingdom.com','www.mtggoldfish.com','assets.mtggoldfish.com'];return allowed.some(item=>host===item||host.endsWith('.'+item))&&/\.(?:png|jpe?g|webp|gif)$/i.test(parsed.pathname)?url:null;};
 
-async function timedFetch(url:string,accept='text/html,application/xhtml+xml,application/rss+xml,application/xml'){
+async function limitedText(response:Response){const declared=Number(response.headers.get('content-length')||0);if(Number.isFinite(declared)&&declared>MAX_SOURCE_BYTES)throw Error('Source response exceeded the size limit.');if(!response.body)return '';const reader=response.body.getReader(),decoder=new TextDecoder();let total=0,text='';try{while(true){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>MAX_SOURCE_BYTES)throw Error('Source response exceeded the size limit.');text+=decoder.decode(value,{stream:true});}return text+decoder.decode();}catch(error){await reader.cancel().catch(()=>{});throw error;}}
+async function timedFetch(source:any,url:string,accept='text/html,application/xhtml+xml,application/rss+xml,application/xml'){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),REQUEST_TIMEOUT_MS);
- try{const response=await fetch(url,{signal:controller.signal,headers:{Accept:accept,'User-Agent':'DeckSageNewsBot/2.0'}});if(!response.ok)throw Error(`Source returned ${response.status}`);return await response.text();}
+ try{let current=normalizedUrl(url,source.url);for(let redirect=0;redirect<=MAX_SOURCE_REDIRECTS;redirect++){if(!sourceUrlAllowed(source,current))throw Error('Source URL is outside its configured host.');const response=await fetch(current,{signal:controller.signal,redirect:'manual',headers:{Accept:accept,'User-Agent':'DeckSageNewsBot/2.0'}});if([301,302,303,307,308].includes(response.status)){const next=normalizedUrl(response.headers.get('location'),current);await response.body?.cancel().catch(()=>{});if(!next||redirect===MAX_SOURCE_REDIRECTS)throw Error('Source redirected too many times.');current=next;continue;}if(!response.ok)throw Error(`Source returned ${response.status}`);return await limitedText(response);}throw Error('Source redirected too many times.');}
  finally{clearTimeout(timer);}
 }
 function meta(html:string,key:string){for(const attr of ['property','name']){const a=new RegExp(`<meta[^>]+${attr}=["']${key}["'][^>]+content=["']([^"']*)["']`,'i').exec(html);if(a?.[1])return clean(a[1],1200);const b=new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+${attr}=["']${key}["']`,'i').exec(html);if(b?.[1])return clean(b[1],1200);}return '';}
@@ -47,19 +52,19 @@ function makeArticle(source:any,input:any):Article|null{
  if(!articleUrl||title.length<10)return null;
  return {id:articleUrl,title,articleUrl,publishedAt:iso(input.publishedAt),source:source.name,sourceType:source.type,sourceCategory:source.category,sourceAuthority:source.authority,excerpt:clean(input.excerpt,1400),rawContent:clean(input.rawContent||input.excerpt||title,2400),imageUrl:safeImage(input.imageUrl,articleUrl),tags:[source.category].filter((tag:string)=>ALLOWED_TAGS.includes(tag))};
 }
-function allowedHtmlUrl(source:any,url:string){if(!url||url===normalizedUrl(source.url))return false;if(source.reject?.some((part:string)=>url.toLowerCase().includes(part)))return false;return !source.include?.length||source.include.some((part:string)=>url.toLowerCase().includes(part));}
+function allowedHtmlUrl(source:any,url:string){if(!sourceUrlAllowed(source,url)||url===normalizedUrl(source.url))return false;if(source.reject?.some((part:string)=>url.toLowerCase().includes(part)))return false;return !source.include?.length||source.include.some((part:string)=>url.toLowerCase().includes(part));}
 async function detail(article:Article,source:any){
- try{const html=await timedFetch(article.articleUrl);const canonical=normalizedUrl(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i.exec(html)?.[1]||article.articleUrl,article.articleUrl);if(!allowedHtmlUrl({...source,include:source.include||[new URL(source.url).pathname]},canonical))return article;const body=/<article[\s\S]*?>([\s\S]*?)<\/article>/i.exec(html)?.[1]||'';return makeArticle(source,{...article,articleUrl:canonical,title:meta(html,'og:title')||article.title,excerpt:meta(html,'og:description')||article.excerpt,rawContent:body||meta(html,'og:description')||article.rawContent,imageUrl:meta(html,'og:image')||article.imageUrl,publishedAt:published(html)||article.publishedAt})||article;}catch{return article;}
+ try{const html=await timedFetch(source,article.articleUrl);const canonical=normalizedUrl(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i.exec(html)?.[1]||article.articleUrl,article.articleUrl);if(!allowedHtmlUrl({...source,include:source.include||[new URL(source.url).pathname]},canonical))return article;const body=/<article[\s\S]*?>([\s\S]*?)<\/article>/i.exec(html)?.[1]||'';return makeArticle(source,{...article,articleUrl:canonical,title:meta(html,'og:title')||article.title,excerpt:meta(html,'og:description')||article.excerpt,rawContent:body||meta(html,'og:description')||article.rawContent,imageUrl:meta(html,'og:image')||article.imageUrl,publishedAt:published(html)||article.publishedAt})||article;}catch{return article;}
 }
 async function fetchHtml(source:any){
- const html=await timedFetch(source.url),seeds=new Map<string,Article>();
+ const html=await timedFetch(source,source.url),seeds=new Map<string,Article>();
  const regex=/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;let match;
  while((match=regex.exec(html))&&seeds.size<18){const articleUrl=normalizedUrl(match[1],source.url),title=clean(match[2],190);if(!allowedHtmlUrl(source,articleUrl)||title.length<10)continue;const article=makeArticle(source,{articleUrl,title,publishedAt:'1970-01-01T00:00:00.000Z',rawContent:title});if(article&&!seeds.has(articleUrl))seeds.set(articleUrl,article);}
  return (await Promise.all([...seeds.values()].map(article=>detail(article,source)))).filter(Boolean);
 }
 function rssTag(block:string,name:string){return clean(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${name}>`,'i').exec(block)?.[1]||'',2400);}
 async function fetchRss(source:any){
- const xml=await timedFetch(source.url),blocks=xml.match(/<item\b[\s\S]*?<\/item>/gi)||[],articles:Article[]=[];
+ const xml=await timedFetch(source,source.url),blocks=xml.match(/<item\b[\s\S]*?<\/item>/gi)||[],articles:Article[]=[];
  for(const block of blocks.slice(0,18)){const image=/<media:(?:content|thumbnail)[^>]+url=["']([^"']+)["']/i.exec(block)?.[1]||/<enclosure[^>]+url=["']([^"']+)["'][^>]+type=["']image\//i.exec(block)?.[1]||'';const article=makeArticle(source,{title:rssTag(block,'title'),articleUrl:rssTag(block,'link')||rssTag(block,'guid'),publishedAt:rssTag(block,'pubDate')||rssTag(block,'dc:date'),excerpt:rssTag(block,'description'),rawContent:rssTag(block,'content:encoded')||rssTag(block,'description'),imageUrl:image});if(article)articles.push(article);}
  return articles;
 }
@@ -87,7 +92,7 @@ function service(){const url=Deno.env.get('SUPABASE_URL'),key=Deno.env.get('SUPA
 async function db(path:string,init:RequestInit={}){const {url,key}=service(),response=await fetch(`${url}/rest/v1/${path}`,{...init,headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json',...(init.headers||{})}});if(!response.ok)throw Error(`News cache request failed (${response.status}).`);const text=await response.text();return text?JSON.parse(text):null;}
 async function latest(){const runs=await db('daily_news_runs?select=id,dispatch_date,activated_at,completed_at&status=eq.success&is_active=eq.true&order=dispatch_date.desc,activated_at.desc&limit=1');const run=runs?.[0];if(!run)return null;const rows=await db(`daily_news_dispatch_items?select=id,title,summary,why_it_matters,tags,image_url,article_url,source,published_at,generated_at,rank&run_id=eq.${encodeURIComponent(run.id)}&order=rank.asc&limit=${SERVED_ITEM_LIMIT}`);const generatedAt=run.activated_at||run.completed_at||rows?.[0]?.generated_at||null,dispatchDate=run.dispatch_date,today=new Date().toISOString().slice(0,10),ageHours=generatedAt?(Date.now()-new Date(generatedAt).getTime())/3600000:null;return {dispatchDate,generatedAt,freshness:dispatchDate===today&&ageHours!==null&&ageHours<=36?'fresh':'stale',articles:(rows||[]).map((row:any)=>({id:row.id,title:row.title,summary:row.summary,whyItMatters:row.why_it_matters,tags:row.tags||[],imageUrl:row.image_url,articleUrl:row.article_url,source:row.source||'MTG Dispatch',publishedAt:row.published_at,rank:row.rank}))};}
 async function refresh(){
- const dispatchDate=new Date().toISOString().slice(0,10),runId=await db('rpc/begin_website_daily_news_run',{method:'POST',body:JSON.stringify({p_dispatch_date:dispatchDate})});if(!runId)return {skipped:true,reason:'A current or in-progress dispatch already exists.',digest:await latest()};
+ const dispatchDate=utcDispatchDate(),claim=await claimDailyAttempt(dispatchDate,{findAttempts:date=>db(`daily_news_runs?select=id,status,started_at,completed_at&dispatch_date=eq.${date}&order=started_at.asc&limit=1`),begin:date=>db('rpc/begin_website_daily_news_run',{method:'POST',body:JSON.stringify({p_dispatch_date:date})})});if(!claim.claimed)return {skipped:true,reason:claim.reason,digest:await latest()};const runId=claim.runId;
  try{const settled=await Promise.allSettled(NEWS_SOURCES.map(fetchSource)),raw=settled.flatMap(result=>result.status==='fulfilled'?result.value:[]).slice(0,MAX_RAW_CANDIDATES),candidates=rank(raw);if(candidates.length<3)throw Error('Too few current source articles were available.');const enriched=await summarize(candidates),expiresAt=new Date(Date.now()+28*86400000).toISOString(),rows=enriched.map((item,index)=>({run_id:runId,dispatch_date:dispatchDate,rank:index+1,title:item.title,summary:item.summary,why_it_matters:item.whyItMatters,tags:item.tags,image_url:item.imageUrl,article_url:item.articleUrl,source:item.source,source_type:item.sourceType,published_at:item.publishedAt,expires_at:expiresAt,rank_score:item.score}));await db('daily_news_dispatch_items',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(rows)});await db(`daily_news_runs?id=eq.${encodeURIComponent(runId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({source_count:raw.length,candidate_count:candidates.length,enriched_count:rows.length})});await db('rpc/activate_website_daily_news_run',{method:'POST',body:JSON.stringify({p_run_id:runId})});return {skipped:false,count:rows.length,digest:await latest()};}
  catch(error){const message=error instanceof Error?error.message:String(error);try{await db(`daily_news_runs?id=eq.${encodeURIComponent(runId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'failed',completed_at:new Date().toISOString(),error_message:message.slice(0,500)})});}catch{}throw error;}
 }
@@ -101,7 +106,7 @@ Deno.serve(async(req:Request)=>{
   catch{return respond(503,{error:'The daily dispatch is temporarily unavailable.'},origin);}
  }
  if(req.method==='POST'){
-  if(origin||req.headers.get('x-deck-sage-scheduler')!=='daily')return respond(403,{error:'Scheduled refresh authorization required.'},origin);
+   if(!await validSchedulerEnvelope(req))return respond(403,{error:'Scheduled refresh authorization required.'},origin);
   try{return respond(200,await refresh());}catch(error){console.error('DAILY NEWS REFRESH ERROR',error instanceof Error?error.message:String(error));return respond(502,{error:'The daily refresh failed; the previous active dispatch was kept.'});}
  }
  return respond(405,{error:'Use GET.'},origin);

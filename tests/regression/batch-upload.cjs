@@ -6,7 +6,8 @@ const runtime = process.env.DECK_SAGE_TEST_NODE_MODULES || 'C:/Users/timmo/.cach
 const { chromium } = require(path.join(runtime, 'playwright'));
 const baseUrl = process.env.DECK_SAGE_PREVIEW_URL || 'http://127.0.0.1:4184';
 const storageKey = 'deck-sage-web-v1';
-const fixturePath = path.join(__dirname, '..', 'fixtures', 'batch-card-photo.png');
+const fixtureSource = path.join(__dirname, '..', '..', 'preview', 'public', 'decks', 'button-danger.png');
+const fixtureFile = { name: 'batch-card-photo.png', mimeType: 'image/png', buffer: fs.readFileSync(fixtureSource) };
 const report = { checks: [], errors: [], externalWrites: [], startedAt: new Date().toISOString() };
 const emptyLands = { Plains: 0, Island: 0, Swamp: 0, Mountain: 0, Forest: 0, Wastes: 0 };
 const fixtureState = {
@@ -62,10 +63,10 @@ async function run() {
     pass('My Bulk links to a contextual page with 20 ordered, mobile-friendly single-photo slots');
 
     const stateBefore = await page.evaluate((key) => localStorage.getItem(key), storageKey);
-    await firstInput.setInputFiles(fixturePath);
+    await firstInput.setInputFiles(fixtureFile);
     await waitPreview(page, 1);
     await page.getByText('1 / 20 staged', { exact: false }).waitFor();
-    await page.getByLabel('Choose Photo 20', { exact: true }).setInputFiles(fixturePath);
+    await page.getByLabel('Choose Photo 20', { exact: true }).setInputFiles(fixtureFile);
     await waitPreview(page, 20);
     await page.getByText('2 / 20 staged', { exact: false }).waitFor();
     pass('Photo 1 and Photo 20 stage original files and render local previews');
@@ -101,7 +102,7 @@ async function run() {
       assert.match(await page.getByText('2 / 20 staged', { exact: false }).textContent(), /2 \/ 20/);
     }
     pass('Unsupported HEIC and SVG are rejected before staging with a safe-format explanation');
-    await page.getByLabel('Choose Photo 2', { exact: true }).setInputFiles({ name: 'second-photo.png', mimeType: 'image/png', buffer: fs.readFileSync(fixturePath) });
+    await page.getByLabel('Choose Photo 2', { exact: true }).setInputFiles({ ...fixtureFile, name: 'second-photo.png' });
     await waitPreview(page, 2);
     await page.getByText('3 / 20 staged', { exact: false }).waitFor();
     assert.equal(await page.locator('[data-photo-slot="2"]').getByRole('alert').count(), 0);
@@ -145,7 +146,7 @@ async function run() {
     const phone = await mobile.newPage();
     watch(phone);
     await openBatchFromBulk(phone);
-    await phone.getByLabel('Choose Photo 1', { exact: true }).setInputFiles(fixturePath);
+    await phone.getByLabel('Choose Photo 1', { exact: true }).setInputFiles(fixtureFile);
     await waitPreview(phone, 1);
     assert(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     assert.equal(await phone.locator('[data-photo-slot]').count(), 20);
