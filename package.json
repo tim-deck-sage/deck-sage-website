@@ -41,6 +41,8 @@
     "test:analysis:shared": "node tests/regression/shared-analysis-evidence.cjs && node tests/regression/shared-recommendations.cjs && node tests/regression/analysis-release-contract.cjs",
     "test:analysis:combos": "node tests/regression/deck-combo-evidence.cjs && node tests/regression/combo-completion-recommendations.cjs && node tests/regression/upgrade-identity-boundary.cjs && node tests/regression/commander-combos.cjs",
     "test:analysis:combos:ui": "node tests/regression/deck-combo-ui.cjs"
+    ,"test:sage-workshop": "node tests/regression/sage-workshop.cjs",
+    "test:sage-workshop:ui": "node tests/regression/sage-workshop-ui.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3",

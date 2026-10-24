@@ -1,0 +1,29 @@
+const assert=require('node:assert/strict'),esbuild=require('esbuild');
+const built=esbuild.buildSync({stdin:{contents:"export * from './preview/src/sageWorkshopEngine';",resolveDir:process.cwd()},bundle:true,platform:'node',format:'cjs',write:false}),m={exports:{}};new Function('module','exports','require',built.outputFiles[0].text)(m,m.exports,require);
+const {collectionLocations,presentCardHomes,buildOpponentProfile,rankDecksForOpponent}=m.exports;
+const card=(name,text='',typeLine='Instant',extra={})=>({name,oracleId:name.toLowerCase().replace(/\W/g,'-'),oracleText:text,typeLine,colorIdentity:[],quantity:1,metadataComplete:true,...extra});
+const commander=(name,text='')=>card(name,text,'Legendary Creature — Sage',{colorIdentity:['U']});
+const deck=(id,cards,extra={})=>({id,name:id,format:'Commander',commander:'Fixture Sage',commanderCard:commander('Fixture Sage'),cards,basicLands:{},...extra});
+
+// Collection-wide ownership is exact about physical versus planned copies and variants.
+const sol=card('Sol Ring','{T}: Add {C}.','Artifact',{cardVariant:'Normal'}),state={bulk:[{...sol,quantity:2},{...sol,quantity:1,cardVariant:'Foil'}],decks:[deck('inventory',[{...sol,quantity:1}]),deck('plan',[{...sol,quantity:1}],{isDraft:true})]};
+const ledger=collectionLocations(state,sol);assert.equal(ledger.ownedCopies,4);assert.equal(ledger.plannedCopies,1);assert.deepEqual(ledger.bulkRows.map(row=>row.variant),['Normal','Foil']);
+const fit=presentCardHomes({results:[{deckId:'inventory',score:-50,verdict:'Already in deck',summary:'already',whyItFits:[],concerns:[],deckWeaknesses:[]},{deckId:'plan',score:55,verdict:'Strong fit',summary:'planned',whyItFits:['role'],concerns:[],deckWeaknesses:[]},{deckId:'missing-zone',score:70,verdict:'Excellent upgrade candidate',summary:'maybe',whyItFits:[],concerns:[],deckWeaknesses:[]},{deckId:'wrong',score:-100,verdict:'Not legal for commander colors',summary:'wrong color',whyItFits:[],concerns:[],deckWeaknesses:[]} ]},{...state,decks:[...state.decks,{id:'missing-zone',name:'missing-zone',format:'Commander',cards:[],basicLands:{}},deck('wrong',[])]},sol);
+assert.match(fit.destinations.find(row=>row.deckId==='inventory').invalid,/singleton/i);assert.equal(fit.planned.length,1);assert.equal(fit.promising.length,0);assert.match(fit.destinations.find(row=>row.deckId==='wrong').invalid,/wrong color/i);assert.match(fit.destinations.find(row=>row.deckId==='missing-zone').invalid,/command zone/i);
+
+// Profiles cover structurally different plans and keep commander-only inference explicit.
+const tokenLead=commander('Muster Sage','Whenever you attack, create two 1/1 creature tokens with flying.');
+const tokenProfile=buildOpponentProfile({commanders:[tokenLead]});assert.equal(tokenProfile.status,'ready');assert.equal(tokenProfile.source.type,'commander-rules');assert(tokenProfile.axes.some(axis=>axis.id==='tokens'));
+const airProfile=buildOpponentProfile({commanders:[commander('Sky Sage')],seedDeck:{name:'Sky Example',sourceDate:'2026-01-02',officialSourceUrl:'https://magic.wizards.com/example'},seedCards:Array.from({length:9},(_,i)=>card('Flier '+i,'Flying','Creature — Bird'))});assert(airProfile.axes.some(axis=>axis.id==='air'));assert.equal(airProfile.source.type,'official-example');
+const artifactProfile=buildOpponentProfile({commanders:[commander('Forge Sage')],seedCards:Array.from({length:16},(_,i)=>card('Device '+i,'','Artifact'))});assert(artifactProfile.axes.some(axis=>axis.id==='artifacts'));
+const graveProfile=buildOpponentProfile({commanders:[commander('Grave Sage','Return target creature card from your graveyard to the battlefield.')]});assert(graveProfile.axes.some(axis=>axis.id==='graveyard'));
+const unknown=buildOpponentProfile({commanders:[commander('Vanilla Sage','Vigilance')]});assert.equal(unknown.status,'insufficient');
+
+// Holding the opponent fixed, relevant answer quality changes the ranking.
+const wipe=card('Cleanse the Muster','Destroy all creatures.','Sorcery'),murder=card('Plain Murder','Destroy target creature.','Instant'),tokenReady=deck('Token-ready',[wipe]),tokenWeak=deck('Token-weak',[murder]);
+let ranked=rankDecksForOpponent(tokenProfile,[tokenWeak,tokenReady]);assert.equal(ranked.status,'ready');assert.equal(ranked.rankings[0].deckId,'Token-ready');assert(ranked.rankings[0].matched.some(match=>match.cards.includes('Cleanse the Muster')));
+const graveReady=deck('Grave-ready',[card('Crypt Lantern','{T}: Exile all cards from target player’s graveyard.','Artifact')]),graveWeak=deck('Grave-weak',[murder]);ranked=rankDecksForOpponent(graveProfile,[graveWeak,graveReady]);assert.equal(ranked.rankings[0].deckId,'Grave-ready');
+const artifactReady=deck('Artifact-ready',[card('Shatter Now','Destroy target artifact.','Instant')]),artifactWeak=deck('Artifact-weak',[murder]);ranked=rankDecksForOpponent(artifactProfile,[artifactWeak,artifactReady]);assert.equal(ranked.rankings[0].deckId,'Artifact-ready');
+const airReady=deck('Air-ready',[card('Sky Snare','Exile target creature.','Instant'),card('Reach Guard','Reach','Creature — Spider')]),airWeak=deck('Air-weak',[card('Ground Wall','','Creature — Wall')]);ranked=rankDecksForOpponent(airProfile,[airWeak,airReady]);assert.equal(ranked.rankings[0].deckId,'Air-ready');
+assert.equal(rankDecksForOpponent(tokenProfile,[deck('A',[]),deck('B',[])]).status,'insufficient');assert.equal(rankDecksForOpponent(tokenProfile,[{...tokenReady,id:'A',name:'A'},{...tokenReady,id:'B',name:'B'}]).tie,true);assert.equal(rankDecksForOpponent(tokenProfile,[{...tokenReady,isDraft:true}]).status,'no-decks');
+console.log('PASS Sage Workshop: owned/planned/variant ledger, singleton and identity exclusions, token/air/artifact/graveyard profiles, relevant-answer ranking changes, abstention, ties, and planned-deck isolation. These fixtures test deterministic behavior, not gameplay accuracy.');

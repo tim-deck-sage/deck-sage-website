@@ -36,6 +36,7 @@ import {NewsPage} from './NewsPage';
 import {PreconLibraryPage} from './PreconLibraryPage';
 import CommanderCombosPage from './CommanderCombosPage';
 import CommanderSwapPage from './CommanderSwapPage';
+import {SageWorkshop} from './SageWorkshop';
 import {PublisherDesk} from './PublisherDesk';
 import {loadPublishedContent} from './publishedContent';
 import {GameplayCoach} from './GameplayCoach';
@@ -46,7 +47,7 @@ function Avatar({number=1,className=''}){const avatar=normalizeAvatarNumber(numb
 const dollars=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
 const digits=n=>(n||0).toLocaleString();
 const colorNames={W:'White',U:'Blue',B:'Black',R:'Red',G:'Green',C:'Colorless'};
-const NAV=[['home','Home','home'],['decks','My decks','layers'],['precons','Precon Vault','book'],['bulk','My bulk','archive'],['cards','Card library','search'],['sage','Sage tools','spark'],['value','Card value','chart'],['lore','Commander lore','book'],['songs','Theme songs','music'],['news','Latest news','book'],['advertise','Advertise on Deck Sage','store'],['friends','Friends','people']];
+const NAV=[['home','Home','home'],['decks','My decks','layers'],['precons','Precon Vault','book'],['bulk','My bulk','archive'],['cards','Card library','search'],['sage','Sage’s Workshop','spark'],['value','Card value','chart'],['lore','Commander lore','book'],['songs','Theme songs','music'],['news','Latest news','book'],['advertise','Advertise on Deck Sage','store'],['friends','Friends','people']];
 const HOME_BACKGROUNDS=[1,2,3,4,5].map(number=>`/home/background-${number}.webp`);
 const HOME_BACKGROUND=HOME_BACKGROUNDS[Math.floor(Math.random()*HOME_BACKGROUNDS.length)];
 const commanderDisplayCards=new WeakSet();
@@ -78,7 +79,7 @@ async function createBatchPhotoThumbnail(file){await inspectImageDimensions(file
 const HOME_FEATURES=[
  {route:'decks',label:'My Decks',description:'Your ideas, ready to become something great.',image:'/home/buttons/my-decks.webp',featured:true},
  {route:'bulk',label:'My Bulk',description:'Find the next gem hiding in your collection.',image:'/home/buttons/my-bulk.webp',featured:true},
- {route:'sage',label:'Sage Tools',description:'A wiser look at strategy, balance, and upgrades.',image:'/home/buttons/sage-tools.webp',featured:true},
+ {route:'sage',label:'Sage’s Workshop',description:'Place a card or prepare for an opposing commander.',image:'/home/buttons/sage-tools.webp',featured:true},
  {route:'lore',label:'Commander Lore',description:'Stories behind your legends.',image:'/home/buttons/commander-lore.webp'},
  {route:'songs',label:'Theme Songs',description:'A soundtrack for your sanctum.',image:'/home/buttons/theme-songs.webp'},
  {route:'value',label:'Collection Value',description:'Know the treasures you keep.',image:'/home/buttons/collection-value.webp'},
@@ -145,7 +146,7 @@ function App(){
  else if(page==='decks')content=deckId?<WarTableDetail {...context} id={deckId}/>:<Decks {...context}/>;
  else if(page==='bulk')content=<Bulk {...context}/>;
  else if(page==='batch-upload')content=<div className="editorial-deck-page scanner-editorial-page"><DecksHeader state={state} accountSnapshot={accountSnapshot}/><AiBatchUpload {...context} ui={{Icon,Button,PageHeader,Empty}} originType={routeContext} originId={routeId}/></div>;
- else if(page==='sage')content=<Sage {...context}/>;
+ else if(page==='sage')content=<SageWorkshop {...context} brand={<Sigil/>} avatar={<Avatar number={state.profile.avatar}/>} ui={{Button,CardPicker,CardThumb}}/>;
  else if(page==='value')content=<CardValuePage {...context}/>;
  else if(page==='lore')content=<Lore {...context}/>;
  else if(page==='songs')content=<Songs {...context}/>;
