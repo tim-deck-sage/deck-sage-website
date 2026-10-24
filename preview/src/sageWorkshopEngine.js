@@ -33,9 +33,12 @@ const typeOf=card=>String(card?.typeLine??card?.type_line??'').toLowerCase();
 const has=(card,pattern)=>pattern.test(textOf(card));
 const named=(cards,predicate,limit=3)=>cards.filter(predicate).slice(0,limit).map(card=>card.name);
 const unique=values=>[...new Set(values.filter(Boolean))];
+const realAirBody=card=>/\bcreature\b/.test(typeOf(card))&&(card.keywords||[]).some(keyword=>/^(flying|reach)$/i.test(keyword))||/\bcreature\b/.test(typeOf(card))&&/(?:^|\n)\s*(?:flying|reach)\s*(?:[,.;]|$)/m.test(textOf(card));
+const airMaker=card=>/\bcreate\b[^.\n]{0,120}\bcreature tokens?\b[^.\n]{0,80}\bwith flying\b/.test(textOf(card))||/\b(?:creatures? you control|target creature)\b[^.\n]{0,50}\b(?:have|has|gain|gains) flying\b/.test(textOf(card));
+const airThreat=card=>realAirBody(card)||airMaker(card);
 
 const axes={
- air:{label:'Air pressure',plan:'Flying creatures and evasive combat can make ground defenses irrelevant.',answer:'Instant-speed creature answers, sweepers, or real flying/reach blockers.',detect:(cards,plans,commander)=>/flying/.test(textOf(commander))||cards.filter(card=>/flying/.test(textOf(card))||card.keywords?.includes('Flying')).length>=8},
+ air:{label:'Air pressure',plan:'Flying creatures and evasive combat can make ground defenses irrelevant.',answer:'Instant-speed creature answers, sweepers, or real flying/reach blockers.',detect:(cards,plans,commander)=>airThreat(commander)||cards.filter(airThreat).length>=8},
  tokens:{label:'Token board',plan:'Repeated token production can widen the board and multiply payoffs.',answer:'Sweepers and early removal for the token engine matter more than raw removal totals.',detect:(cards,plans)=>plans.tokens},
  artifacts:{label:'Artifact engine',plan:'Artifacts may act as mana, bodies, sacrifice material, or a linked value engine.',answer:'Artifact interaction is most useful before an engine pays back its setup cost.',detect:(cards,plans)=>plans.artifacts},
  graveyard:{label:'Graveyard reuse',plan:'The graveyard may function as a renewable resource rather than a discard pile.',answer:'Graveyard exile and exile-based permanent answers interrupt recursion more cleanly than destruction.',detect:(cards,plans)=>plans.graveyard},
@@ -48,16 +51,19 @@ const axes={
 export function buildOpponentProfile({commanders=[],seedDeck=null,seedCards=[],generatedAt=new Date().toISOString()}){
  const zone=commanders.filter(Boolean).map(normalizeCanonicalCard),resolved=seedCards.filter(Boolean).map(normalizeCanonicalCard),cards=resolved.length?resolved:zone;
  if(!zone.length)return {status:'insufficient',reason:'Choose at least one opposing commander.'};
- const synthetic={commanders:zone,cards:resolved.filter(card=>!zone.some(commander=>sameCard(commander,card)))},plans=planFacts(synthetic),detected=Object.entries(axes).filter(([,axis])=>axis.detect(cards,plans,zone[0])).map(([id,axis])=>({id,...axis}));
- const source=seedDeck?{type:'official-example',label:`Official example list: ${seedDeck.name}`,date:seedDeck.sourceDate||seedDeck.releaseDate||generatedAt.slice(0,10),url:seedDeck.officialSourceUrl||seedDeck.sourceUrl,catalogUrl:seedDeck.sourceUrl,confidence:'Example-backed, not a metagame claim'}:{type:'commander-rules',label:'Commander rules-text inference',date:generatedAt.slice(0,10),url:'https://magic.wizards.com/en/formats/commander',confidence:'Low confidence — many different 99-card builds are possible'};
+ const indestructibleCommanders=zone.filter(card=>/\bindestructible\b/.test(textOf(card))).map(card=>card.name),synthetic={commanders:zone,cards:resolved.filter(card=>!zone.some(commander=>sameCard(commander,card)))},plans=planFacts(synthetic),detected=Object.entries(axes).filter(([,axis])=>axis.detect(cards,plans,zone[0])).map(([id,axis])=>({id,...axis,answer:id==='air'&&indestructibleCommanders.length?`${axis.answer} Destruction alone does not answer an indestructible commander.`:axis.answer}));
+ const source=seedDeck?{type:'official-example',label:`Official example list: ${seedDeck.name}`,date:seedDeck.releaseDate||seedDeck.sourceDate||generatedAt.slice(0,10),dateLabel:seedDeck.releaseDate?'Deck release date':seedDeck.sourceDate?'Catalog checked':'Profile checked',url:seedDeck.officialSourceUrl||seedDeck.sourceUrl,catalogUrl:seedDeck.sourceUrl,confidence:'Example-backed, not a metagame claim'}:{type:'commander-rules',label:'Commander rules-text inference',date:generatedAt.slice(0,10),dateLabel:'Card snapshot checked',url:'https://magic.wizards.com/en/formats/commander',confidence:'Low confidence — many different 99-card builds are possible'};
  if(!detected.length)return {status:'insufficient',commanders:zone,source,reason:'The available commander rules and example-list evidence do not establish a specific plan. Sage will not invent one.'};
- return {status:'ready',commanders:zone,source,axes:detected,summary:`${zone.map(card=>card.name).join(' + ')} suggests ${detected.slice(0,3).map(axis=>axis.label.toLowerCase()).join(', ')}. Treat these as plans to prepare for, not a prediction of the hidden 99.`,threats:detected.map(axis=>axis.plan),counterplay:detected.map(axis=>axis.answer),multipleBuilds:seedDeck?'This official list is one documented build. The opponent may be playing a different shell.':'Commander text is the only build evidence. The hidden 99 may support a very different plan.'};
+ return {status:'ready',commanders:zone,source,axes:detected,constraints:{indestructibleCommanders},summary:`${zone.map(card=>card.name).join(' + ')} suggests ${detected.slice(0,3).map(axis=>axis.label.toLowerCase()).join(', ')}. Treat these as plans to prepare for, not a prediction of the hidden 99.`,threats:detected.map(axis=>axis.plan),counterplay:detected.map(axis=>axis.answer),multipleBuilds:seedDeck?'This official list is one documented build. The opponent may be playing a different shell.':'Commander text is the only build evidence. The hidden 99 may support a very different plan.'};
 }
 
-function answerSignals(cards){
+function answerSignals(cards,profile){
  const signal=(label,predicate)=>({label,cards:named(cards,predicate,4)}),instant=card=>/instant/.test(typeOf(card))||/flash/.test(textOf(card));
+ const nonDestroyCreatureAnswer=card=>instant(card)&&(/\b(?:exile|return) target (?:attacking |blocking )?creature\b|\bcounter target (?:creature )?spell\b|\btarget creature gets -\d+\/-\d+\b/.test(textOf(card)));
+ const destroyCreatureAnswer=card=>instant(card)&&/\bdestroy target (?:attacking |blocking )?creature\b|\bdeals? \d+ damage to target (?:attacking |blocking )?creature\b/.test(textOf(card));
+ const commanderOnlyIndestructible=profile?.source?.type==='commander-rules'&&profile?.constraints?.indestructibleCommanders?.length>0;
  return {
-  air:signal('answers at flying speed',card=>(instant(card)&&cardFacts(card).interaction)||/\bflying\b|\breach\b/.test(textOf(card))),
+  air:signal('interacts with flying threats or builds real air defense',card=>realAirBody(card)||airMaker(card)||nonDestroyCreatureAnswer(card)||(!commanderOnlyIndestructible&&(destroyCreatureAnswer(card)||cardFacts(card).wipe))),
   tokens:signal('clears a wide board',card=>cardFacts(card).wipe),
   artifacts:signal('removes artifacts',card=>/destroy target artifact|exile target artifact|artifact or enchantment/.test(textOf(card))),
   graveyard:signal('exiles graveyards or recursive pieces',card=>/exile all cards from|exile target card from a graveyard|exile up to .* cards? from .* graveyard|players? can.t cast spells? from graveyards/.test(textOf(card))||/exile target (?:creature|permanent)/.test(textOf(card))),
@@ -73,7 +79,7 @@ export function rankDecksForOpponent(profile,decks){
  const actual=(decks||[]).filter(deck=>deck.status!=='deleted'&&!deck.isDraft&&String(deck.format||'Commander').toLowerCase()==='commander');
  if(!actual.length)return {status:'no-decks',reason:'No owned Commander decks are available to compare. Planned decks are kept separate.',rankings:[]};
  const rankings=actual.map(deck=>{
-  const cards=cardsOf(deck).flatMap(card=>Array.from({length:Math.min(count(card.quantity||1),4)},()=>normalizeCanonicalCard(card))),signals=answerSignals(cards),matches=[];
+  const cards=cardsOf(deck).flatMap(card=>Array.from({length:Math.min(count(card.quantity||1),4)},()=>normalizeCanonicalCard(card))),signals=answerSignals(cards,profile),matches=[];
   let score=0;
   for(const axis of profile.axes){const hit=signals[axis.id];if(hit?.cards.length){const contribution=Math.min(20,8+hit.cards.length*4);score+=contribution;matches.push({axis:axis.label,label:hit.label,cards:hit.cards,contribution});}else matches.push({axis:axis.label,label:'No clearly relevant answer found in the saved list',cards:[],contribution:0});}
   const resilience=named(cards,card=>cardFacts(card).protection||/return .* from your graveyard|indestructible/.test(textOf(card)),3);if(resilience.length)score+=Math.min(10,4+resilience.length*2);
