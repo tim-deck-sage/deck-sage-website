@@ -1,5 +1,10 @@
 # Core account security candidate — 2026-10-25
 
+Follow-up: the focused LOCAL membership/isolation candidate is now staged in
+`CORE-LEGACY-ISOLATION-SLICE.md`. Its 15 real-SQL proof groups pass. Neither
+migration has been applied. The shared-project blocker described below is the
+original finding; the follow-up stages its narrowly scoped repair for approval.
+
 Local branch `stage/core-secure-accounts`, based on deployed main
 `4ab99728a9ca7dabe89b918a8f4d5422a70fdeaf`. This is an isolated local clone;
 the prior checkout and other apps were not modified. Nothing was deployed,
