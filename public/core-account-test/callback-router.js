@@ -1,0 +1,1 @@
+(()=>{try{if(location.pathname==='/'&&new URLSearchParams(location.search).get('accountCallback')==='1'&&localStorage.getItem('deck-sage-core-rollout-path')==='core-account-test'){location.replace('/core-account-test/'+location.search+location.hash);}}catch{}})();
