@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:accounts:core": "node tests/accounts/core-security.cjs && node tests/accounts/core-isolation.cjs && node tests/accounts/core-controller.cjs && node tests/accounts/core-auth-native.cjs && node tests/accounts/core-login.cjs && node tests/accounts/core-browser-session.cjs && node tests/accounts/core-callback-relay.cjs && node tests/accounts/core-ui.cjs",
+    "test:accounts:isolation": "node tests/accounts/core-isolation.cjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

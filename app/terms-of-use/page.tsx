@@ -36,11 +36,11 @@ export default function TermsOfUsePage() {
               credentials.
             </p>
             <p>
-              The public website also offers shared username collections. A
-              username is the only access key for that website collection, and
-              anyone who knows or guesses it can view, change, or delete its
-              decks and bulk. Do not use a shared username for information you
-              expect to remain private.
+              Website collection features require a verified account and a
+              password. Public browsing remains available without an account.
+              A username or ZIP code alone never grants access to a collection.
+              Old beta collections remain separate from new accounts, including
+              accounts that choose a matching username.
             </p>
           </section>
 
