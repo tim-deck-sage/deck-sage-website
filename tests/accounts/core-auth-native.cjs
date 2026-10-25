@@ -22,6 +22,7 @@ function fixture(seed){
   }
   if(url.pathname==='/auth/v1/user'&&method==='PUT')return known.has(bearer)?response(known.get(bearer)):response({},401);
   if(url.pathname==='/auth/v1/logout')return new Response(null,{status:204});
+  if(url.pathname==='/auth/v1/token')return response({access_token:tokens[A],refresh_token:'fixture-refresh-email',expires_in:3600,token_type:'bearer',user:user(A)});
   if(url.pathname==='/auth/v1/signup')return response({user:user(A),session:null});
   if(url.pathname==='/auth/v1/recover')return recoveryError?response({msg:'Delivery unavailable'},500):response({});
   if(url.pathname==='/functions/v1/website-core-login'){if(holdLogin)await holdLogin.promise;return response({access_token:tokens[A],refresh_token:'fixture-refresh-a'});}
@@ -45,5 +46,7 @@ function fixture(seed){
  await assert.rejects(()=>f.api.signUp({...form,zip:'501'}));await assert.rejects(()=>f.api.signUp({...form,terms:false}));await f.api.signUp(form);const signup=f.calls.find(c=>c.path==='/auth/v1/signup');assert.equal(signup.body.email,form.email);assert.equal(signup.body.password,form.password);assert.equal(JSON.stringify(signup.body).includes('00501'),false);assert.equal(signup.body.data?.zip_code,undefined);pass('native signup validates policy/ZIP and sends password only to Auth, with no ZIP metadata');
  await f.api.recover('fixture@example.invalid','fixture-captcha');f.recoveryError(true);await f.api.recover('unknown@example.invalid','fixture-captcha');const recovery=f.calls.find(c=>c.path==='/auth/v1/recover');const redirect=new URL(recovery.redirect);assert.equal(redirect.origin,'https://deck-sage.com');assert.equal(redirect.pathname,'/');assert.equal(redirect.searchParams.get('accountCallback'),'1');assert.equal(redirect.searchParams.has('next'),false);pass('recovery uses fixed PKCE redirect and opaque results even on delivery failure');
  const late=fixture(),loginHold=deferred();late.holdLogin(loginHold);const signingIn=late.api.signIn('fixture_a','fixture-long-password','fixture-captcha');await late.api.signOut();loginHold.release();await assert.rejects(()=>signingIn,/ACCOUNT_CHANGED/);assert.equal((await late.client.auth.getSession()).data.session,null);await late.close();pass('late login response after native logout cannot restore a session');
+ await f.api.signIn('verified@example.invalid','fixture-long-password','fixture-captcha');const emailLogin=f.calls.find(c=>c.path==='/auth/v1/token');assert.equal(emailLogin.body.email,'verified@example.invalid');assert.equal(emailLogin.body.gotrue_meta_security.captcha_token,'fixture-captcha');assert.equal((await f.api.identity()).user.id,A);pass('existing verified email/password delegates directly to native Auth with CAPTCHA, without a username profile lookup');
+ await assert.rejects(()=>f.api.signIn('verified@example.invalid','fixture-long-password',''),/SIGNIN_UNAVAILABLE/);
  await f.close();console.log(checks+' native SDK/HTTP proof groups passed. HTTP was intercepted; no live JWT signature or mailbox proof is claimed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

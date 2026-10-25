@@ -1,4 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
+import {createBrowserSessionStorage} from './browserSessionStorage';
 import {signupFields} from './coreAccess';
 import {validateState} from '../model';
 export function createCoreBackend(config,clientOverride,{fetchImpl=globalThis.fetch,now=Date.now}={}){
@@ -6,7 +7,9 @@ export function createCoreBackend(config,clientOverride,{fetchImpl=globalThis.fe
  const origin=new URL(config.url).origin;
  if(!/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(origin)||!config.publishableKey?.startsWith('sb_publishable_'))throw Error('Invalid account configuration');
  const callback=new URL(location.href||location.origin),callbackReady=callback.searchParams.get('accountCallback')==='1'&&callback.searchParams.has('code');
- const client=clientOverride||createClient(origin,config.publishableKey,{global:{fetch:fetchImpl},auth:{storageKey:'deck-sage-core-auth-v2',persistSession:true,autoRefreshToken:true,detectSessionInUrl:callbackReady,flowType:'pkce'}});
+ // Retire only the previous SDK credential entries; preserve every collection/cache.
+ if(!clientOverride)try{localStorage.removeItem('deck-sage-core-auth-v2');localStorage.removeItem('deck-sage-core-auth-v2-code-verifier');}catch{}
+ const client=clientOverride||createClient(origin,config.publishableKey,{global:{fetch:fetchImpl},auth:{storageKey:'deck-sage-core-auth-v2',persistSession:true,storage:createBrowserSessionStorage(),autoRefreshToken:true,detectSessionInUrl:callbackReady,flowType:'pkce'}});
  const unwrap=result=>{if(result.error)throw result.error;return result.data;};
  const redirect=new URL('/?accountCallback=1',location.origin).href;
  let cancellation=0;
@@ -42,6 +45,12 @@ export function createCoreBackend(config,clientOverride,{fetchImpl=globalThis.fe
   },
   async signIn(username,password,captchaToken){
    const generation=cancellation;
+   if(!captchaToken||typeof username!=='string'||username.length>254||typeof password!=='string'||password.length>256)throw Error('SIGNIN_UNAVAILABLE');
+   if(username.includes('@')){
+    const result=await client.auth.signInWithPassword({email:username.trim(),password,options:{captchaToken}});
+    if(result.error)throw Error('SIGNIN_UNAVAILABLE');
+    if(generation!==cancellation){await client.auth.signOut({scope:'local'});throw changed();}await capture();return;
+   }
    const response=await fetchImpl(origin+'/functions/v1/website-core-login',{method:'POST',headers:{'Content-Type':'application/json',apikey:config.publishableKey},body:JSON.stringify({username:username.trim().toLowerCase(),password,captchaToken})});
    if(!response.ok)throw Error('SIGNIN_UNAVAILABLE');const tokens=await response.json();if(generation!==cancellation)throw changed();
    unwrap(await client.auth.setSession({access_token:tokens.access_token,refresh_token:tokens.refresh_token}));

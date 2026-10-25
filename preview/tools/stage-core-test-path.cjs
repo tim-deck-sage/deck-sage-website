@@ -4,7 +4,7 @@ const source=path.resolve(__dirname,'../public'),out=path.resolve(process.argv[2
 if(!fs.existsSync(path.join(out,'index.html')))throw Error('Build baseline before staging test path');
 const prefix='/core-account-test/',dest=path.join(out,'core-account-test');
 fs.mkdirSync(dest,{recursive:true});
-const router=`(()=>{try{if(location.pathname==='/'&&new URLSearchParams(location.search).get('accountCallback')==='1'&&localStorage.getItem('deck-sage-core-rollout-path')==='core-account-test'){location.replace('/core-account-test/'+location.search+location.hash);}}catch{}})();`;
+const router=`(()=>{try{if(location.pathname==='/'&&new URLSearchParams(location.search).get('accountCallback')==='1'){location.replace('/core-account-test/'+location.search+location.hash);}}catch{}})();`;
 const bootstrap=`try{localStorage.setItem('deck-sage-core-rollout-path','core-account-test');}catch{}`;
 fs.writeFileSync(path.join(dest,'callback-router.js'),router);
 fs.writeFileSync(path.join(dest,'bootstrap.js'),bootstrap);

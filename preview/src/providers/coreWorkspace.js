@@ -1,7 +1,7 @@
 import {baseState,validateState} from '../model';
 const copy=value=>structuredClone(value);
 export function createCoreWorkspace(backend,{delay=700,uuid=()=>crypto.randomUUID(),storage=globalThis.localStorage,now=Date.now}={}){
- let epoch=0,timer,expiryTimer,writing=false,operation=null,blocked=false,closed=false,recoveryOwner=null,pendingPrivate=null;
+ let epoch=0,timer,expiryTimer,writing=false,operation=null,blocked=false,closed=false,recoveryOwner=null,pendingRecovery=null,pendingPrivate=null;
  const lockKey='deck-sage-core-logout-lock';
  const storedLock=()=>{try{return storage?.getItem(lockKey)==='1';}catch{return false;}};
  let locked=storedLock();const rememberLock=value=>{locked=value;try{value?storage?.setItem(lockKey,'1'):storage?.removeItem(lockKey);}catch{}};
@@ -10,19 +10,19 @@ export function createCoreWorkspace(backend,{delay=700,uuid=()=>crypto.randomUUI
  function clear(){clearTimeout(timer);clearTimeout(expiryTimer);operation=null;writing=false;blocked=false;}
  function armExpiry(expiresAt){clearTimeout(expiryTimer);if(Number.isFinite(expiresAt))expiryTimer=setTimeout(()=>void refresh('EXPIRED'),Math.max(0,Math.min(2147483647,expiresAt-now())));}
  async function refresh(event='SESSION',session){
-  if(locked||closed)return;if(snapshot.mode==='account')pendingPrivate=snapshot;const previous=pendingPrivate||snapshot,current=++epoch;clear();
+  if(locked||closed)return;if(event==='PASSWORD_RECOVERY')pendingRecovery=session?.user?.id||null;if(snapshot.mode==='account')pendingPrivate=snapshot;const previous=pendingPrivate||snapshot,current=++epoch;clear();
   emit({epoch,mode:'loading',state:baseState(),profile:null,user:null,username:'',revision:0,dirty:false,conflict:null,error:'',status:'Checking account',recovery:false});
-  if(event==='SIGNED_OUT'){recoveryOwner=null;pendingPrivate=null;emit({mode:'guest',status:'Signed out'});return;}
+  if(event==='SIGNED_OUT'){recoveryOwner=null;pendingRecovery=null;pendingPrivate=null;emit({mode:'guest',status:'Signed out'});return;}
   try{
    await Promise.resolve(); // Leave the SDK callback before acquiring another Auth lock.
    const identity=backend?.identity?await backend.identity():{user:await backend?.user()};
    if(current!==epoch||closed||locked)return;const user=identity.user;
    if(!user){recoveryOwner=null;pendingPrivate=null;emit({mode:'guest',status:'Sign in for your collection'});return;}
    if(session?.user?.id&&session.user.id!==user.id)throw Error('ACCOUNT_CHANGED');armExpiry(identity.expiresAt);
-   if(event==='PASSWORD_RECOVERY'){recoveryOwner=user.id;pendingPrivate=null;}
+   if(pendingRecovery){if(pendingRecovery===user.id){recoveryOwner=user.id;pendingPrivate=null;}pendingRecovery=null;}
    if(recoveryOwner&&recoveryOwner!==user.id)recoveryOwner=null;
    if(recoveryOwner===user.id&&event!=='RECOVERED_SETUP'){emit({mode:'recovery',user,status:'Choose a new password',recovery:true});return;}
-   if(event==='RECOVERED_SETUP')recoveryOwner=null;
+   if(event==='RECOVERED_SETUP'){recoveryOwner=null;pendingRecovery=null;}
    if(previous.mode==='account'&&previous.user?.id===user.id){emit({...previous,epoch,user,recovery:false});if(previous.dirty)schedule();return;}
    pendingPrivate=null;const data=await backend.load(user.id);if(current!==epoch||closed||locked)return;
    if(!data.profile){emit({mode:'onboarding',user,status:'Finish your new account'});return;}
