@@ -3,6 +3,7 @@ import { SiteChrome } from "@/components/SiteChrome";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
+  referrer: "no-referrer",
   title: "Deck Sage",
   description: "Deck Sage website"
 };

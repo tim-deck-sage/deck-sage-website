@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
           <h1>Privacy Policy</h1>
           <p className="effective-date">
             <strong>Last updated</strong>
-            <span>October 10, 2026</span>
+            <span>October 25, 2026</span>
           </p>
 
           <section>
@@ -48,25 +48,39 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2>Website shared username storage</h2>
+            <h2>Private website accounts</h2>
             <p>
-              On the public website, a shared username is the only key to its
-              website collection. Anyone who knows or guesses that username can
-              view, change, or delete the decks and bulk stored under it. The
-              website does not use an email address, password, recovery code,
-              or private account ownership for this feature.
+              Public browsing does not require an account. To save and use your
+              collection, create an account with a username, password, recovery
+              email, and five-digit US ZIP code. Supabase Auth handles passwords;
+              Deck Sage does not maintain a separate password database.
             </p>
             <p>
-              Website shared username collections are stored centrally through
-              Supabase so the same collection can open in another browser or
-              device after the username is entered. They remain separate from
-              authenticated mobile-app accounts and private app records.
+              Your recovery email and ZIP code are private account information,
+              not a public directory. The ZIP is collected for future geographic
+              advertising; that advertising is not currently active. We do not
+              collect a street address for this purpose or provide your email or
+              ZIP to advertisers. ZIP codes are never used as passwords.
             </p>
             <p>
-              Each website sync sends the complete shared workspace record,
+              Each website sync sends your complete private workspace record,
               including website profile fields, decks, bulk, favorites, local
               contacts, store drafts, notifications, and settings. It is not
               limited to decks and bulk.
+            </p>
+            <p>
+              Supabase and our transactional email provider process account
+              confirmation and recovery messages. Account forms use Cloudflare
+              Turnstile for abuse protection. Account sessions remain in your
+              browser until you sign out or they expire; collection data is
+              cleared from the active page on sign-out or account changes.
+            </p>
+            <p>
+              Old beta username-only collections are retained separately and
+              cannot be opened by entering their username. A matching new
+              username does not transfer those collections. Contact Support for
+              access, correction, or deletion requests. Support verifies account
+              ownership independently; knowing a username is insufficient.
             </p>
           </section>
 

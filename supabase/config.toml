@@ -14,3 +14,9 @@ entrypoint = "./functions/website-daily-news/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/website-publisher/index.ts"
+
+# STAGED ONLY: public login proxy performs CAPTCHA/Auth password verification.
+[functions.website-core-login]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/website-core-login/index.ts"

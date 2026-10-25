@@ -1,1 +1,0 @@
-(()=>{try{if(location.pathname==='/'&&new URLSearchParams(location.search).get('accountCallback')==='1'){location.replace('/core-account-test/'+location.search+location.hash);}}catch{}})();
