@@ -1,0 +1,66 @@
+/* Account presentation only. Auth controls and state remain in CoreAccountPanel. */
+.sidebar:has(~.workspace .account-editorial-route){display:none}
+.workspace:has(.account-editorial-route){margin-left:0;min-width:0;background:#071b1e}
+.workspace:has(.account-editorial-route)>.topbar,.workspace:has(.account-editorial-route)>.preview-banner{display:none}
+.workspace:has(.account-editorial-route)>main{padding:0;max-width:none;margin:0}
+.workspace:has(.account-editorial-route)>footer{background:#061719;border-top:1px solid #c9ad7040;color:#b8c7c3;padding:24px 5%}
+.workspace:has(.account-editorial-route)>.error-banner{background:#482725;color:#ffe3d6;border-left:4px solid #dcaa83}
+.account-editorial-route{--ed-gold:#d6b778;--ed-ink:#102a2b;--ed-paper:#f3f0e7;color:var(--ed-paper);font-family:'Segoe UI',Arial,sans-serif;min-width:0;isolation:isolate}
+.account-editorial-route *{box-sizing:border-box}
+.account-editorial-route :is(h1,h2,h3,p){text-shadow:none}
+.account-editorial-route :is(a,button,input,select,textarea,summary):focus-visible{outline:3px solid #f1cf82;outline-offset:4px}
+.account-layout{display:grid;grid-template-columns:1.05fr 1fr;gap:clamp(40px,7vw,120px);min-height:calc(100svh - 94px);padding:64px 7% 76px;position:relative;background:linear-gradient(90deg,#04191dd4 0%,#061e2280 38%,#092b2ff5 60%,#092b2f 100%),linear-gradient(0deg,#071b1e,transparent 65%),url('/home/editorial/hero-war-1920.webp') 42% center/cover}
+.account-story{align-self:center;min-width:0;max-width:560px;padding:30px 0 72px}
+.account-story .editorial-label{color:#ead09a;font-size:10px;letter-spacing:2.5px}
+.account-story h1{font:700 clamp(48px,5.1vw,82px)/1.02 Georgia,'Times New Roman',serif;letter-spacing:-2.9px;color:#f5f0df;margin:24px 0 26px}
+.account-story h1 em{display:block;color:#e7c783;font-weight:700}
+.account-story p{font:17px/1.8 Georgia,serif;color:#e1e7db;max-width:350px;margin:0 0 30px}
+.account-browse{display:inline-flex;gap:20px;align-items:center;color:#e7ca8f;border-bottom:1px solid #c9ad7070;padding:9px 0;font-size:12px;text-decoration:none;min-height:44px}
+.account-browse:hover{color:#fff2c8;border-color:currentColor}
+.account-form-wrap{min-width:0;width:100%;max-width:560px;align-self:center;border-top:1px solid #d5b77785;padding:28px 0 0}
+.account-form-wrap .account-panel{margin:0;padding:0;background:none;border:0;border-radius:0;box-shadow:none;max-width:none;color:#e9eadf}
+.account-form-wrap .account-panel>.eyebrow{font-size:10px;letter-spacing:2px;color:#dfc18a}
+.account-form-wrap .account-panel h2{font:400 clamp(29px,3vw,40px)/1.15 Georgia,serif;letter-spacing:-.7px;color:#f4edda;margin:13px 0 20px}
+.account-form-wrap .account-panel>p{font-size:13px;line-height:1.75;color:#c5d3cb;margin:0 0 20px;max-width:48em}
+.account-form-wrap form{display:grid;gap:18px;margin-top:26px}
+.account-form-wrap label{display:block;color:#e1d9c1;font-size:12px;line-height:1.6;margin:0}
+.account-form-wrap :is(input:not([type=checkbox]),select,textarea){display:block;width:100%;min-height:48px;margin:8px 0 0;background:#061f23;color:#f9f4e7;border:1px solid #869583;border-radius:2px;padding:12px 14px;font-size:16px;box-shadow:none}
+.account-form-wrap input::placeholder{color:#a4b9b2}
+.account-form-wrap [hidden]{display:none!important}
+.account-form-wrap input:hover{border-color:#c9ad70}
+.account-form-wrap form>p{font-size:12px;line-height:1.7;color:#bbcec6;margin:0}
+.account-form-wrap .account-panel .check-label{display:block;font-size:12px;line-height:1.85;color:#d2ddd1}
+.account-form-wrap input[type=checkbox]{display:inline-block;width:18px;height:18px;min-height:0;margin:0 9px 0 0;vertical-align:middle;accent-color:#d6b778}
+.account-form-wrap a{color:#ead09a;text-underline-offset:4px}
+.account-form-wrap a:hover{color:#fff2cf}
+.account-form-wrap .button{min-height:48px;background:#d6b778;border:1px solid #d6b778;border-radius:0;color:#102a2b;font-size:11px;font-weight:800;letter-spacing:1.25px;text-transform:uppercase;padding:14px 24px;box-shadow:none}
+.account-form-wrap .button:hover:not(:disabled){background:#efd59c;border-color:#efd59c;color:#09282d}
+.account-form-wrap .button:disabled{background:#a99c76;border-color:#a99c76;color:#213b3b;opacity:.7;cursor:not-allowed}
+.account-form-wrap .button.outline{background:transparent;color:#e6c992;border-color:#ba9e68}
+.account-form-wrap .inline-actions{display:flex;flex-wrap:wrap;gap:8px 24px;border-top:1px solid #c9ad7035;margin:24px 0 17px;padding-top:13px}
+.account-form-wrap .text-button{min-height:40px;color:#e9cd94;padding:7px 0;font-size:12px;background:none}
+.account-form-wrap .account-panel>a{font-size:12px;display:inline-block;min-height:40px;padding-block:10px}
+.account-form-wrap [role=status],.account-form-wrap [role=alert]{padding:14px 16px!important;border-left:3px solid #d6b778;background:#123b3d;color:#f2e5c7!important}
+.account-form-wrap [role=alert]{border-color:#f1b99b;background:#472b29;color:#ffe3d7!important}
+.account-editorial-route.is-profile .account-layout{display:block;padding-top:44px;background-position:70% top}
+.account-editorial-route.is-profile .account-story{max-width:760px;padding:15px 0 35px}
+.account-editorial-route.is-profile .account-story h1{font-size:clamp(42px,4.4vw,64px)}
+.account-editorial-route.is-profile .account-form-wrap{max-width:none;padding-top:28px}
+.account-editorial-route.is-profile .panel{background:none;border:0;border-top:1px solid #c9ad7050;border-radius:0;box-shadow:none;color:#e6e9db;padding:28px 0;margin-bottom:24px}
+.account-editorial-route.is-profile :is(h1,h2,h3){color:#f1e7ce}
+.account-editorial-route.is-profile .account-panel{border:0;padding-top:0}
+.account-editorial-route.is-profile .two-columns{gap:44px}
+.account-editorial-route.is-profile :is(.muted,.page-header p,.panel p){color:#c0d1c7}
+.account-form-wrap .connection-row>span:first-child{color:#cbdad2}
+.account-form-wrap .database-stats strong{color:#e2c78d}
+.account-form-wrap .database-stats :is(span,small){color:#bdd0c6}
+.account-form-wrap .badge{background:#153b3e;color:#ead6ab;border-color:#9e8c5a}
+.account-form-wrap .badge.good{background:#164640;color:#d9e6cc}
+.account-form-wrap .text-button.danger{color:#f0b49f}
+.account-editorial-route.is-profile .account-layout{background:linear-gradient(180deg,#092b2f80,#092b2f 700px),url('/home/editorial/hero-war-1920.webp') center top/100% auto no-repeat,#092b2f}
+@media(max-width:1000px){.account-layout{padding:45px 5%;gap:38px;grid-template-columns:.85fr 1fr}.account-story h1{font-size:56px}.account-story p{font-size:16px}.account-form-wrap .account-panel h2{font-size:31px}}
+@media(max-width:720px){.account-layout{display:block;min-height:calc(100svh - 74px);padding:36px 24px 48px;background:linear-gradient(0deg,#092b2f 55%,#061e22b0),url('/home/editorial/hero-war-mobile-780.webp') 56% top/auto 560px no-repeat,#092b2f}.account-story{padding:10px 0 30px;max-width:520px}.account-story h1{font-size:48px;letter-spacing:-1.8px;margin:20px 0}.account-story p{font-size:15px;max-width:350px;margin-bottom:12px}.account-form-wrap{max-width:none;padding-top:26px}.account-form-wrap .account-panel h2{font-size:32px}.account-form-wrap .account-panel>p{font-size:13px}.account-form-wrap form{gap:17px}.account-form-wrap .button{width:100%}.account-editorial-route.is-profile .account-layout{padding:28px 24px 42px}.account-editorial-route.is-profile .two-columns{grid-template-columns:1fr;gap:8px}.account-story .editorial-label{font-size:9px;letter-spacing:2px}}
+@media(max-width:380px){.account-layout{padding-inline:19px}.account-story h1{font-size:42px}.account-form-wrap .inline-actions{gap:5px 17px}}
+@media(prefers-reduced-motion:reduce){.account-editorial-route *{scroll-behavior:auto;transition:none}}
+
+@media(max-width:720px){.account-story{padding:4px 0 22px}.account-story h1{font-size:40px;line-height:1.04;margin:16px 0 0}.account-story p,.account-story .account-browse{display:none}}
