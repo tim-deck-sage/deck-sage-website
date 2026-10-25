@@ -1,1 +1,1 @@
-window.DECK_SAGE_ACCOUNTS={"url":"https://mihmykgxbneuhlcxolzm.supabase.co","publishableKey":"sb_publishable_1hELHRe2Zw2LHxNATIgqzQ_ky_La8_S","usernameOnlyReady":true};
+window.DECK_SAGE_ACCOUNTS={"url":"https://mihmykgxbneuhlcxolzm.supabase.co","publishableKey":"sb_publishable_1hELHRe2Zw2LHxNATIgqzQ_ky_La8_S","secureAccountsReady":false,"turnstileSiteKey":""};

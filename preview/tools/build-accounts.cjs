@@ -9,13 +9,19 @@ const url=process.env.DECK_SAGE_SUPABASE_URL||'',key=process.env.DECK_SAGE_SUPAB
 if(!!url!==!!key)throw Error('Supply both public account settings or neither.');
 // Only the authorized integration test target can be enabled by this candidate.
 if(url&&(url!=='https://mihmykgxbneuhlcxolzm.supabase.co'||!key.startsWith('sb_publishable_')))throw Error('This feature candidate accepts only the authorized integration test project and a publishable key.');
-let config=url?{url,publishableKey:key,usernameOnlyReady:process.env.DECK_SAGE_USERNAME_ONLY_READY==='true'}:null;
+let config=url?{url,publishableKey:key,secureAccountsReady:process.env.DECK_SAGE_SECURE_ACCOUNTS_READY==='true',turnstileSiteKey:process.env.DECK_SAGE_TURNSTILE_SITE_KEY||''}:null;
 if(!config&&fs.existsSync(configFile)){
  const match=fs.readFileSync(configFile,'utf8').match(/^window\.DECK_SAGE_ACCOUNTS=(.+);\s*$/);
- if(match)try{const existing=JSON.parse(match[1]);if(existing?.url==='https://mihmykgxbneuhlcxolzm.supabase.co'&&existing?.publishableKey?.startsWith('sb_publishable_'))config={url:existing.url,publishableKey:existing.publishableKey,usernameOnlyReady:existing.usernameOnlyReady===true};}catch{}
+ if(match)try{const existing=JSON.parse(match[1]);if(existing?.url==='https://mihmykgxbneuhlcxolzm.supabase.co'&&existing?.publishableKey?.startsWith('sb_publishable_'))config={url:existing.url,publishableKey:existing.publishableKey,secureAccountsReady:false,turnstileSiteKey:existing.turnstileSiteKey||''};}catch{}
 }
 fs.writeFileSync(configFile,'window.DECK_SAGE_ACCOUNTS='+JSON.stringify(config)+';');
 let html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
+html=html.replace('free card discovery and deck building with username-only shared collections.','free public card discovery and private deck collections.');
+if(config?.secureAccountsReady&&config.turnstileSiteKey){
+ if(!/script-src[^;]*challenges.cloudflare.com/.test(html))html=html.replace("script-src 'self'","script-src 'self' https://challenges.cloudflare.com");
+ if(!/frame-src/.test(html))html=html.replace("object-src 'none';","frame-src https://challenges.cloudflare.com; object-src 'none';");
+ if(!/connect-src[^;]*challenges.cloudflare.com/.test(html))html=html.replace("connect-src 'self'","connect-src 'self' https://challenges.cloudflare.com");
+}
 html=html.replace(/connect-src 'self'(?: https:\/\/mihmykgxbneuhlcxolzm\.supabase\.co)?;/,"connect-src 'self'"+(config?' '+config.url:'')+';');
 if(!html.includes('/publisher-config.js'))html=html.replace('<script src="/news-config.js" defer></script>','<script src="/news-config.js" defer></script><script src="/publisher-config.js" defer></script>');
 const publicOrigin='https://mihmykgxbneuhlcxolzm.supabase.co';

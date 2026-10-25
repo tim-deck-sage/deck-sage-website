@@ -23,14 +23,15 @@ export default function DeleteAccountPage() {
           </p>
 
           <section>
-            <h2>Website shared username collections</h2>
+            <h2>Website accounts and retained beta collections</h2>
             <p>
-              A public-website shared username is not an authenticated Deck Sage
-              account. It has no email, password, recovery code, or private
-              owner. Anyone who knows or guesses the username can open the
-              collection and remove its decks or bulk cards. The authenticated
-              account-deletion process below applies to Deck Sage app accounts
-              and does not verify ownership of a website shared username.
+              For a website account deletion request, contact Support using
+              your verified recovery email. We verify ownership before deleting
+              account information or collections. Do not send your password.
+              The mobile-app steps below do not operate the website account.
+              Old beta username-only collections are retained separately and
+              are inaccessible through the website. Knowing a beta username
+              alone does not establish ownership or authorize deletion.
             </p>
           </section>
 

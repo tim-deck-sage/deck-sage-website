@@ -1,0 +1,3001 @@
+{
+  "result": {
+    "lints": [
+      {
+        "name": "rls_enabled_no_policy",
+        "title": "RLS Enabled No Policy",
+        "level": "INFO",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects cases where row level security (RLS) has been enabled on a table but no RLS policies have been created.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+        "count": 10,
+        "findings": [
+          {
+            "detail": "Table \\`ds_private.account_roles\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "account_roles",
+              "type": "table",
+              "schema": "ds_private"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Table \\`ds_private.imports\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "imports",
+              "type": "table",
+              "schema": "ds_private"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Table \\`ds_private.operations\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "operations",
+              "type": "table",
+              "schema": "ds_private"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Table \\`ds_private.reserved_usernames\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "reserved_usernames",
+              "type": "table",
+              "schema": "ds_private"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Table \\`ds_private.shared_operations\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "shared_operations",
+              "type": "table",
+              "schema": "ds_private"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Table \\`ds_private.shared_workspaces\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "shared_workspaces",
+              "type": "table",
+              "schema": "ds_private"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Table \\`private.ai_scan_rate_limits\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ai_scan_rate_limits",
+              "type": "table",
+              "schema": "private"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Table \\`public.ds_publications\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ds_publications",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Table \\`public.ds_publisher_login_attempts\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ds_publisher_login_attempts",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Table \\`public.ds_publisher_sessions\\` has RLS enabled, but no policies exist",
+            "metadata": {
+              "name": "ds_publisher_sessions",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "security_definer_view",
+        "title": "Security Definer View",
+        "level": "ERROR",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects views defined with the SECURITY DEFINER property. These views enforce Postgres permissions and row level security policies (RLS) of the view creator, rather than that of the querying user",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0010_security_definer_view",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "View \\`public.store_public_profiles\\` is defined with the SECURITY DEFINER property",
+            "metadata": {
+              "name": "store_public_profiles",
+              "type": "view",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "function_search_path_mutable",
+        "title": "Function Search Path Mutable",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects functions where the search_path parameter is not set.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "Function \\`public.current_store_check_in_date\\` has a role mutable search_path",
+            "metadata": {
+              "name": "current_store_check_in_date",
+              "type": "function",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "extension_in_public",
+        "title": "Extension in Public",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects extensions installed in the \\`public\\` schema.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "Extension \\`pg_net\\` is installed in the public schema. Move it to another schema.",
+            "metadata": {
+              "name": "pg_net",
+              "type": "extension",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "title": "Public Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable without signing in. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if it is not meant to be public.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+        "count": 38,
+        "findings": [
+          {
+            "detail": "Function `public.accept_friend_request(request_id uuid, shares_bulk boolean)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/accept_friend_request`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "accept_friend_request",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "request_id uuid, shares_bulk boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.adjust_user_token_balance(target_user_id uuid, amount integer)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/adjust_user_token_balance`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "adjust_user_token_balance",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "target_user_id uuid, amount integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.check_in_to_store(p_store_id uuid)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/check_in_to_store`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "check_in_to_store",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.complete_connected_match_if_ready(p_session_id uuid)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/complete_connected_match_if_ready`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "complete_connected_match_if_ready",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.complete_player_store_onboarding()` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/complete_player_store_onboarding`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "complete_player_store_onboarding",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.complete_store_owner_onboarding(store_name text)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/complete_store_owner_onboarding`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "complete_store_owner_onboarding",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "store_name text",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.create_connected_match(p_player jsonb)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/create_connected_match`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "create_connected_match",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_player jsonb",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.create_connected_play_again_for_creator(p_previous_session_id uuid, p_player jsonb)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/create_connected_play_again_for_creator`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "create_connected_play_again_for_creator",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_previous_session_id uuid, p_player jsonb",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.create_store_lfg_interest(p_store_id uuid, p_requesting_checkin_id uuid)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/create_store_lfg_interest`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "create_store_lfg_interest",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid, p_requesting_checkin_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.current_user_role()` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/current_user_role`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "current_user_role",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.ensure_user_token_wallet(target_user_id uuid)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/ensure_user_token_wallet`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "ensure_user_token_wallet",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "target_user_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_commander_pod_ready(p_store_id uuid)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_commander_pod_ready`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_commander_pod_ready",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_connected_match_monthly_usage()` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_connected_match_monthly_usage`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_connected_match_monthly_usage",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_shared_bulk_card_owners(card_names text[])` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_shared_bulk_card_owners`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_shared_bulk_card_owners",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "card_names text[]",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_store_lfg_today(p_store_id uuid)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_store_lfg_today`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_store_lfg_today",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.grant_user_tokens(target_user_id uuid, amount integer)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/grant_user_tokens`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "grant_user_tokens",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "target_user_id uuid, amount integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.guard_store_daily_push_message_update()` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/guard_store_daily_push_message_update`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "guard_store_daily_push_message_update",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.guard_store_welcome_message_update()` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/guard_store_welcome_message_update`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "guard_store_welcome_message_update",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.handle_new_auth_user_profile()` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/handle_new_auth_user_profile`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "handle_new_auth_user_profile",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.heartbeat_connected_match(p_session_id uuid)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/heartbeat_connected_match`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "heartbeat_connected_match",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.is_active_news_run(input_run_id uuid)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_active_news_run`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_active_news_run",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "input_run_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.is_public_active_store(target_store_id uuid)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_public_active_store`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_public_active_store",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "target_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.is_store_owner_or_admin(target_store_id uuid)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_store_owner_or_admin`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_store_owner_or_admin",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "target_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.is_store_staff(target_store_id uuid, allowed_roles text[])` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_store_staff`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_store_staff",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "target_store_id uuid, allowed_roles text[]",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.is_super_admin()` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_super_admin`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_super_admin",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.join_connected_match(p_join_code text, p_player jsonb)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/join_connected_match`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "join_connected_match",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_join_code text, p_player jsonb",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.renew_friend_request(request_id uuid, shares_bulk boolean)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/renew_friend_request`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "renew_friend_request",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "request_id uuid, shares_bulk boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.request_store_staff_onboarding(store_name text)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/request_store_staff_onboarding`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "request_store_staff_onboarding",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "store_name text",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.set_connected_match_ready(p_session_id uuid, p_player jsonb)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/set_connected_match_ready`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "set_connected_match_ready",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_player jsonb",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.set_connected_terminal_state(p_session_id uuid, p_state text, p_reason text)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/set_connected_terminal_state`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "set_connected_terminal_state",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_state text, p_reason text",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.set_friend_bulk_sharing(friend_user_id uuid, shares_bulk boolean)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/set_friend_bulk_sharing`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "set_friend_bulk_sharing",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "friend_user_id uuid, shares_bulk boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.spend_user_tokens(target_user_id uuid, amount integer)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/spend_user_tokens`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "spend_user_tokens",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "target_user_id uuid, amount integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.start_connected_match(p_session_id uuid)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/start_connected_match`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "start_connected_match",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.update_connected_commander_damage(p_session_id uuid, p_source_participant_id uuid, p_delta integer)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/update_connected_commander_damage`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "update_connected_commander_damage",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_source_participant_id uuid, p_delta integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.update_connected_counter(p_session_id uuid, p_counter_key text, p_delta integer)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/update_connected_counter`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "update_connected_counter",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_counter_key text, p_delta integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.update_connected_life(p_session_id uuid, p_delta integer)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/update_connected_life`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "update_connected_life",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_delta integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.update_connected_toggle(p_session_id uuid, p_toggle_key text, p_value boolean)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/update_connected_toggle`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "update_connected_toggle",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_toggle_key text, p_value boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.update_store_checkin_lfg(p_store_id uuid, p_looking_for_commander_game boolean, p_commander_game_status text, p_decks_brought jsonb, p_visit_reason text)` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/update_store_checkin_lfg`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "update_store_checkin_lfg",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid, p_looking_for_commander_game boolean, p_commander_game_status text, p_decks_brought jsonb, p_visit_reason text",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "title": "Signed-In Users Can Execute SECURITY DEFINER Function",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects `SECURITY DEFINER` functions that are callable by signed-in users. Revoke `EXECUTE`, switch the function to `SECURITY INVOKER`, or move it out of your exposed API schema if signed-in users should not call it.",
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+        "count": 74,
+        "findings": [
+          {
+            "detail": "Function `public.accept_friend_request(request_id uuid, shares_bulk boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/accept_friend_request`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "accept_friend_request",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "request_id uuid, shares_bulk boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.activate_store_reward_campaign(p_store_id uuid, p_reserved_tokens integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/activate_store_reward_campaign`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "activate_store_reward_campaign",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid, p_reserved_tokens integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.adjust_user_token_balance(target_user_id uuid, amount integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/adjust_user_token_balance`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "adjust_user_token_balance",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "target_user_id uuid, amount integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.check_in_to_store(p_store_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/check_in_to_store`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "check_in_to_store",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.complete_connected_match_if_ready(p_session_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/complete_connected_match_if_ready`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "complete_connected_match_if_ready",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.complete_player_store_onboarding()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/complete_player_store_onboarding`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "complete_player_store_onboarding",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.complete_store_owner_onboarding(store_name text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/complete_store_owner_onboarding`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "complete_store_owner_onboarding",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "store_name text",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.connected_match_build_player_payload(p_player jsonb, p_user_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/connected_match_build_player_payload`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "connected_match_build_player_payload",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_player jsonb, p_user_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.connected_match_complete_if_ready(p_session_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/connected_match_complete_if_ready`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "connected_match_complete_if_ready",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.connected_match_cost_assumption_value(p_rate_key text, p_default numeric)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/connected_match_cost_assumption_value`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "connected_match_cost_assumption_value",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_rate_key text, p_default numeric",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.connected_match_cost_commander_damage_trigger()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/connected_match_cost_commander_damage_trigger`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "connected_match_cost_commander_damage_trigger",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.connected_match_cost_estimate(p_total_writes integer, p_realtime_writes integer, p_heartbeat_count integer, p_include_history_storage boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/connected_match_cost_estimate`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "connected_match_cost_estimate",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_total_writes integer, p_realtime_writes integer, p_heartbeat_count integer, p_include_history_storage boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.connected_match_cost_model_version()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/connected_match_cost_model_version`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "connected_match_cost_model_version",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.connected_match_cost_participants_trigger()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/connected_match_cost_participants_trigger`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "connected_match_cost_participants_trigger",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.connected_match_cost_sessions_trigger()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/connected_match_cost_sessions_trigger`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "connected_match_cost_sessions_trigger",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.connected_match_cost_telemetry_enabled()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/connected_match_cost_telemetry_enabled`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "connected_match_cost_telemetry_enabled",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.connected_match_snapshot(p_session_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/connected_match_snapshot`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "connected_match_snapshot",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.connected_match_user_is_participant(p_session_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/connected_match_user_is_participant`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "connected_match_user_is_participant",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "p_session_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.create_connected_match(p_player jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/create_connected_match`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "create_connected_match",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_player jsonb",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.create_connected_play_again_for_creator(p_previous_session_id uuid, p_player jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/create_connected_play_again_for_creator`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "create_connected_play_again_for_creator",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_previous_session_id uuid, p_player jsonb",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.create_store_lfg_interest(p_store_id uuid, p_requesting_checkin_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/create_store_lfg_interest`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "create_store_lfg_interest",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid, p_requesting_checkin_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.current_user_role()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/current_user_role`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "current_user_role",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.ensure_store_token_wallet(p_store_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/ensure_store_token_wallet`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "ensure_store_token_wallet",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.ensure_user_token_wallet(target_user_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/ensure_user_token_wallet`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "ensure_user_token_wallet",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "target_user_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_bulk_deck_analysis_phase4_result(p_request_id uuid, p_idempotency_key uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_bulk_deck_analysis_phase4_result`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_bulk_deck_analysis_phase4_result",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_request_id uuid, p_idempotency_key uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_bulk_deck_analysis_request_status(p_request_id uuid, p_idempotency_key uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_bulk_deck_analysis_request_status`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_bulk_deck_analysis_request_status",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_request_id uuid, p_idempotency_key uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_bulk_deck_analysis_usage_snapshot()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_bulk_deck_analysis_usage_snapshot`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_bulk_deck_analysis_usage_snapshot",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_commander_pod_ready(p_store_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_commander_pod_ready`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_commander_pod_ready",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_connected_match_cost_admin_summary(p_start_date date, p_end_date date)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_connected_match_cost_admin_summary`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_connected_match_cost_admin_summary",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_start_date date, p_end_date date",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_connected_match_monthly_limit(p_user_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_connected_match_monthly_limit`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_connected_match_monthly_limit",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_user_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_connected_match_monthly_usage()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_connected_match_monthly_usage`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_connected_match_monthly_usage",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_my_entitlement_snapshot()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_my_entitlement_snapshot`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_my_entitlement_snapshot",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_my_notification_digest_preview(p_limit integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_my_notification_digest_preview`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_my_notification_digest_preview",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_limit integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_my_store_checkin_reward_result(p_store_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_my_store_checkin_reward_result`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_my_store_checkin_reward_result",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_shared_bulk_card_owners(card_names text[])` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_shared_bulk_card_owners`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_shared_bulk_card_owners",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "card_names text[]",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_store_daily_push_notification_preview(p_store_id uuid, p_days integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_store_daily_push_notification_preview`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_store_daily_push_notification_preview",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid, p_days integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_store_lfg_today(p_store_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_store_lfg_today`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_store_lfg_today",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_store_reward_campaign_status(p_store_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_store_reward_campaign_status`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_store_reward_campaign_status",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.get_store_welcome_message(p_store_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/get_store_welcome_message`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "get_store_welcome_message",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.grant_user_tokens(target_user_id uuid, amount integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/grant_user_tokens`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "grant_user_tokens",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "target_user_id uuid, amount integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.guard_store_daily_push_message_update()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/guard_store_daily_push_message_update`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "guard_store_daily_push_message_update",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.guard_store_welcome_message_update()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/guard_store_welcome_message_update`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "guard_store_welcome_message_update",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.handle_new_auth_user_profile()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/handle_new_auth_user_profile`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "handle_new_auth_user_profile",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.heartbeat_connected_match(p_session_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/heartbeat_connected_match`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "heartbeat_connected_match",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.increment_connected_match_cost_counter(p_session_id uuid, p_counter_key text, p_units integer, p_estimated_write_count integer, p_is_realtime_relevant boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/increment_connected_match_cost_counter`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "increment_connected_match_cost_counter",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_counter_key text, p_units integer, p_estimated_write_count integer, p_is_realtime_relevant boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.is_active_news_run(input_run_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_active_news_run`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_active_news_run",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "input_run_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.is_public_active_store(target_store_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_public_active_store`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_public_active_store",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "target_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.is_store_owner_or_admin(target_store_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_store_owner_or_admin`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_store_owner_or_admin",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "target_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.is_store_staff(target_store_id uuid, allowed_roles text[])` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_store_staff`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_store_staff",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "target_store_id uuid, allowed_roles text[]",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.is_super_admin()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/is_super_admin`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "is_super_admin",
+              "schema": "public",
+              "language": "sql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.join_connected_match(p_join_code text, p_player jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/join_connected_match`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "join_connected_match",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_join_code text, p_player jsonb",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.leave_connected_match_lobby(p_session_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/leave_connected_match_lobby`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "leave_connected_match_lobby",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.reconcile_store_reward_campaigns(p_store_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/reconcile_store_reward_campaigns`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "reconcile_store_reward_campaigns",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.record_connected_match_cost_event(p_session_id uuid, p_participant_id uuid, p_event_type text, p_event_units integer, p_is_realtime_relevant boolean, p_estimated_write_count integer, p_metadata jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/record_connected_match_cost_event`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "record_connected_match_cost_event",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_participant_id uuid, p_event_type text, p_event_units integer, p_is_realtime_relevant boolean, p_estimated_write_count integer, p_metadata jsonb",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.refresh_connected_match_cost_rollup(p_session_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/refresh_connected_match_cost_rollup`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "refresh_connected_match_cost_rollup",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.renew_friend_request(request_id uuid, shares_bulk boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/renew_friend_request`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "renew_friend_request",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "request_id uuid, shares_bulk boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.request_store_staff_onboarding(store_name text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/request_store_staff_onboarding`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "request_store_staff_onboarding",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "store_name text",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.reserve_connected_match_usage(p_user_id uuid, p_kind text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/reserve_connected_match_usage`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "reserve_connected_match_usage",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_user_id uuid, p_kind text",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.revoke_my_sanctum_beta_grant()` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/revoke_my_sanctum_beta_grant`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "revoke_my_sanctum_beta_grant",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.select_store_reward_campaign_winner(p_store_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/select_store_reward_campaign_winner`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "select_store_reward_campaign_winner",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.set_connected_match_ready(p_session_id uuid, p_player jsonb)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/set_connected_match_ready`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "set_connected_match_ready",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_player jsonb",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.set_connected_terminal_state(p_session_id uuid, p_state text, p_reason text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/set_connected_terminal_state`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "set_connected_terminal_state",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_state text, p_reason text",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.set_friend_bulk_sharing(friend_user_id uuid, shares_bulk boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/set_friend_bulk_sharing`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "set_friend_bulk_sharing",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "friend_user_id uuid, shares_bulk boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.set_my_sanctum_avatar(p_avatar_id text, p_complete_onboarding boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/set_my_sanctum_avatar`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "set_my_sanctum_avatar",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_avatar_id text, p_complete_onboarding boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.spend_user_tokens(target_user_id uuid, amount integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/spend_user_tokens`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "spend_user_tokens",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "target_user_id uuid, amount integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.start_bulk_deck_analysis_request(p_idempotency_key uuid, p_request_fingerprint text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/start_bulk_deck_analysis_request`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "start_bulk_deck_analysis_request",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_idempotency_key uuid, p_request_fingerprint text",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.start_connected_match(p_session_id uuid)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/start_connected_match`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "start_connected_match",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.update_connected_commander_damage(p_session_id uuid, p_source_participant_id uuid, p_delta integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/update_connected_commander_damage`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "update_connected_commander_damage",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_source_participant_id uuid, p_delta integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.update_connected_counter(p_session_id uuid, p_counter_key text, p_delta integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/update_connected_counter`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "update_connected_counter",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_counter_key text, p_delta integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.update_connected_life(p_session_id uuid, p_delta integer)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/update_connected_life`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "update_connected_life",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_delta integer",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.update_connected_toggle(p_session_id uuid, p_toggle_key text, p_value boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/update_connected_toggle`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "update_connected_toggle",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_session_id uuid, p_toggle_key text, p_value boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.update_store_checkin_lfg(p_store_id uuid, p_looking_for_commander_game boolean, p_commander_game_status text, p_decks_brought jsonb, p_visit_reason text)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/update_store_checkin_lfg`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "update_store_checkin_lfg",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid, p_looking_for_commander_game boolean, p_commander_game_status text, p_decks_brought jsonb, p_visit_reason text",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.update_store_daily_push_message(p_store_id uuid, p_message text, p_enabled boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/update_store_daily_push_message`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "update_store_daily_push_message",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid, p_message text, p_enabled boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          },
+          {
+            "detail": "Function `public.update_store_welcome_message(p_store_id uuid, p_message text, p_enabled boolean)` can be executed by the `authenticated` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/update_store_welcome_message`. Revoke `EXECUTE` or switch it to `SECURITY INVOKER` if that is not intentional.",
+            "metadata": {
+              "name": "update_store_welcome_message",
+              "schema": "public",
+              "language": "plpgsql",
+              "arguments": "p_store_id uuid, p_message text, p_enabled boolean",
+              "security_definer": true
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `cron.job` has policies enforced on roles that allow access to anonymous users. Policies include `{cron_job_policy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "job",
+              "type": "table",
+              "schema": "cron"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `cron.job_run_details` has policies enforced on roles that allow access to anonymous users. Policies include `{cron_job_run_details_policy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "job_run_details",
+              "type": "table",
+              "schema": "cron"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.account_deletion_jobs` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "account_deletion_jobs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.app_subscription_plans` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Authenticated users can read active app subscription plans\",\"SuperAdmins can delete app subscription plans\",\"SuperAdmins can update app subscription plans\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "app_subscription_plans",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.bulk_deck_analysis_attempts` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "bulk_deck_analysis_attempts",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.bulk_deck_analysis_monthly_usage` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "bulk_deck_analysis_monthly_usage",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.bulk_deck_analysis_requests` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "bulk_deck_analysis_requests",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.bulk_deck_analysis_saved_reports` has policies enforced on roles that allow access to anonymous users. Policies include `{bulk_deck_analysis_saved_reports_delete_own,bulk_deck_analysis_saved_reports_select_own,ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "bulk_deck_analysis_saved_reports",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.cloud_bulk_card_stacks` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Users can delete own cloud bulk card stacks\",\"Users can read own cloud bulk card stacks\",\"Users can update own cloud bulk card stacks\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "cloud_bulk_card_stacks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.cloud_deck_card_stacks` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Users can delete own cloud deck card stacks\",\"Users can read own cloud deck card stacks\",\"Users can update own cloud deck card stacks\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "cloud_deck_card_stacks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.cloud_deck_commanders` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Users can delete own cloud deck commanders\",\"Users can read own cloud deck commanders\",\"Users can update own cloud deck commanders\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "cloud_deck_commanders",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.cloud_decks` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Users can delete own cloud decks\",\"Users can read own cloud decks\",\"Users can update own cloud decks\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "cloud_decks",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.cloud_sync_devices` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Users can delete own cloud sync devices\",\"Users can read own cloud sync devices\",\"Users can update own cloud sync devices\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "cloud_sync_devices",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.connected_game_history` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Connected game participants can read history\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "connected_game_history",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.connected_match_commander_damage` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Connected match participants can read commander damage\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "connected_match_commander_damage",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.connected_match_cost_assumptions` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Super admins can read connected match cost assumptions\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "connected_match_cost_assumptions",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.connected_match_cost_events` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Super admins can read connected match cost events\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "connected_match_cost_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.connected_match_cost_rollups` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Super admins can read connected match cost rollups\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "connected_match_cost_rollups",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.connected_match_events` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Connected match participants can read events\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "connected_match_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.connected_match_monthly_usage` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Users can read their connected match monthly usage\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "connected_match_monthly_usage",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.connected_match_participants` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Connected match participants can read participants\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "connected_match_participants",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.connected_match_sessions` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Connected match participants can read sessions\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "connected_match_sessions",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.daily_news_dispatch_items` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "daily_news_dispatch_items",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.daily_news_runs` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "daily_news_runs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.deck_sage_feature_suggestions` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can manage feature suggestions\",\"Authenticated users can read active feature suggestions\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "deck_sage_feature_suggestions",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.ds_consents` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_consents_read}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "ds_consents",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.ds_profiles` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_profiles_read}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "ds_profiles",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.ds_workspaces` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_workspaces_read}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "ds_workspaces",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.entitlement_capabilities` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Authenticated users can read entitlement capabilities\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "entitlement_capabilities",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.entitlement_events` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Users can read their own entitlement events\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "entitlement_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.friend_requests` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Recipients can accept or decline pending friend requests\",\"Requesters can renew declined or cancelled friend requests\",\"Users can delete cancellable or accepted friend requests\",\"Users can read their friend requests\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "friend_requests",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.notification_daily_feature_messages` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can manage daily feature messages\",\"Authenticated users can read active daily feature messages\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "notification_daily_feature_messages",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.notification_digest_deliveries` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can read notification digest deliveries\",\"Users can read their own notification digest deliveries\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "notification_digest_deliveries",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.notification_digest_items` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can read notification digest items\",\"Users can read their own notification digest items\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "notification_digest_items",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.notification_digest_runs` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can read notification digest runs\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "notification_digest_runs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.notification_event_types` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can manage notification event types\",\"Authenticated users can read notification event types\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "notification_event_types",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.notification_events` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can read notification events\",\"Users can read their own notification events\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "notification_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.notification_preferences` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Users can delete their own notification preferences\",\"Users can read their own notification preferences\",\"Users can update their own notification preferences\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "notification_preferences",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.notification_push_attempts` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "notification_push_attempts",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.player_store_preferences` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Players can delete their own store preferences\",\"Players can read their own store preferences\",\"Players can update their own store preferences\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "player_store_preferences",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.premium_features` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can delete premium features\",\"Admins can update premium features\",\"Authenticated users can read active premium features\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "premium_features",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.profiles` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Authenticated users can read profiles\",\"Users can update their own profile display fields\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "profiles",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.sanctum_beta_grants` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "sanctum_beta_grants",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.sanctum_beta_programs` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "sanctum_beta_programs",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.sanctum_beta_redemption_attempts` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "sanctum_beta_redemption_attempts",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.sanctum_beta_testers` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "sanctum_beta_testers",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_analytics_events` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can manage analytics events\",\"Store staff can read analytics events\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_analytics_events",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_checkins` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Players can read their own check-ins\",\"Players can update their active check-ins\",\"Store staff can manage check-ins\",\"Store staff can read check-ins\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_checkins",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_flyer_settings` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Store staff can manage flyer settings\",\"Store staff can read flyer settings\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_flyer_settings",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_home_takeovers` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Players can read active home takeovers\",\"Store staff can manage home takeovers\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_home_takeovers",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_lfg_interest` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Players can read their Commander Beacon interests\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_lfg_interest",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_members` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Players can read their store memberships\",\"Players can update their own member display\",\"Store staff can manage members\",\"Store staff can read members\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_members",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_messages` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Players can read published store messages\",\"Store staff can manage messages\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_messages",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_reward_campaign_daily_awards` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Players can read their own campaign awards\",\"Store staff can read reward campaign awards\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_reward_campaign_daily_awards",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_reward_campaigns` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Store owners can manage reward campaigns\",\"Store staff can read reward campaigns\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_reward_campaigns",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_reward_settings` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Store owners can manage reward settings\",\"Store staff can read reward settings\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_reward_settings",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_rewards` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can delete rewards\",\"Admins can update rewards\",\"Players can read their own rewards\",\"Store staff can read rewards\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_rewards",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_staff` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Store owners can delete staff\",\"Store owners can update staff\",\"Store staff can read staff list\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_staff",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_subscription_plans` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can read store subscription plans\",\"Store owners can read active store subscription plans\",\"SuperAdmins can delete store subscription plans\",\"SuperAdmins can update store subscription plans\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_subscription_plans",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_subscriptions` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Store owners can manage subscriptions\",\"Store owners can read subscriptions\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_subscriptions",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.store_token_wallets` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can manage store token wallets\",\"Store staff can read store token wallets\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "store_token_wallets",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.stores` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can delete stores\",\"Store owners and admins can update stores\",\"Store staff can read their stores\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "stores",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.user_entitlements` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Users can read their own entitlements\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "user_entitlements",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.user_push_tokens` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Users can delete their own push tokens\",\"Users can read their own push tokens\",\"Users can update their own push tokens\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "user_push_tokens",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.user_token_grants` has policies enforced on roles that allow access to anonymous users. Policies include `{ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "user_token_grants",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.user_token_wallets` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Admins can update token wallets\",\"Users can read their own token wallet\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "user_token_wallets",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_allow_anonymous_sign_ins",
+        "title": "Anonymous Access Policies",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Detects row level security (RLS) policies that allow access to anonymous users.",
+        "remediation": "Table `public.username_reservations` has policies enforced on roles that allow access to anonymous users. Policies include `{\"Authenticated users can read username reservations\",ds_deny_anonymous_legacy}`",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins",
+            "metadata": {
+              "name": "username_reservations",
+              "type": "table",
+              "schema": "public"
+            },
+            "observed_at": "2026-10-25T10:02:58.067Z"
+          }
+        ]
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "title": "Leaked Password Protection Disabled",
+        "level": "WARN",
+        "facing": "EXTERNAL",
+        "categories": [
+          "SECURITY"
+        ],
+        "description": "Leaked password protection is currently disabled.",
+        "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection",
+        "count": 1,
+        "findings": [
+          {
+            "detail": "Supabase Auth prevents the use of compromised passwords by checking against HaveIBeenPwned.org. Enable this feature to enhance security.",
+            "metadata": {
+              "type": "auth",
+              "entity": "Auth"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
