@@ -14,18 +14,18 @@ let checks=0;const pass=name=>{checks++;console.log('PASS '+name);};
  }
  assert.equal((await db.query('select count(*)::int n from ds_private.shared_workspaces')).rows[0].n,1);pass('legacy username APIs denied to both roles; beta rows retained');
  await db.exec('set role anon');
- await assert.rejects(()=>db.query("select ds_core_onboard('new_owner','00501',true,true)"),/permission denied/);
+ await assert.rejects(()=>db.query("select ds_core_onboard(auth.uid(),'new_owner','00501',true,true)"),/permission denied/);
  await assert.rejects(()=>db.query('select * from ds_core_profiles'),/permission denied/);
  await assert.rejects(()=>db.query('select * from ds_core_workspaces'),/permission denied/);
  await db.exec('reset role');pass('anonymous direct table and RPC rejection');
  async function as(id){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');}
- await as(unconfirmed);await assert.rejects(()=>db.query("select ds_core_onboard('new_owner','00501',true,true)"),/AUTHENTICATION_REQUIRED/);pass('unconfirmed identity rejected server-side');
- await as(owner);await assert.rejects(()=>db.query("select ds_core_onboard('new_owner','00501',false,true)"),/CONSENT_REQUIRED/);
- await assert.rejects(()=>db.query("select ds_core_onboard('new_owner','501',true,true)"),/INVALID_ZIP/);
- await db.query("select ds_core_onboard(' NEW_Owner ','00501',true,true)");
+ await as(unconfirmed);await assert.rejects(()=>db.query("select ds_core_onboard(auth.uid(),'new_owner','00501',true,true)"),/AUTHENTICATION_REQUIRED/);pass('unconfirmed identity rejected server-side');
+ await as(owner);await assert.rejects(()=>db.query("select ds_core_onboard(auth.uid(),'new_owner','00501',false,true)"),/CONSENT_REQUIRED/);
+ await assert.rejects(()=>db.query("select ds_core_onboard(auth.uid(),'new_owner','501',true,true)"),/INVALID_ZIP/);
+ await db.query("select ds_core_onboard(auth.uid(),' NEW_Owner ','00501',true,true)");
  const profile=(await db.query('select username,zip_code from ds_core_profiles')).rows;assert.deepEqual(profile,[{username:'new_owner',zip_code:'00501'}]);pass('atomic signup policy, normalized username and ZIP leading zeros');
- await as(other);await assert.rejects(()=>db.query("select ds_core_onboard('NEW_OWNER','90210',true,true)"),/USERNAME_UNAVAILABLE/);assert.equal((await db.query('select count(*)::int n from ds_core_profiles')).rows[0].n,0);
- await db.query("select ds_core_onboard('old_beta','90210',true,true)");
+ await as(other);await assert.rejects(()=>db.query("select ds_core_onboard($1,'wrong_owner','90210',true,true)",[owner]),/ACCOUNT_CHANGED/);await assert.rejects(()=>db.query("select ds_core_onboard(auth.uid(),'NEW_OWNER','90210',true,true)"),/USERNAME_UNAVAILABLE/);assert.equal((await db.query('select count(*)::int n from ds_core_profiles')).rows[0].n,0);
+ await db.query("select ds_core_onboard(auth.uid(),'old_beta','90210',true,true)");
  assert.deepEqual((await db.query('select state from ds_core_workspaces')).rows[0].state.decks,[]);pass('case collision rejects atomically; legacy matching name starts empty');
  assert.equal((await db.query('select count(*)::int n from ds_core_workspaces where user_id=$1',[owner])).rows[0].n,0);
  await assert.rejects(()=>db.query('select ds_core_login_email($1)',['new_owner']),/permission denied/);pass('cross-user select denial and email directory denial');

@@ -1,4 +1,5 @@
 import React,{useState,useEffect,useRef} from 'react';
+let captchaScript;
 
 function Captcha({onToken}){
  const ref=useRef();
@@ -7,24 +8,27 @@ function Captcha({onToken}){
   let widget,cancelled=false;
   const render=()=>{if(!cancelled)widget=window.turnstile.render(ref.current,{sitekey:key,callback:onToken,'expired-callback':()=>onToken(''),'error-callback':()=>onToken('')});};
   if(window.turnstile)render();else{
-   const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;script.onload=render;document.head.append(script);
+   captchaScript ||= new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;script.onload=resolve;script.onerror=()=>{captchaScript=null;reject(Error('Verification unavailable'));};document.head.append(script);});
+   captchaScript.then(render).catch(()=>onToken(''));
   }
   return()=>{cancelled=true;if(widget!==undefined)window.turnstile?.remove(widget);};
  },[]);
  return <div ref={ref}/>;
 }
 
-export function CoreAccountPanel({accounts,backend,snapshot}){
- const [mode,setMode]=useState('signin'),[username,setUsername]=useState(''),[password,setPassword]=useState(''),[email,setEmail]=useState(''),[zip,setZip]=useState(''),[terms,setTerms]=useState(false),[privacy,setPrivacy]=useState(false),[captcha,setCaptcha]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[challenge,setChallenge]=useState(0);
+export function CoreAccountPanel({accounts,backend,snapshot,initialMode='signin'}){
+ const [mode,setMode]=useState(initialMode),[username,setUsername]=useState(''),[password,setPassword]=useState(''),[email,setEmail]=useState(''),[zip,setZip]=useState(''),[terms,setTerms]=useState(false),[privacy,setPrivacy]=useState(false),[captcha,setCaptcha]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[challenge,setChallenge]=useState(0);
  async function run(action){setBusy(true);setMessage('');try{await action();}catch(error){setMessage(error.message?.includes('USERNAME_UNAVAILABLE')?'That username is unavailable. Choose another.':error.message?.includes('CONSENT')?'Accept the agreements to continue.':'Unable to complete this request. Check your details or try again later.');}finally{setBusy(false);setPassword('');setCaptcha('');setChallenge(value=>value+1);}}
  const onboarding=snapshot.mode==='onboarding',recovery=snapshot.mode==='recovery';
+ if(snapshot.mode==='loading')return <section className="panel account-panel"><h2>Checking your account</h2><p role="status">Please wait.</p><a href="#/home">Browse the public homepage</a></section>;
+ if(snapshot.mode==='locked')return <section className="panel account-panel"><h2>Your account is hidden</h2><p>Sign out to finish clearing this session, then sign in again.</p><button className="button" disabled={!backend||busy} onClick={()=>run(()=>accounts.logout())}>Finish signing out</button><a href="#/home">Browse the public homepage</a>{message&&<p role="status">{message}</p>}</section>;
  if(snapshot.mode==='account')return <section className="panel account-panel"><h2>Your Deck Sage account</h2><p>Signed in as @{snapshot.username}. Your collection and ZIP code are private.</p><button className="button outline" disabled={busy} onClick={()=>run(()=>accounts.logout())}>Sign out</button>{snapshot.dirty&&<p>Some changes have not synced. Export a backup in Settings before signing out.</p>}{message&&<p role="alert">{message}</p>}</section>;
  return <section className="panel account-panel"><span className="eyebrow">YOUR SANCTUM AWAITS</span><h2>{recovery?'Choose a new password':onboarding?'Finish your new account':mode==='signup'?'Create your Deck Sage account':mode==='recover'?'Recover your account':'Sign in to Deck Sage'}</h2><p>Browse the public library freely. Sign in to keep your decks, cards, and collection tools together.</p>
  {!backend&&<p role="status">Secure accounts are being prepared. Public browsing is available.</p>}
  {message&&<p role="status">{message}</p>}
  {snapshot.mode==='locked'&&<button className="button outline" disabled={!backend||busy} onClick={()=>run(()=>accounts.logout())}>Finish signing out</button>}
  <form onSubmit={event=>{event.preventDefault();run(async()=>{
-  if(recovery){await accounts.resetPassword(password);setMessage('Password updated. Sign in with your new password.');}
+  if(recovery){await accounts.resetPassword(password);location.hash='/account';setMessage('Password updated. Sign in with your new password.');}
   else if(onboarding)await accounts.onboard(username,zip,terms,privacy);
   else if(mode==='signup'){await backend.signUp({username,password,email,zip,terms,privacy,captchaToken:captcha});setMessage('If signup is available, check your email to verify it. After verification, confirm your username and ZIP to finish setup.');}
   else if(mode==='recover'){await backend.recover(email,captcha);setMessage('If an account uses this email, a recovery message will be sent.');}

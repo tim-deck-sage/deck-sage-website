@@ -14,8 +14,10 @@ if(!config&&fs.existsSync(configFile)){
  const match=fs.readFileSync(configFile,'utf8').match(/^window\.DECK_SAGE_ACCOUNTS=(.+);\s*$/);
  if(match)try{const existing=JSON.parse(match[1]);if(existing?.url==='https://mihmykgxbneuhlcxolzm.supabase.co'&&existing?.publishableKey?.startsWith('sb_publishable_'))config={url:existing.url,publishableKey:existing.publishableKey,secureAccountsReady:false,turnstileSiteKey:existing.turnstileSiteKey||''};}catch{}
 }
+if(config?.secureAccountsReady&&!config.turnstileSiteKey)throw Error('Enabling secure accounts requires a reviewed Turnstile site key.');
 fs.writeFileSync(configFile,'window.DECK_SAGE_ACCOUNTS='+JSON.stringify(config)+';');
 let html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
+if(!html.includes('name="referrer"'))html=html.replace('<meta charset="UTF-8">','<meta charset="UTF-8"><meta name="referrer" content="no-referrer">');
 html=html.replace('free card discovery and deck building with username-only shared collections.','free public card discovery and private deck collections.');
 if(config?.secureAccountsReady&&config.turnstileSiteKey){
  if(!/script-src[^;]*challenges.cloudflare.com/.test(html))html=html.replace("script-src 'self'","script-src 'self' https://challenges.cloudflare.com");

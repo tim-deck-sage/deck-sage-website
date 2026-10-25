@@ -50,10 +50,11 @@ using(user_id=(select ds_core_private.require_user()));
 create policy core_workspace_owner on public.ds_core_workspaces for select to authenticated
 using(user_id=(select ds_core_private.require_user()));
 
-create function ds_core_private.onboard(p_username text,p_zip text,p_terms boolean,p_privacy boolean) returns void
+create function ds_core_private.onboard(p_expected_user uuid,p_username text,p_zip text,p_terms boolean,p_privacy boolean) returns void
 language plpgsql security definer set search_path='' as $$
 declare owner uuid:=ds_core_private.require_user(); normalized text:=lower(btrim(p_username));
 begin
+ if owner is distinct from p_expected_user then raise exception 'ACCOUNT_CHANGED' using errcode='42501'; end if;
  if p_terms is distinct from true or p_privacy is distinct from true then raise exception 'CONSENT_REQUIRED'; end if;
  if normalized is null or normalized !~ '^[a-z0-9_]{3,24}$' then raise exception 'INVALID_USERNAME'; end if;
  if p_zip is null or p_zip !~ '^[0-9]{5}$' then raise exception 'INVALID_ZIP'; end if;
@@ -92,8 +93,8 @@ begin
  (select operation from ds_core_private.operations where user_id=owner order by created_at desc,operation limit 100);
  return result;
 end $$;
-create function public.ds_core_onboard(p_username text,p_zip text,p_terms boolean,p_privacy boolean) returns void
-language sql security invoker set search_path='' as $$select ds_core_private.onboard(p_username,p_zip,p_terms,p_privacy)$$;
+create function public.ds_core_onboard(p_expected_user uuid,p_username text,p_zip text,p_terms boolean,p_privacy boolean) returns void
+language sql security invoker set search_path='' as $$select ds_core_private.onboard(p_expected_user,p_username,p_zip,p_terms,p_privacy)$$;
 create function public.ds_core_save(p_expected_user uuid,p_state jsonb,p_revision bigint,p_operation uuid) returns jsonb
 language sql security invoker set search_path='' as $$select ds_core_private.save(p_expected_user,p_state,p_revision,p_operation)$$;
 
@@ -119,9 +120,9 @@ begin
 end $$;
 
 revoke all on all functions in schema ds_core_private from public,anon,authenticated;
-grant execute on function ds_core_private.require_user(),ds_core_private.onboard(text,text,boolean,boolean),ds_core_private.save(uuid,jsonb,bigint,uuid) to authenticated;
-revoke all on function public.ds_core_onboard(text,text,boolean,boolean),public.ds_core_save(uuid,jsonb,bigint,uuid),public.ds_core_login_email(text),public.ds_core_login_attempt(text,integer) from public,anon,authenticated;
-grant execute on function public.ds_core_onboard(text,text,boolean,boolean),public.ds_core_save(uuid,jsonb,bigint,uuid) to authenticated;
+grant execute on function ds_core_private.require_user(),ds_core_private.onboard(uuid,text,text,boolean,boolean),ds_core_private.save(uuid,jsonb,bigint,uuid) to authenticated;
+revoke all on function public.ds_core_onboard(uuid,text,text,boolean,boolean),public.ds_core_save(uuid,jsonb,bigint,uuid),public.ds_core_login_email(text),public.ds_core_login_attempt(text,integer) from public,anon,authenticated;
+grant execute on function public.ds_core_onboard(uuid,text,text,boolean,boolean),public.ds_core_save(uuid,jsonb,bigint,uuid) to authenticated;
 grant execute on function public.ds_core_login_email(text),public.ds_core_login_attempt(text,integer) to service_role;
 
 -- Retain beta rows and receipts, but retire every username-only entry point.

@@ -1,5 +1,7 @@
 # Core account security candidate — 2026-10-25
 
+Final UI/Auth review and current approval details: CORE-ACCOUNT-RELEASE-CANDIDATE.md. Its test results and migration hashes supersede historical counts below.
+
 Follow-up: the focused LOCAL membership/isolation candidate is now staged in
 `CORE-LEGACY-ISOLATION-SLICE.md`. Its 15 real-SQL proof groups pass. Neither
 migration has been applied. The shared-project blocker described below is the
@@ -207,7 +209,7 @@ No public recovery-email readiness is claimed.
    definitions. Resolve the shared permanent-identity blocker before signup.
 2. Independently review and approve local migration
    `supabase/migrations/20261025095034_core_secure_accounts.sql`, SHA256
-   `0AB1CAB652B5E75D9585433C0DF7C7A133D7046801F74A32A8077BBB05EF3BB8`.
+   `415C8767296E805C0E506281ECE281F0A9BCC7E72A1D19ED731C238B48981CC6`.
    It adds two Core owner-readable public tables, one private schema with
    receipts/rate counters, ownership/onboarding/save RPCs, service-only login
    helpers, and revokes eight username-only function grants. It does not delete

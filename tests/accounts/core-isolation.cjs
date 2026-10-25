@@ -75,7 +75,7 @@ const file=suffix=>'supabase/migrations/'+fs.readdirSync('supabase/migrations').
  assert.equal((await as('service_role',null,'select * from get_connected_match_monthly_limit($1)',[L])).rows[0].monthly_limit,10);
  pass('existing trusted service-role helper path still executes');
  // Real new Core owner tables/RPCs continue operating alongside the boundary.
- await core(A,"select ds_core_onboard('core_a','00501',true,true)");await core(B,"select ds_core_onboard('core_b','90210',true,true)");
+ await core(A,"select ds_core_onboard(auth.uid(),'core_a','00501',true,true)");await core(B,"select ds_core_onboard(auth.uid(),'core_b','90210',true,true)");
  const state=(await core(A,'select state from ds_core_workspaces')).rows[0].state;
  const saved=(await core(A,'select ds_core_save($1,$2,0,$3) value',[A,{...state,bulk:[{name:'Private fixture',quantity:1}]},RUN])).rows[0].value;assert.equal(saved.revision,1);
  assert.equal((await core(B,'select count(*)::int n from ds_core_workspaces where user_id=$1',[A])).rows[0].n,0);
