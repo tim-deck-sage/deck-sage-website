@@ -47,7 +47,8 @@
     "test:help": "node tests/regression/help-guide-ui.cjs",
     "test:hardening": "node tests/regression/hardening-contracts.cjs",
     "test:sage-workshop": "node tests/regression/sage-workshop.cjs",
-    "test:sage-workshop:ui": "node tests/regression/sage-workshop-ui.cjs"
+    "test:sage-workshop:ui": "node tests/regression/sage-workshop-ui.cjs",
+    "test:accounts:confirmation": "node tests/accounts/core-confirmation-flow.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3",
