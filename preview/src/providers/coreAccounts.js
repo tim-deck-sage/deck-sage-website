@@ -6,16 +6,36 @@ export function createCoreBackend(config,clientOverride,{fetchImpl=globalThis.fe
  if(config?.secureAccountsReady!==true)return null;
  const origin=new URL(config.url).origin;
  if(!/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(origin)||!config.publishableKey?.startsWith('sb_publishable_'))throw Error('Invalid account configuration');
- const callback=new URL(location.href||location.origin),callbackReady=callback.searchParams.get('accountCallback')==='1'&&callback.searchParams.has('code');
+ const callback=new URL(location.href||location.origin),fragment=new URLSearchParams(callback.hash.slice(1));
+ const fragmentAuth=['access_token','refresh_token','error','error_code','error_description'].some(key=>fragment.has(key));
+ const callbackIntent=callback.pathname==='/'&&(callback.searchParams.has('code')||callback.searchParams.has('accountCallback')||['error','error_code','error_description'].some(key=>callback.searchParams.has(key))||fragmentAuth);
+ // The marker is UI metadata, not PKCE proof. Supabase requires the stored verifier.
+ const callbackReady=callback.pathname==='/'&&!fragmentAuth&&callback.searchParams.getAll('code').length===1&&Boolean(callback.searchParams.get('code'));
+ let callbackFailed=callbackIntent&&!callbackReady;
+ const clearCallback=failed=>{try{
+  const clean=new URL(location.href||location.origin),previousHash=clean.hash;
+  for(const key of ['code','accountCallback','error','error_code','error_description','access_token','refresh_token','expires_in','expires_at','token_type','type','provider_token','provider_refresh_token'])clean.searchParams.delete(key);
+  if(fragmentAuth||(failed&&clean.hash!=='#/reset-password'))clean.hash='/account';
+  globalThis.history?.replaceState(globalThis.history.state,'',clean.pathname+clean.search+clean.hash);
+  if(clean.hash!==previousHash)globalThis.dispatchEvent?.(new Event('hashchange'));
+ }catch{}};
+ if(callbackFailed)clearCallback(true);
  // Retire only the previous SDK credential entries; preserve every collection/cache.
  if(!clientOverride)try{localStorage.removeItem('deck-sage-core-auth-v2');localStorage.removeItem('deck-sage-core-auth-v2-code-verifier');}catch{}
  const client=clientOverride||createClient(origin,config.publishableKey,{global:{fetch:fetchImpl},auth:{storageKey:'deck-sage-core-auth-v2',persistSession:true,storage:createBrowserSessionStorage(),autoRefreshToken:true,detectSessionInUrl:callbackReady,flowType:'pkce'}});
+ // initialize() reuses the SDK's automatic initialization promise; never exchange twice.
+ const callbackInitialization=callbackReady?client.auth.initialize().then(async result=>{
+  const session=(await client.auth.getSession()).data?.session;
+  callbackFailed=Boolean(result.error||!session);
+  clearCallback(callbackFailed);
+ }).catch(()=>{callbackFailed=true;clearCallback(true);}):Promise.resolve();
  const unwrap=result=>{if(result.error)throw result.error;return result.data;};
  const redirect=new URL('/?accountCallback=1',location.origin).href;
  let cancellation=0;
  const changed=()=>Error('ACCOUNT_CHANGED');
  // The cached session only supplies a token. Auth verifies that exact token.
  async function capture(expected){
+  await callbackInitialization;
   const generation=cancellation,session=unwrap(await client.auth.getSession()).session;
   if(!session?.access_token)throw Error('AUTHENTICATION_REQUIRED');
   const user=unwrap(await client.auth.getUser(session.access_token)).user;
@@ -24,7 +44,7 @@ export function createCoreBackend(config,clientOverride,{fetchImpl=globalThis.fe
   if(!user?.id||user.is_anonymous!==false||!user.email_confirmed_at||user.id!==session.user?.id||(expected&&user.id!==expected))throw changed();
   let claims;try{claims=JSON.parse(atob(session.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));}catch{throw changed();}
   if(claims.sub!==user.id||!Number.isFinite(claims.exp)||claims.exp*1000<=now())throw Error('AUTHENTICATION_REQUIRED');
-  return {user,token:session.access_token,expiresAt:claims.exp*1000,generation};
+  callbackFailed=false;return {user,token:session.access_token,expiresAt:claims.exp*1000,generation};
  }
  const dataClient=token=>createClient(origin,config.publishableKey,{accessToken:async()=>token,global:{fetch:fetchImpl},auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
  async function authRequest(method,path,expected,body){
@@ -35,7 +55,7 @@ export function createCoreBackend(config,clientOverride,{fetchImpl=globalThis.fe
   if(identity.generation!==cancellation)throw changed();
  }
  const api={
-  async identity(){try{return await capture();}catch(error){if(error.name==='AuthSessionMissingError'||error.status===401||error.status===403||error.message==='AUTHENTICATION_REQUIRED')return {user:null};throw error;}},
+  async identity(){try{return await capture();}catch(error){if(error.name==='AuthSessionMissingError'||error.status===401||error.status===403||error.message==='AUTHENTICATION_REQUIRED')return {user:null,callbackError:callbackFailed?'The email link could not finish signing you in. Use your email and password to continue, or request a new recovery link.':''};throw error;}},
   async user(){return (await api.identity()).user;},
   subscribe(fn){let active=true;const {data}=client.auth.onAuthStateChange((event,session)=>{if(active)fn(event,session);});return()=>{active=false;data.subscription.unsubscribe();};},
   async signUp({username,password,email,zip,terms,privacy,captchaToken}){

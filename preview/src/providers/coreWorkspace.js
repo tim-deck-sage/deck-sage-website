@@ -17,7 +17,7 @@ export function createCoreWorkspace(backend,{delay=700,uuid=()=>crypto.randomUUI
    await Promise.resolve(); // Leave the SDK callback before acquiring another Auth lock.
    const identity=backend?.identity?await backend.identity():{user:await backend?.user()};
    if(current!==epoch||closed||locked)return;const user=identity.user;
-   if(!user){recoveryOwner=null;pendingPrivate=null;emit({mode:'guest',status:'Sign in for your collection'});return;}
+   if(!user){recoveryOwner=null;pendingPrivate=null;emit({mode:'guest',status:'Sign in for your collection',error:identity.callbackError||''});return;}
    if(session?.user?.id&&session.user.id!==user.id)throw Error('ACCOUNT_CHANGED');armExpiry(identity.expiresAt);
    if(pendingRecovery){if(pendingRecovery===user.id){recoveryOwner=user.id;pendingPrivate=null;}pendingRecovery=null;}
    if(recoveryOwner&&recoveryOwner!==user.id)recoveryOwner=null;
