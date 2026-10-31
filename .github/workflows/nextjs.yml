@@ -26,8 +26,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: '24.22.2'
           cache: npm
+
+      - name: Verify build runtime
+        run: node -e "if (process.versions.node !== '24.22.2') throw new Error('Unexpected Node runtime'); console.log(JSON.stringify({node:process.versions.node,brotli:process.versions.brotli,openssl:process.versions.openssl,execPath:process.execPath}))"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
