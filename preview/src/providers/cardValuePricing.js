@@ -37,7 +37,7 @@ export function collectionValueFingerprint(state){
 }
 
 function slimCard(card){
- return {id:card.id,name:card.name,oracle_id:card.oracle_id,prices:card.prices||{},image_uris:card.image_uris||null,card_faces:card.card_faces?.map(face=>({image_uris:face.image_uris||null}))||null,full_art:Boolean(card.full_art),border_color:card.border_color||'',frame_effects:card.frame_effects||[],promo_types:card.promo_types||[],finishes:card.finishes||[],set:card.set||'',collector_number:card.collector_number||'',released_at:card.released_at||''};
+ return {id:card.id,name:card.name,oracle_id:card.oracle_id,tcgplayer_id:card.tcgplayer_id??null,purchase_uris:card.purchase_uris??null,prices:card.prices||{},image_uris:card.image_uris||null,card_faces:card.card_faces?.map(face=>({image_uris:face.image_uris||null}))||null,full_art:Boolean(card.full_art),border_color:card.border_color||'',frame_effects:card.frame_effects||[],promo_types:card.promo_types||[],finishes:card.finishes||[],set:card.set||'',collector_number:card.collector_number||'',released_at:card.released_at||''};
 }
 
 const responseDelay=response=>{

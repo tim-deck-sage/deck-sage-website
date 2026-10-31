@@ -1,0 +1,12 @@
+const fs=require('fs'),path=require('path'),assert=require('node:assert/strict'),esbuild=require('esbuild');
+const outfile=path.join(__dirname,'../../preview/evidence/affiliate-catalog-module.cjs');esbuild.buildSync({entryPoints:[path.join(__dirname,'../../preview/src/purchaseCatalog.js')],bundle:true,platform:'node',format:'cjs',outfile});
+const {resolvePurchaseCard,purchasePrintingMatches}=require(outfile);
+(async()=>{const source={name:'Test card',oracleId:'oracle-fixture',scryfallId:'printing-A'},resolved={...source,raw:{id:'printing-A',tcgplayer_id:123}},original=JSON.stringify(source);let requests=0;const request=async url=>{assert.match(url,/^\/api\/card\?id=/);requests++;return {ok:true,json:async()=>({card:resolved})};};
+ const [a,b]=await Promise.all([resolvePurchaseCard(source,request),resolvePurchaseCard(source,request)]);assert.equal(a,resolved);assert.equal(b,resolved);assert.equal(requests,1);assert.equal(JSON.stringify(source),original);
+ assert.equal(await resolvePurchaseCard({...source,scryfallId:'printing-B'},request),null);assert.equal(await resolvePurchaseCard({...source,tcgplayerUrl:'javascript:alert(1)'},request),null);assert.equal(requests,1);
+ assert(!purchasePrintingMatches({name:source.name,oracle_id:source.oracleId,id:'different-printing'},resolved));assert(!purchasePrintingMatches(source,{...resolved,oracleId:'wrong'}));assert(!purchasePrintingMatches(source,{...resolved,name:'Wrong card'}));assert(!purchasePrintingMatches({...source,scryfallUrl:'https://scryfall.com/card/abc/123/00000000-0000-0000-0000-000000000000',scryfallId:null},{...resolved,scryfallId:'printing-A'}));
+ let customRequests=0;assert.equal(await resolvePurchaseCard({...source,isCustom:true},async()=>{customRequests++;return {ok:true,json:async()=>({card:resolved})};}),null);assert.equal(customRequests,0);
+ const missing=await resolvePurchaseCard({name:'No product',oracleId:'no-product'},async()=>({ok:true,json:async()=>({card:{name:'No product',oracleId:'no-product'}})}));assert.equal(missing,null);
+ assert.equal(await resolvePurchaseCard({name:'Failure',oracleId:'failure'},async()=>{throw Error('offline');}),null);
+ console.log('PASS same-origin purchase catalog lookup: request deduplication, immutable source, exact printing/identity/name checks, malformed metadata refusal, missing IDs and offline errors');
+})().catch(error=>{console.error(error);process.exitCode=1;});

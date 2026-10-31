@@ -48,6 +48,10 @@
     "test:hardening": "node tests/regression/hardening-contracts.cjs",
     "test:sage-workshop": "node tests/regression/sage-workshop.cjs",
     "test:sage-workshop:ui": "node tests/regression/sage-workshop-ui.cjs",
+    "test:affiliate": "node tests/regression/affiliate-links.cjs && node tests/regression/affiliate-catalog.cjs && node tests/regression/affiliate-groups.cjs && node tests/regression/affiliate-render.cjs && node tests/regression/affiliate-renderer-audit.cjs && node tests/regression/affiliate-every-card.cjs",
+    "test:affiliate:ui": "node tests/regression/affiliate-ui.cjs",
+    "test:affiliate:groups:ui": "node tests/regression/affiliate-groups-ui.cjs",
+    "test:affiliate:coverage:ui": "node tests/regression/affiliate-renderer-audit.cjs && node tests/regression/affiliate-every-card.cjs && node tests/regression/affiliate-every-card-ui.cjs",
     "test:accounts:confirmation": "node tests/accounts/core-confirmation-flow.cjs"
   },
   "dependencies": {

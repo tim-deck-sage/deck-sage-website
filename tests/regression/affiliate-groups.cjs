@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('fs'),path=require('path'),esbuild=require('esbuild');
+const outfile=path.join(__dirname,'../../preview/evidence/affiliate-groups-policy.cjs');esbuild.buildSync({entryPoints:[path.join(__dirname,'../../preview/src/affiliateLinks.js')],bundle:true,platform:'node',format:'cjs',outfile});
+const {recommendationPurchaseOptions,selectedRecommendationsList,affiliateLink,TCGPLAYER_HOME_URL}=require(outfile);
+const card={name:'Sol Ring',tcgplayerId:123,setCode:'cmm',collectorNumber:'396',quantity:99},other={name:'Arcane Signet',tcgplayerId:124,quantity:80},alternate={...card,tcgplayerId:125,setCode:'c21',collectorNumber:'263'};
+const items=[{card},{card:{...card,quantity:88}},{card:other},{card:alternate},{card:{name:'bad\n2 Forest'}}],before=JSON.stringify(items),options=recommendationPurchaseOptions(items);
+assert.equal(options.length,3);assert.equal(JSON.stringify(items),before);assert.equal(options[0].card,card);
+const selection={[options[0].key]:{selected:true,quantity:3},[options[1].key]:{selected:false,quantity:80},'stale-card':{selected:true,quantity:50}};
+assert.equal(selectedRecommendationsList(options,selection),'3 Sol Ring [CMM] 396');selection[options[2].key]={selected:true,quantity:1};assert.equal(selectedRecommendationsList(options,selection),'3 Sol Ring [CMM] 396\n1 Sol Ring [C21] 263');
+assert.equal(selectedRecommendationsList(options,{[options[1].key]:{selected:true}}),'1 Arcane Signet');
+for(const quantity of ['',0,-1,1.5,10000,Infinity,'bad'])assert.throws(()=>selectedRecommendationsList(options,{[options[0].key]:{selected:true,quantity}}));
+assert.throws(()=>selectedRecommendationsList(options,{}),/Select at least one/);assert.throws(()=>selectedRecommendationsList([],selection),/Select at least one/);
+const nameOnly=recommendationPurchaseOptions([{name:'New Card',quantity:88}]);assert.equal(selectedRecommendationsList(nameOnly,{[nameOnly[0].key]:{selected:true,quantity:2}}),'2 New Card');
+const config={enabled:true,deepLinkingApproved:true,trackingUrl:'https://tracking.example.invalid/c/123/456/21018',approvedTrackingHosts:['tracking.example.invalid'],allowedDestinationPrefixes:['https://www.tcgplayer.com/']};
+assert.equal(new URL(affiliateLink(TCGPLAYER_HOME_URL,config).href).searchParams.get('u'),TCGPLAYER_HOME_URL);assert.equal(affiliateLink(TCGPLAYER_HOME_URL,{...config,allowedDestinationPrefixes:['https://www.tcgplayer.com/product/']}).href,null);assert.equal(affiliateLink(TCGPLAYER_HOME_URL,{enabled:false}).href,null);assert.equal(affiliateLink('https://www.tcgplayer.com/?q=unverified',config).href,null);
+const exactOnly={...config,allowedDestinationPrefixes:[],allowedDestinationUrls:[TCGPLAYER_HOME_URL]};assert(affiliateLink(TCGPLAYER_HOME_URL,exactOnly).href);assert.equal(affiliateLink('https://www.tcgplayer.com/product/123',exactOnly).href,null);assert.equal(affiliateLink('https://www.tcgplayer.com/massentry',exactOnly).href,null);
+console.log('PASS selected-only recommendation export, explicit/default quantities, duplicate suggestions, alternate printings, stale keys, invalid input, source immutability and product-search permission gates');

@@ -1,3 +1,4 @@
+import {CardBuyLink,DeckBuyLinks,AffiliateNotice} from './AffiliatePurchase';
 import React,{useEffect,useMemo,useState} from 'react';
 import {cardRequest} from './providers/staticCards';
 import {commanderFallbackImage,getPreferredCommanderArt} from './providers/commanderDisplayArt';
@@ -27,7 +28,7 @@ function CommanderPrinting({story,record}){
  const artist=isPreferred?preferred?.artist:record?.card?.artist;
  return <figure className="lore-printing" data-art-treatment={treatment} data-art-printing={isPreferred?preferred?.printingId||'':''} data-commander-oracle-id={record?.card?.oracleId||''}>
   <div className="lore-printing-stage">{source?<img src={source} alt={`${story.name} card — ${label.toLowerCase()}`} loading="lazy" decoding="async" onError={()=>setFailed(current=>new Set(current).add(source))}/>:<span className="lore-printing-placeholder" aria-label={`${story.name} card artwork unavailable`}><span>{story.name.slice(0,1)}</span><small>{record?.loading?'Opening the card archive…':'Card artwork unavailable'}</small></span>}</div>
-  <figcaption><strong>{label}</strong>{artist&&<span>Art by {artist}</span>}{sourceUrl&&<a href={sourceUrl} target="_blank" rel="noreferrer">View exact printing on Scryfall <span aria-hidden="true">↗</span></a>}</figcaption>
+  <figcaption><CardBuyLink card={record?.card||{name:story.name}}/><strong>{label}</strong>{artist&&<span>Art by {artist}</span>}{sourceUrl&&<a href={sourceUrl} target="_blank" rel="noreferrer">View exact printing on Scryfall <span aria-hidden="true">↗</span></a>}</figcaption>
  </figure>;
 }
 
