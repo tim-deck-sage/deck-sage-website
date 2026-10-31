@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { PageHero } from "@/components/PageHero";
+
+export const metadata: Metadata = {
+  title: "Deck Sage Terms of Use",
+  description: "Read the terms for using Deck Sage and its Magic: The Gathering deck and collection tools.",
+  alternates: { canonical: "https://deck-sage.com/terms-of-use/" }
+};
 
 export default function TermsOfUsePage() {
   return (

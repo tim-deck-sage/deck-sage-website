@@ -97,6 +97,9 @@ jobs:
           DECK_SAGE_TURNSTILE_SITE_KEY: 0x4AAAAAAFlK4k01uP8hAbK6
         run: npm run build
 
+      - name: Verify public SEO export and affiliate configuration
+        run: node tests/regression/seo-public.cjs && node tests/regression/affiliate-links.cjs
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

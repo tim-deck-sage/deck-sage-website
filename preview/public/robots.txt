@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://deck-sage.com/sitemap.xml

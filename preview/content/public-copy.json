@@ -1,0 +1,19 @@
+{
+  "title": "Deck Sage | Free AI-Powered MTG Deck & Collection Tools",
+  "description": "Free Magic: The Gathering tools for cards, Commander decks and collections, with on-device card scanning and an optional AI gameplay coach.",
+  "headline": [
+    "Free tools.",
+    "AI help.",
+    "More Magic."
+  ],
+  "intro": "Build and organize Magic: The Gathering decks, explore cards and Commander precons, and get optional on-device AI help. Deck Sage is free to use.",
+  "aiExplanation": "Scan card names on your device and try the optional AI Gameplay Coach on a compatible WebGPU browser. Card search, collection management and rules-based deck checks work alongside AI assistance; not every tool uses a language model.",
+  "privacy": "Browse the public library without signing in. Sign in to manage your private decks and collection. Public guides never include your saved cards or account details.",
+  "shopping": "Website tools are free to use. Physical cards cost money, and purchasing them is optional. Affiliate link — Deck Sage may earn a commission on qualifying purchases.",
+  "bulk": {
+    "title": "Discover Commander decks in the cards you already own.",
+    "description": "Sign in and add cards to My Bulk, then find possible Commander deck cores using learned card relationships. Review owned-card coverage, legal command zones and missing cards before you choose a plan. Some proposals are incomplete; a filled list is not a promise of playability.",
+    "href": "/#/bulk",
+    "action": "Find decks in My Bulk"
+  }
+}

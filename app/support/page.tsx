@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { PageHero } from "@/components/PageHero";
+
+export const metadata: Metadata = {
+  title: "Deck Sage Support",
+  description: "Get help with Deck Sage, ask a question, or report a problem with the deck and collection tools.",
+  alternates: { canonical: "https://deck-sage.com/support/" }
+};
 
 export default function SupportPage() {
   return (

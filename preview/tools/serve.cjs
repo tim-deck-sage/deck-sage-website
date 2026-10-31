@@ -6,6 +6,8 @@ const root = path.resolve(__dirname, '../../out');
 const portFlag = process.argv.indexOf('--port');
 const port = Number(portFlag >= 0 ? process.argv[portFlag + 1] : process.env.PORT || 4184);
 const types = {
+  '.xml': 'application/xml; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
   '.mjs': 'application/javascript; charset=utf-8',
   '.wasm': 'application/wasm',
   '.css': 'text/css; charset=utf-8',
