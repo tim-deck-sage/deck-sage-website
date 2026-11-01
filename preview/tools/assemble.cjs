@@ -37,6 +37,7 @@ allowed.push('scanner-editorial.css','scanner/sorting-1280.webp','scanner/sortin
 allowed.push('sage-workshop.css','sage/workshop-hero.png');
 const ledger=[];
 allowed.push('seo-public.css','precons/index.html','robots.txt','sitemap.xml');
+allowed.push('analytics-config.js','analytics.js','analytics.css');
 allowed.push('commander-swap.css');
 allowed.push('combo-completion.js','combos.css','combo-data/manifest.json');
 allowed.push('commander-combos/convergence-hero-desktop.webp','commander-combos/convergence-hero-mobile.webp');

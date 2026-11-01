@@ -54,7 +54,8 @@
     "test:affiliate:coverage:ui": "node tests/regression/affiliate-renderer-audit.cjs && node tests/regression/affiliate-every-card.cjs && node tests/regression/affiliate-every-card-ui.cjs",
     "test:accounts:confirmation": "node tests/accounts/core-confirmation-flow.cjs",
     "test:seo": "node tests/regression/seo-public.cjs",
-    "test:seo:ui": "node tests/regression/seo-public-ui.cjs"
+    "test:seo:ui": "node tests/regression/seo-public-ui.cjs",
+    "test:analytics": "node tests/regression/analytics-ui.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3",

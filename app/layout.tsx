@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SiteChrome } from "@/components/SiteChrome";
+import { AnalyticsConsent } from "@/components/AnalyticsConsent";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <SiteChrome>{children}</SiteChrome>
+        <AnalyticsConsent />
       </body>
     </html>
   );

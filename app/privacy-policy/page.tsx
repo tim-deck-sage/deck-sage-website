@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
           <h1>Privacy Policy</h1>
           <p className="effective-date">
             <strong>Last updated</strong>
-            <span>October 25, 2026</span>
+            <span>October 31, 2026</span>
           </p>
 
           <section>
@@ -81,6 +81,42 @@ export default function PrivacyPolicyPage() {
               username does not transfer those collections. Contact Support for
               access, correction, or deletion requests. Support verifies account
               ownership independently; knowing a username is insufficient.
+            </p>
+          </section>
+
+          <section id="website-analytics">
+            <h2>Optional website analytics</h2>
+            <p>
+              When you allow analytics, Deck Sage uses the free Google Analytics
+              service to understand visits, navigation between tools, completed
+              analyses, and clicks on affiliate shopping links. Analytics is
+              optional. You can use the website without allowing it.
+            </p>
+            <p>
+              We load Google Analytics only after your choice to allow it.
+              Google may process technical information such as your IP address,
+              browser and device information, and pseudonymous analytics cookie
+              identifiers. Our events use fixed screen and action categories.
+              We do not send your email, username, ZIP code, account identifier,
+              private deck names or lists, prompts, search text, or image contents.
+              Analytics is not used to verify affiliate purchases.
+            </p>
+            <p>
+              We do not enable advertising personalization, Google Signals, or
+              automatic form/search tracking for this integration. Your choice
+              is remembered in this browser. Open Analytics preferences to
+              change it. Declining stops future collection from this integration
+              and clears its first-party Google Analytics cookies; information
+              already processed by Google is not recalled by changing this choice.
+              We also respect supported browser privacy signals.
+            </p>
+            <p>
+              Google handles information under its{" "}
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">
+                privacy policy
+              </a>. Google Analytics reports are available to authorized Deck Sage
+              operators. Website account deletion and browser analytics choices
+              are separate controls; contact Support with questions or requests.
             </p>
           </section>
 
