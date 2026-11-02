@@ -5,7 +5,7 @@ export function accountEntryHref(route,snapshot){return '#/'+(route==='settings'
 
 // Keep authentication in one flow without losing a gated tool/deck destination.
 export function canonicalAccountRoute(route,mode){
- if(mode==='recovery')return 'reset-password';
+ if(mode==='recovery')return requiresAccount(route)||route.split('/')[0]==='account'?'reset-password':route;
  if(mode==='onboarding'&&!requiresAccount(route)&&route.split('/')[0]!=='account')return 'account';
  if(mode==='account'&&route.startsWith('account/')){
   const target=safeReturnRoute(route.slice('account/'.length));

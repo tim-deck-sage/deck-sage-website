@@ -14,6 +14,9 @@ assert.equal(canonicalAccountRoute('account/decks/deck_123','account'),'decks/de
 for(const mode of ['guest','onboarding','account'])assert.equal(canonicalAccountRoute('decks/deck_123',mode),'decks/deck_123');
 assert.equal(canonicalAccountRoute('home','onboarding'),'account');
 assert.equal(canonicalAccountRoute('settings','recovery'),'reset-password');
+assert.equal(canonicalAccountRoute('home','recovery'),'home');
+assert.equal(canonicalAccountRoute('cards','recovery'),'cards');
+assert.equal(canonicalAccountRoute('decks','recovery'),'reset-password');
 assert.equal(canonicalAccountRoute('account','account'),'account');
 for(const target of ['https://example.invalid','//example.invalid','settings?redirect=external','../settings','settings%2f..'])assert.equal(canonicalAccountRoute('account/'+target,'account'),'home');
 for(const target of ['account','account/settings','reset-password'])assert.equal(canonicalAccountRoute('account/'+target,'account'),'settings');

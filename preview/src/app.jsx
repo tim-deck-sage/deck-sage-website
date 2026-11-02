@@ -124,6 +124,7 @@ function App(){
  useEffect(()=>{const warn=e=>{if(accounts.getSnapshot().dirty||batchUploadsRef.current.some(Boolean)){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[accounts]);
  const [compactNavigation,setCompactNavigation]=useState(()=>matchMedia('(max-width:760px)').matches),menuButtonRef=useRef(null),sidebarRef=useRef(null),mainRef=useRef(null),routeFocusReady=useRef(false);
  const [status,setStatus]=useState(null),[route,setRoute]=useState(location.hash.slice(2)||'home'),[modal,setModalState]=useState(null),[toast,setToast]=useState(''),[mobileMenu,setMobileMenu]=useState(false),[storageError,setStorageError]=useState('');
+ useEffect(()=>{if(accountSnapshot.mode==='recovery')location.hash='/reset-password';},[accountSnapshot.mode]);
  useEffect(()=>{const next=canonicalAccountRoute(route,accountSnapshot.mode);if(next!==route)location.replace('#/'+next);},[accountSnapshot.mode,route]);
  const setModal=value=>{if(value&&value.type!=='card'&&accounts.getSnapshot().mode!=='account'){location.hash='/account';return;}setModalState(value?{...value,ownerEpoch:accounts.getSnapshot().epoch}:null);};
  useEffect(()=>{const media=matchMedia('(max-width:760px)'),changed=()=>setCompactNavigation(media.matches);media.addEventListener('change',changed);return()=>media.removeEventListener('change',changed);},[]);
