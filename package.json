@@ -55,7 +55,7 @@
     "test:accounts:confirmation": "node tests/accounts/core-confirmation-flow.cjs",
     "test:seo": "node tests/regression/seo-public.cjs",
     "test:seo:ui": "node tests/regression/seo-public-ui.cjs",
-    "test:analytics": "node tests/regression/analytics-ui.cjs"
+    "test:analytics": "node tests/regression/analytics-ui.cjs && node tests/regression/analytics-preferences-ui.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3",
