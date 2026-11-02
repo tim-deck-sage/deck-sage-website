@@ -11,7 +11,7 @@ const deferred=()=>{let release;const promise=new Promise(resolve=>release=resol
 const response=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}});
 let checks=0;const pass=name=>{checks++;console.log('PASS NATIVE AUTH '+name);};
 function fixture(seed){
- const calls=[],known=new Map([[tokens[A],user(A)],[tokens[B],user(B)]]);let holdUser,holdLogin,recoveryError=false;
+ const calls=[],known=new Map([[tokens[A],user(A)],[tokens[B],user(B)]]);let holdUser,holdLogin,holdSignup,recoveryError=false;
  const storage=new Map(seed?[["native-session",JSON.stringify(seed)]]:[]);
  const fetchImpl=async(input,init={})=>{
   const url=new URL(typeof input==='string'?input:input.url),method=init.method||'GET',headers=new Headers(init.headers),bearer=headers.get('authorization')?.replace(/^Bearer /,'');
@@ -23,7 +23,7 @@ function fixture(seed){
   if(url.pathname==='/auth/v1/user'&&method==='PUT')return known.has(bearer)?response(known.get(bearer)):response({},401);
   if(url.pathname==='/auth/v1/logout')return new Response(null,{status:204});
   if(url.pathname==='/auth/v1/token')return response({access_token:tokens[A],refresh_token:'fixture-refresh-email',expires_in:3600,token_type:'bearer',user:user(A)});
-  if(url.pathname==='/auth/v1/signup')return response({user:user(A),session:null});
+  if(url.pathname==='/auth/v1/signup'){if(holdSignup)await holdSignup.promise;return response({user:user(A),session:null});}
   if(url.pathname==='/auth/v1/recover')return recoveryError?response({msg:'Delivery unavailable'},500):response({});
   if(url.pathname==='/functions/v1/website-core-login'){if(holdLogin)await holdLogin.promise;return response({access_token:tokens[A],refresh_token:'fixture-refresh-a'});}
   if(url.pathname.startsWith('/rest/v1/rpc/'))return response(null);
@@ -31,7 +31,7 @@ function fixture(seed){
  };
  const client=createClient(origin,key,{global:{fetch:fetchImpl},auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false,flowType:'pkce',storageKey:'native-session',storage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}}});
  const api=createCoreBackend(config,client,{fetchImpl});
- return {api,client,calls,known,holdUser:hold=>{holdUser=hold;},holdLogin:hold=>{holdLogin=hold;},recoveryError:value=>{recoveryError=value;},set:async id=>{const result=await client.auth.setSession({access_token:tokens[id],refresh_token:'fixture-refresh-'+id});if(result.error)throw result.error;},close:()=>client.auth.stopAutoRefresh()};
+ return {api,client,calls,known,holdUser:hold=>{holdUser=hold;},holdLogin:hold=>{holdLogin=hold;},holdSignup:hold=>{holdSignup=hold;},recoveryError:value=>{recoveryError=value;},set:async id=>{const result=await client.auth.setSession({access_token:tokens[id],refresh_token:'fixture-refresh-'+id});if(result.error)throw result.error;},close:()=>client.auth.stopAutoRefresh()};
 }
 (async()=>{
  const cached={access_token:token('forged-user'),refresh_token:'forged-refresh',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user:user('forged-user')};
@@ -45,6 +45,7 @@ function fixture(seed){
  const form={username:'fixture_a',zip:'00501',password:'fixture-long-password',email:'fixture@example.invalid',terms:true,privacy:true,captchaToken:'fixture-captcha'};
  await assert.rejects(()=>f.api.signUp({...form,zip:'501'}));await assert.rejects(()=>f.api.signUp({...form,terms:false}));await f.api.signUp(form);const signup=f.calls.find(c=>c.path==='/auth/v1/signup');assert.equal(signup.body.email,form.email);assert.equal(signup.body.password,form.password);assert.equal(JSON.stringify(signup.body).includes('00501'),false);assert.equal(signup.body.data?.zip_code,undefined);pass('native signup validates policy/ZIP and sends password only to Auth, with no ZIP metadata');
  await f.api.recover('fixture@example.invalid','fixture-captcha');f.recoveryError(true);await f.api.recover('unknown@example.invalid','fixture-captcha');const recovery=f.calls.find(c=>c.path==='/auth/v1/recover');const redirect=new URL(recovery.redirect);assert.equal(redirect.origin,'https://deck-sage.com');assert.equal(redirect.pathname,'/');assert.equal(redirect.searchParams.get('accountCallback'),'1');assert.equal(redirect.searchParams.has('next'),false);pass('recovery uses fixed PKCE redirect and opaque results even on delivery failure');
+ const pendingSignup=fixture(),signupHold=deferred();pendingSignup.holdSignup(signupHold);const firstSignup=pendingSignup.api.signUp(form);await new Promise(resolve=>setTimeout(resolve,10));await assert.rejects(()=>pendingSignup.api.signUp(form),/SIGNUP_OUTCOME_UNKNOWN/);assert.equal(pendingSignup.calls.filter(c=>c.path==='/auth/v1/signup').length,1);signupHold.release();await firstSignup;await pendingSignup.close();pass('one in-flight signup protects native PKCE verifier across screen remounts');
  const late=fixture(),loginHold=deferred();late.holdLogin(loginHold);const signingIn=late.api.signIn('fixture_a','fixture-long-password','fixture-captcha');await late.api.signOut();loginHold.release();await assert.rejects(()=>signingIn,/ACCOUNT_CHANGED/);assert.equal((await late.client.auth.getSession()).data.session,null);await late.close();pass('late login response after native logout cannot restore a session');
  await f.api.signIn('verified@example.invalid','fixture-long-password','fixture-captcha');const emailLogin=f.calls.find(c=>c.path==='/auth/v1/token');assert.equal(emailLogin.body.email,'verified@example.invalid');assert.equal(emailLogin.body.gotrue_meta_security.captcha_token,'fixture-captcha');assert.equal((await f.api.identity()).user.id,A);pass('existing verified email/password delegates directly to native Auth with CAPTCHA, without a username profile lookup');
  await assert.rejects(()=>f.api.signIn('verified@example.invalid','fixture-long-password',''),/SIGNIN_UNAVAILABLE/);

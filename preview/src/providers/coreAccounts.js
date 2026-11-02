@@ -31,7 +31,7 @@ export function createCoreBackend(config,clientOverride,{fetchImpl=globalThis.fe
  }).catch(()=>{callbackFailed=true;clearCallback(true);}):Promise.resolve();
  const unwrap=result=>{if(result.error)throw result.error;return result.data;};
  const redirect=new URL('/?accountCallback=1',location.origin).href;
- let cancellation=0;
+ let cancellation=0,signupPending=false;
  const changed=()=>Error('ACCOUNT_CHANGED');
  // The cached session only supplies a token. Auth verifies that exact token.
  async function capture(expected){
@@ -61,7 +61,9 @@ export function createCoreBackend(config,clientOverride,{fetchImpl=globalThis.fe
   async signUp({username,password,email,zip,terms,privacy,captchaToken}){
    const fields=signupFields(username,zip);if(!terms||!privacy)throw Error('CONSENT_REQUIRED');
    if(password.length<12||password.length>256||!captchaToken)throw Error('SIGNUP_UNAVAILABLE');
-   const result=unwrap(await client.auth.signUp({email:email.trim(),password,options:{emailRedirectTo:redirect,captchaToken}}));if(result.session){await api.signOut();throw Error('EMAIL_VERIFICATION_REQUIRED');}return fields;
+   // Protect the PKCE verifier even if the signup screen is unmounted mid-request.
+   if(signupPending)throw Error('SIGNUP_OUTCOME_UNKNOWN');signupPending=true;
+   try{const result=unwrap(await client.auth.signUp({email:email.trim(),password,options:{emailRedirectTo:redirect,captchaToken}}));if(result.session){await api.signOut();throw Error('EMAIL_VERIFICATION_REQUIRED');}if(!result.user?.id)throw Error('SIGNUP_OUTCOME_UNKNOWN');return fields;}finally{signupPending=false;}
   },
   async signIn(username,password,captchaToken){
    const generation=cancellation;
