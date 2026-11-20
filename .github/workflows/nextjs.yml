@@ -36,6 +36,9 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Install dependencies
+        env:
+          # The Pages build uses browser/WASM ONNX, not native CUDA.
+          ONNXRUNTIME_NODE_INSTALL_CUDA: skip
         run: npm ci
 
       - name: Refresh and validate public Scryfall catalog
