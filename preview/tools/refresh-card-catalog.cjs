@@ -8,11 +8,15 @@ const readline=require('node:readline');
 const {Readable,Transform}=require('node:stream');
 const {pipeline}=require('node:stream/promises');
 const zlib=require('node:zlib');
+const {bootstrap,checkBootstrap,validateSnapshot}=require('./card-catalog-fallback.cjs');
 
 const repo=path.resolve(__dirname,'../..');
 const defaultOutput=path.join(repo,'preview/public/card-data');
 const outputArg=process.argv.indexOf('--output');
 const output=path.resolve(outputArg>=0?process.argv[outputArg+1]:defaultOutput);
+const cacheArg=process.argv.indexOf('--fallback-cache');
+const cache=cacheArg>=0?path.resolve(process.argv[cacheArg+1]):null;
+if(cache&&(cache===output||cache.startsWith(output+path.sep)||output.startsWith(cache+path.sep)))throw Error('Card catalog fallback cache must be separate from the output.');
 const metadataUrl=process.env.SCRYFALL_BULK_METADATA_URL||'https://api.scryfall.com/bulk-data';
 const userAgent='DeckSageCatalog/1.0 (https://deck-sage.com; daily public catalog refresh)';
 const roleRoots={
@@ -66,12 +70,15 @@ function validateDataset(entry,type){
  invariant(/^https:\/\/data\.scryfall\.io\/.+\.jsonl\.gz$/.test(entry.jsonl_download_uri||''),`${type} did not provide a trusted JSONL download URI.`);
  invariant(Number.isFinite(Date.parse(entry.updated_at)),`${type} did not provide a valid update timestamp.`);
 }
+class OracleTagsUnavailable extends Error{}
+function checkTagsSize(bytes){if(Number.isFinite(bytes)&&bytes<=1024)throw new OracleTagsUnavailable('oracle_tags download was unexpectedly small.');}
 async function download(entry,file){
  const response=await fetch(entry.jsonl_download_uri,{headers:{Accept:'application/gzip','User-Agent':userAgent}});
  invariant(response.ok&&response.body,`${entry.type} download failed with HTTP ${response.status}.`);
  const digest=crypto.createHash('sha256');let bytes=0;
  const meter=new Transform({transform(chunk,encoding,done){bytes+=chunk.length;digest.update(chunk);done(null,chunk);}});
  await pipeline(Readable.fromWeb(response.body),meter,fs.createWriteStream(file,{flags:'wx'}));
+ if(entry.type==='oracle_tags')checkTagsSize(bytes);
  invariant(bytes>1024,`${entry.type} download was unexpectedly small.`);
  return {bytes,sha256:digest.digest('hex')};
 }
@@ -110,13 +117,20 @@ function safeSwap(temp,target){
  catch(error){if(!fs.existsSync(target)&&moved&&fs.existsSync(backup))fs.renameSync(backup,target);throw error;}
 }
 
-async function main(){
+async function refresh({pinned=false,previousCount=0}={}){
  const previous=loadPrevious(output),parent=path.dirname(output),temp=fs.mkdtempSync(path.join(parent,'.card-data-refresh-'));
  try{
-  const metadata=await requestJson(metadataUrl);invariant(metadata?.object==='list'&&Array.isArray(metadata.data),'Scryfall bulk metadata did not contain a data list.');
+  const metadata=pinned?{object:'list',data:[bootstrap.oracle,bootstrap.tags]}:await requestJson(metadataUrl);invariant(metadata?.object==='list'&&Array.isArray(metadata.data),'Scryfall bulk metadata did not contain a data list.');
   const oracleEntry=metadata.data.find(item=>item.type==='oracle_cards'),tagEntry=metadata.data.find(item=>item.type==='oracle_tags');validateDataset(oracleEntry,'oracle_cards');validateDataset(tagEntry,'oracle_tags');
+  checkTagsSize(tagEntry.compressed_size);
   const oracleFile=path.join(temp,'oracle.jsonl.gz'),tagFile=path.join(temp,'tags.jsonl.gz');
-  const [oracleArchive,tagArchive]=await Promise.all([download(oracleEntry,oracleFile),download(tagEntry,tagFile)]);
+  // Wait for both streams to close before cleaning staged files or falling back.
+  const archives=await Promise.allSettled([download(oracleEntry,oracleFile),download(tagEntry,tagFile)]);
+  // If anything else failed as well, do not mask it with the empty-tag handler.
+  for(const result of archives)if(result.status==='rejected'&&!(result.reason instanceof OracleTagsUnavailable))throw result.reason;
+  for(const result of archives)if(result.status==='rejected')throw result.reason;
+  const [oracleArchive,tagArchive]=archives.map(result=>result.value);
+  if(pinned)invariant(oracleArchive.sha256===bootstrap.oracle.sha256&&tagArchive.sha256===bootstrap.tags.sha256,'Pinned Oracle source pair failed its verified archive hashes.');
   const tags=await readTags(tagFile),roles=roleAssignments(tags),cards=new Map(),oracleRaw=new Map(),duplicateIds=[];
   const oracleCount=await eachJsonl(oracleFile,card=>{
    invariant(card?.object==='card'&&/^[0-9a-f-]{36}$/i.test(card.oracle_id||'')&&typeof card.name==='string'&&typeof card.type_line==='string'&&card.legalities&&typeof card.legalities==='object',`Invalid Oracle card record ${card?.id||'(unknown)'}.`);
@@ -126,6 +140,7 @@ async function main(){
   invariant(duplicateIds.length===0,`Oracle dataset contained duplicate identities: ${duplicateIds.slice(0,3).join(', ')}.`);
   invariant(oracleCount>=30000,`Oracle dataset collapsed to ${oracleCount} records.`);
   if(previous.previousScryfall)invariant(oracleCount>=Math.floor(previous.previousScryfall*.97),`Oracle dataset dropped from ${previous.previousScryfall} to ${oracleCount} records.`);
+  if(previousCount)invariant(oracleCount>=Math.floor(previousCount*.97),`Oracle dataset dropped from the verified fallback count of ${previousCount} to ${oracleCount} records.`);
   for(const historical of previous.cards){const id=historical.oracleId||historical.id;if(!cards.has(id))cards.set(id,historical);}
   const aliases=new Map();
   for(const [name,id,confidence] of previous.aliases)if(cards.has(id))addAlias(aliases,name,id,Number(confidence)||0);
@@ -147,11 +162,69 @@ async function main(){
   fs.rmSync(oracleFile);fs.rmSync(tagFile);const files={};writeGzip(temp,'search-index.json.gz',{fields,cards:rows,aliases:aliasRows},files);for(const [shard,value] of [...shards].sort())writeGzip(temp,`cards-${shard}.json.gz`,value,files);
   invariant(Object.keys(files).length===257,'Catalog did not produce one index and 256 shards.');
   for(const [name,entry] of Object.entries(files)){const blob=fs.readFileSync(path.join(temp,name));invariant(blob.length===entry.bytes&&sha(blob)===entry.sha256,`Generated file validation failed for ${name}.`);}
-  const indexHash=files['search-index.json.gz'].sha256,catalogVersion=`${oracleEntry.updated_at.replace(/[^0-9]/g,'').slice(0,14)}-${indexHash.slice(0,12)}`,generatedAt=new Date().toISOString();
-  const status={appCommit:process.env.GITHUB_SHA||previous.manifest?.status?.appCommit||null,sourceDatabaseSha256:previous.manifest?.status?.sourceDatabaseSha256||null,sourceDatabaseCards:previous.manifest?.status?.sourceDatabaseCards||null,cards:rows.length,fullDataCards:oracleCount,historicalCards:previous.cards.length,rulesTextCards,aliases:aliasRows.length,roleTaggedCards,bulkUpdatedAt:oracleEntry.updated_at,tagUpdatedAt:tagEntry.updated_at,lastSuccessfulRefresh:generatedAt,catalogVersion,archiveSha256:oracleArchive.sha256,tagsArchiveSha256:tagArchive.sha256,orphanTaggings,totalTaggings,integrity:'ok',generatedAt,source:'https://scryfall.com/docs/api/bulk-data',classificationSource:'Scryfall Oracle Tags (community-maintained) plus narrow rules-text fallbacks',mode:'browser-local-static',cloudConnected:false,modelInstalled:false,databaseReadOnly:true};
+  const indexHash=files['search-index.json.gz'].sha256,catalogVersion=`${oracleEntry.updated_at.replace(/[^0-9]/g,'').slice(0,14)}-${indexHash.slice(0,12)}`,generatedAt=pinned?bootstrap.lastSuccessfulRefresh:new Date().toISOString();
+  const status={appCommit:pinned?bootstrap.appCommit:process.env.GITHUB_SHA||previous.manifest?.status?.appCommit||null,sourceDatabaseSha256:previous.manifest?.status?.sourceDatabaseSha256||null,sourceDatabaseCards:previous.manifest?.status?.sourceDatabaseCards||null,cards:rows.length,fullDataCards:oracleCount,historicalCards:previous.cards.length,rulesTextCards,aliases:aliasRows.length,roleTaggedCards,bulkUpdatedAt:oracleEntry.updated_at,tagUpdatedAt:tagEntry.updated_at,lastSuccessfulRefresh:generatedAt,catalogVersion,archiveSha256:oracleArchive.sha256,tagsArchiveSha256:tagArchive.sha256,orphanTaggings,totalTaggings,integrity:'ok',generatedAt,source:'https://scryfall.com/docs/api/bulk-data',classificationSource:'Scryfall Oracle Tags (community-maintained) plus narrow rules-text fallbacks',mode:'browser-local-static',cloudConnected:false,modelInstalled:false,databaseReadOnly:true};
   const manifest={version:2,catalogVersion,cards:rows.length,status,files,publicDataOnly:true,schema:'deck-sage-static-v2'};fs.writeFileSync(path.join(temp,'manifest.json'),json(manifest));
+  if(pinned){
+   invariant(catalogVersion===bootstrap.catalogVersion,'Pinned Oracle source pair did not recreate the deployed catalog fingerprint.');
+   status.refreshFallback={reason:'oracle-tags-empty',source:'verified-pinned-scryfall-pair',usedAt:new Date().toISOString()};
+   fs.writeFileSync(path.join(temp,'manifest.json'),json(manifest));
+   validateSnapshot(temp);
+  }
   safeSwap(temp,output);console.log(JSON.stringify({catalogVersion,cards:rows.length,scryfallCards:oracleCount,historicalCards:previous.cards.length,aliases:aliasRows.length,roleTaggedCards,orphanTaggings,totalTaggings,bulkUpdatedAt:oracleEntry.updated_at,tagUpdatedAt:tagEntry.updated_at,compressedBytes:Object.values(files).reduce((sum,file)=>sum+file.bytes,0)},null,2));
  }catch(error){fs.rmSync(temp,{recursive:true,force:true});throw error;}
 }
 
+function publishMode(mode){
+ if(process.env.GITHUB_OUTPUT)fs.appendFileSync(process.env.GITHUB_OUTPUT,`refresh_mode=${mode}\n`);
+}
+function copyFiles(source,target){
+ for(const name of fs.readdirSync(source)){
+  fs.copyFileSync(path.join(source,name),path.join(target,name),fs.constants.COPYFILE_EXCL);
+ }
+}
+function saveSnapshot(){
+ // Only validated source-refresh output (fresh or the pinned bootstrap) can seed a cache.
+ validateSnapshot(output);
+ fs.mkdirSync(path.dirname(cache),{recursive:true});
+ const temp=fs.mkdtempSync(path.join(path.dirname(cache),'.card-data-cache-'));
+ try{copyFiles(output,temp);safeSwap(temp,cache);}catch(error){fs.rmSync(temp,{recursive:true,force:true});throw error;}
+}
+function useCachedSnapshot(){
+ validateSnapshot(cache);
+ const temp=fs.mkdtempSync(path.join(path.dirname(output),'.card-data-fallback-'));
+ try{
+  copyFiles(cache,temp);
+  const manifest=validateSnapshot(temp);
+  manifest.status.refreshFallback={reason:'oracle-tags-empty',source:manifest.status.refreshFallback?.source||'validated-actions-cache',servedFrom:'validated-actions-cache',usedAt:new Date().toISOString()};
+  fs.writeFileSync(path.join(temp,'manifest.json'),json(manifest));
+  safeSwap(temp,output);
+  return manifest.status.lastSuccessfulRefresh;
+ }catch(error){fs.rmSync(temp,{recursive:true,force:true});throw error;}
+}
+async function main(){
+ let previousCount=0;
+ if(cache&&fs.existsSync(cache)){
+  try{previousCount=validateSnapshot(cache).status.fullDataCards;}
+  catch(error){console.warn('::warning::Restored card catalog cache cannot be used: '+error.message);}
+ }
+ try{await refresh({previousCount});}
+ catch(error){
+  if(!cache||!(error instanceof OracleTagsUnavailable))throw error;
+  if(fs.existsSync(cache)){
+   const knownGood=useCachedSnapshot();
+   console.warn('::warning::Scryfall Oracle Tags is incomplete. Reusing the entire validated catalog from '+knownGood+'.');
+   publishMode('cache');
+  }else{
+   checkBootstrap(Date.now());
+   await refresh({pinned:true});
+   saveSnapshot();
+   console.warn('::warning::Scryfall Oracle Tags is incomplete. Recreated the entire last validated catalog from '+bootstrap.lastSuccessfulRefresh+'.');
+   publishMode('bootstrap');
+  }
+  return;
+ }
+ if(cache)saveSnapshot();
+ publishMode('fresh');
+}
 main().catch(error=>{console.error(error.stack||error);process.exitCode=1;});

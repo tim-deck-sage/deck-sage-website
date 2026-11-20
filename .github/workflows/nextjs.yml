@@ -41,14 +41,35 @@ jobs:
           ONNXRUNTIME_NODE_INSTALL_CUDA: skip
         run: npm ci
 
+      - name: Restore last validated Scryfall catalog
+        if: github.ref == 'refs/heads/main'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/deck-sage-card-data-v2
+          key: card-data-v2-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: card-data-v2-
+
       - name: Refresh and validate public Scryfall catalog
-        run: node preview/tools/refresh-card-catalog.cjs
+        id: catalog
+        run: |
+          if [[ "$GITHUB_REF" == 'refs/heads/main' ]]; then
+            node preview/tools/refresh-card-catalog.cjs --fallback-cache "$RUNNER_TEMP/deck-sage-card-data-v2"
+          else
+            node preview/tools/refresh-card-catalog.cjs
+          fi
 
       - name: Test catalog filters and refresh guards
-        run: node tests/regression/card-library-search.cjs && node tests/regression/card-catalog-refresh.cjs
+        run: node tests/regression/card-library-search.cjs && node tests/regression/card-catalog-refresh.cjs && node tests/regression/card-catalog-fallback.cjs
 
       - name: Test hardening contracts
         run: node tests/regression/hardening-contracts.cjs
+
+      - name: Preserve validated Scryfall catalog
+        if: github.ref == 'refs/heads/main' && (steps.catalog.outputs.refresh_mode == 'fresh' || steps.catalog.outputs.refresh_mode == 'bootstrap')
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/deck-sage-card-data-v2
+          key: card-data-v2-${{ github.run_id }}-${{ github.run_attempt }}
 
       # Restore the last validated daily snapshot, not just the older checked-in baseline.
       - name: Restore last known good precon catalog
